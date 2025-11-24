@@ -6,7 +6,7 @@ const Navbar: React.FC = () => {
     <header className="bg-gray-800 text-gray-100 p-3 shadow">
       <div className="max-w-6xl mx-auto flex items-center justify-between gap-4">
         <div className="flex items-center gap-4">
-          <button className="text-gray-100 hover:text-white p-2 rounded-md hidden md:inline-flex">
+          <button className="text-gray-100 hover:text-white p-2 rounded-md hidden md:inline-flex" >
             <FaSearch />
           </button>
           <div className="text-lg font-semibold">Dashboard</div>
