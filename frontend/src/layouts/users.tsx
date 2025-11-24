@@ -66,13 +66,19 @@ export default function UsersLayout() {
 							</button>
 						</div>
 
-						<div className="relative">
+						<div className="flex items-center gap-2">
 							<input
 								value={query}
 								onChange={(e) => setQuery(e.target.value)}
 								placeholder="Search name or email..."
 								className="w-60 rounded-md border border-gray-200 bg-white px-3 py-1 text-sm shadow-sm focus:outline-none"
 							/>
+							<button
+								onClick={() => alert('Add user clicked')}
+								className="ml-2 rounded-md bg-indigo-600 px-3 py-1 text-sm font-medium text-white shadow-sm hover:bg-indigo-700"
+							>
+								Add user
+							</button>
 						</div>
 					</div>
 				</div>
@@ -97,8 +103,12 @@ export default function UsersLayout() {
 
 							<div className="mt-3 flex items-center justify-between text-sm text-gray-500">
 								<div className="flex gap-2">
-									<button className="rounded-md bg-indigo-50 px-2 py-1 text-indigo-700">View</button>
-									<button className="rounded-md border border-gray-200 px-2 py-1">More</button>
+									<button className="rounded-md bg-green-50 px-2 py-1 text-green-700 hover:bg-green-100">Activate Account</button>
+									<button className="rounded-md bg-yellow-50 px-2 py-1 text-yellow-700 hover:bg-yellow-100">Deactivate Account</button>
+									<button className="rounded-md bg-red-50 px-2 py-1 text-red-700 hover:bg-red-100">Ban from Comments</button>
+									<button className="rounded-md bg-green-50 px-2 py-1 text-green-700 hover:bg-green-100">Unban from Comments</button>
+									<button className="rounded-md bg-blue-50 px-2 py-1 text-blue-700 hover:bg-blue-100">Edit User</button>
+									<button className="rounded-md bg-red-600 px-2 py-1 text-white hover:bg-red-700">Delete</button>
 								</div>
 							</div>
 						</div>
@@ -106,7 +116,7 @@ export default function UsersLayout() {
 
 					{filtered.length === 0 && (
 						<div className="col-span-full rounded-lg bg-white p-6 text-center text-gray-500 shadow">
-							No users match the current filter.
+							Cannot find user.
 						</div>
 					)}
 				</div>
