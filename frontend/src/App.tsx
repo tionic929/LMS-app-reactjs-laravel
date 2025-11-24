@@ -12,10 +12,8 @@ function App() {
     <Router>
       <div className="h-screen flex">
         <Sidebar />
-
         <div className="flex-1 flex flex-col">
           <Navbar />
-
           <Routes>
             <Route path="/" element={
               <main className="flex-1 overflow-auto p-6">
@@ -50,7 +48,6 @@ function App() {
             } />
             <Route path="/announcements" element={<AnnouncementsPage />} />
           </Routes>
-
           <Footer />
         </div>
       </div>
