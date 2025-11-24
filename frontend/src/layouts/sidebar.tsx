@@ -3,7 +3,7 @@ import { FaHome, FaUser, FaCog, FaSignOutAlt } from 'react-icons/fa'
 
 const Sidebar: React.FC = () => {
   return (
-    <aside className="w-64 bg-gray-800 text-gray-100 min-h-screen p-4 hidden md:flex md:flex-col">
+    <aside className="w-64 bg-gray-800 text-gray-100 h-full p-4 hidden md:flex md:flex-col">
       <div className="flex items-center gap-3 px-2 py-4">
         <div className="text-2xl font-bold">MyApp</div>
       </div>
