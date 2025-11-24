@@ -1,9 +1,9 @@
 import viteLogo from '/vite.svg'
 import reactLogo from './assets/react.svg'
 import Sidebar from './layouts/sidebar'
+import Navbar from './layouts/navbar'
 import Footer from './layouts/footer'
 import './App.css'
-import Navbar from './layouts/navbar'
 
 function App() {
   return (
@@ -11,6 +11,8 @@ function App() {
       <Sidebar />
 
       <div className="flex-1 flex flex-col">
+        <Navbar />
+
         <main className="flex-1 overflow-auto p-6">
           <div className="max-w-6xl mx-auto">
             <div className="flex gap-4 items-center mb-6">
