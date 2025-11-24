@@ -4,6 +4,7 @@ import { useState } from "react";
 const AnnouncementsPage: React.FC = () => {
   const [query, setQuery] = useState("");
   const [activeFilter, setActiveFilter] = useState("all");
+  const [hoveredCard, setHoveredCard] = useState<number | null>(null);
 
   const getAnnouncementStyles = (type: string) => {
     switch (type) {
@@ -193,11 +194,25 @@ const AnnouncementsPage: React.FC = () => {
               return (
                 <div
                   key={announcement.id}
-                  className={`bg-white rounded-lg shadow-xl hover:shadow-2xl hover:scale-105 transition-[transform,box-shadow] duration-300 ease-in-out border-b-4 ${styles.borderColor}`}
+                  className={`bg-white rounded-lg shadow-xl hover:shadow-2xl  ${styles.borderColor} overflow-hidden`}
                 >
+                  <div className="flex items-stretch">
+                    {/* Main card content (compresses when active) */}
+                    <div
+                      className={`cursor-pointer transition-all duration-300 ease-in-out ${
+                        hoveredCard === announcement.id ? 'w-4/5' : 'w-full'
+                      }`}
+                      onClick={() =>
+                        setHoveredCard(
+                          hoveredCard === announcement.id ? null : announcement.id
+                        )
+                      }
+                    >
                   {/* Colored header section */}
                   <div
-                    className={`${styles.headerColor} text-white px-6 py-4 rounded-t-lg`}
+                    className={`${styles.headerColor} text-white px-6 py-4 ${
+                        hoveredCard === announcement.id ? '' : 'rounded-t-lg'
+                    }`}
                   >
                     <div className="flex flex-row justify-between items-center">
                       <h2 className="text-xl font-semibold mb-1">
@@ -216,9 +231,53 @@ const AnnouncementsPage: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Card content */}
-                  <div className="p-6">
-                    <p className="text-gray-600 mb-3">{announcement.content}</p>
+                      {/* Card content */}
+                      <div className="p-6">
+                        <p className="text-gray-600 mb-3">{announcement.content}</p>
+                      </div>
+                    </div>
+
+                    {/* Action buttons (with smooth swiping animation) */}
+                    <div className={`flex overflow-hidden transition-all duration-300 ease-in-out ${
+                      hoveredCard === announcement.id ? 'w-1/5 opacity-100' : 'w-0 opacity-0'
+                    }`}>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          alert(`Edit announcement: ${announcement.title}`);
+                          setHoveredCard(null);
+                        }}
+                        className={`flex-1 flex flex-col items-center justify-center bg-blue-500 hover:bg-blue-600 text-white border-r border-blue-600 transition-all duration-300 ease-in-out transform ${
+                          hoveredCard === announcement.id ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0'
+                        }`}
+                        title="Edit announcement"
+                        style={{ transitionDelay: hoveredCard === announcement.id ? '150ms' : '0ms' }}
+                      >
+                        <svg className="h-5 w-5 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        </svg>
+                        <span className="text-xs font-medium">Edit</span>
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (window.confirm(`Are you sure you want to delete "${announcement.title}"?`)) {
+                            alert(`Delete announcement: ${announcement.title}`);
+                          }
+                          setHoveredCard(null);
+                        }}
+                        className={`flex-1 flex flex-col items-center justify-center bg-red-500 hover:bg-red-600 text-white transition-all duration-300 ease-in-out transform ${
+                          hoveredCard === announcement.id ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0'
+                        }`}
+                        title="Delete announcement"
+                        style={{ transitionDelay: hoveredCard === announcement.id ? '200ms' : '0ms' }}
+                      >
+                        <svg className="h-5 w-5 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                        <span className="text-xs font-medium">Delete</span>
+                      </button>
+                    </div>
                   </div>
                 </div>
               );
