@@ -1,5 +1,6 @@
-import React from 'react'
-import { FaHome, FaUser, FaCog, FaSignOutAlt } from 'react-icons/fa'
+import React from "react";
+import { FaHome, FaUser, FaCog, FaSignOutAlt } from "react-icons/fa";
+import { Link } from "react-router-dom";
 
 const Sidebar: React.FC = () => {
   return (
@@ -9,15 +10,33 @@ const Sidebar: React.FC = () => {
       </div>
 
       <nav className="mt-4 flex-1">
-        <a className="flex items-center gap-3 px-3 py-2 rounded hover:bg-gray-700" href="#">
+        
+        <Link
+          to="/"
+          className="flex items-center gap-3 px-3 py-2 rounded hover:bg-gray-700"
+        >
           <FaHome className="w-5 h-5" />
           <span>Home</span>
-        </a>
-        <a className="flex items-center gap-3 px-3 py-2 rounded hover:bg-gray-700 mt-1" href="#">
+        </Link>
+
+        <a
+          className="flex items-center gap-3 px-3 py-2 rounded hover:bg-gray-700 mt-1"
+          href="#"
+        >
           <FaUser className="w-5 h-5" />
           <span>Profile</span>
         </a>
-        <a className="flex items-center gap-3 px-3 py-2 rounded hover:bg-gray-700 mt-1" href="#">
+        <Link
+          to="/announcements"
+          className="flex items-center gap-3 px-3 py-2 rounded hover:bg-gray-700 mt-1"
+        >
+          <FaHome className="w-5 h-5" />
+          <span>Announcements</span>
+        </Link>
+        <a
+          className="flex items-center gap-3 px-3 py-2 rounded hover:bg-gray-700 mt-1"
+          href="#"
+        >
           <FaCog className="w-5 h-5" />
           <span>Settings</span>
         </a>
@@ -30,7 +49,7 @@ const Sidebar: React.FC = () => {
         </button>
       </div>
     </aside>
-  )
-}
+  );
+};
 
-export default Sidebar
+export default Sidebar;
