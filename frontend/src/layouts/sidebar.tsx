@@ -1,5 +1,5 @@
 import React from 'react'
-import { FaHome, FaUser, FaCog, FaSignOutAlt } from 'react-icons/fa'
+import { FaHome, FaUser, FaCog, FaSignOutAlt, FaUsers } from 'react-icons/fa'
 
 const Sidebar: React.FC = () => {
   return (
@@ -16,6 +16,10 @@ const Sidebar: React.FC = () => {
         <a className="flex items-center gap-3 px-3 py-2 rounded hover:bg-gray-700 mt-1" href="#">
           <FaUser className="w-5 h-5" />
           <span>Profile</span>
+        </a>
+        <a className="flex items-center gap-3 px-3 py-2 rounded hover:bg-gray-700 mt-1" href="#/users">
+          <FaUsers className="w-5 h-5" />
+          <span>Users</span>
         </a>
         <a className="flex items-center gap-3 px-3 py-2 rounded hover:bg-gray-700 mt-1" href="#">
           <FaCog className="w-5 h-5" />
