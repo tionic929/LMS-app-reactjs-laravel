@@ -11,7 +11,6 @@ import UsersList from './pages/UsersList'
 import Announcements from './pages/AnnouncementsPage'
 import Courses from './pages/Course'
 import Register from './pages/Register'
-import Login from './pages/Login'
 import './App.css'
 
 const App: React.FC = () => {
