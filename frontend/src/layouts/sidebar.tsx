@@ -1,5 +1,6 @@
 import React from "react";
-import { FaHome, FaCog, FaUsers  } from "react-icons/fa";
+import { FaHome, FaUsers,  } from "react-icons/fa";
+import { FaArrowUpRightFromSquare, FaArrowRightFromBracket } from "react-icons/fa6";
 import { BsMegaphoneFill } from "react-icons/bs";
 import { FaBook } from "react-icons/fa6";
 import { Link } from "react-router-dom";
@@ -45,14 +46,14 @@ const Sidebar: React.FC = () => {
           to="/login"
           className="flex items-center gap-3 px-3 py-2 rounded hover:bg-gray-700 mt-1"
         >
-          <FaCog className="w-5 h-5" />
+          <FaArrowRightFromBracket className="w-5 h-5" />
           <span>Login</span>
         </Link>
         <Link
           to="/register"
           className="flex items-center gap-3 px-3 py-2 rounded hover:bg-gray-700 mt-1"
         >
-          <FaCog className="w-5 h-5" />
+          <FaArrowUpRightFromSquare className="w-5 h-5" />
           <span>Register</span>
         </Link>
       </nav>

@@ -9,7 +9,7 @@ interface User {
 	role: Role
 }
 
-const Users: User[] = [
+const UsersData: User[] = [
 	{ id: 1, name: 'Alice Johnson', email: 'alice@example.com', role: 'instructor' },
 	{ id: 2, name: 'Bob Smith', email: 'bob@example.com', role: 'student' },
 	{ id: 3, name: 'Carla Ruiz', email: 'carla@example.com', role: 'instructor' },
@@ -22,13 +22,13 @@ const Users: User[] = [
 
 const roleLabel = (r: Role) => (r === 'instructor' ? 'Instructor' : 'Student')
 
-export default function UsersLayout() {
+const Users: React.FC = () => {
 	const [filter, setFilter] = useState<'all' | Role>('all')
 	const [query, setQuery] = useState('')
 
 	const filtered = useMemo(() => {
 		const q = query.trim().toLowerCase()
-		return Users.filter((u) => {
+		return UsersData.filter((u) => {
 			if (filter !== 'all' && u.role !== filter) return false
 			if (!q) return true
 			return (u.name + u.email).toLowerCase().includes(q)
@@ -127,3 +127,4 @@ export default function UsersLayout() {
 	)
 }
 
+export default Users

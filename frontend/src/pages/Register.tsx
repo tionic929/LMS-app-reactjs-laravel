@@ -2,7 +2,7 @@ import { useState } from 'react'
 
 type Role = 'instructor' | 'student'
 
-export default function RegisterLayout() {
+const Register: React.FC = () => {
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -92,3 +92,5 @@ export default function RegisterLayout() {
     </main>
   )
 }
+
+export default Register
