@@ -1,5 +1,6 @@
 import React from 'react'
-import { FaHome, FaUser, FaCog, FaSignOutAlt, FaUsers } from 'react-icons/fa'
+import { FaHome, FaUser, FaCog, FaSignOutAlt, FaUsers, FaSignInAlt } from 'react-icons/fa'
+import { IoLogIn } from "react-icons/io5";
 
 const Sidebar: React.FC = () => {
   return (
@@ -22,11 +23,11 @@ const Sidebar: React.FC = () => {
           <span>Users</span>
         </a>
         <a className="flex items-center gap-3 px-3 py-2 rounded hover:bg-gray-700 mt-1" href="#/register">
-          <FaUsers className="w-5 h-5" />
+          <FaSignInAlt className="w-5 h-5" />
           <span>Register</span>
         </a>
         <a className="flex items-center gap-3 px-3 py-2 rounded hover:bg-gray-700 mt-1" href="#/login">
-          <FaUsers className="w-5 h-5" />
+          <IoLogIn className="w-5 h-5" />
           <span>Login</span>
         </a>
         <a className="flex items-center gap-3 px-3 py-2 rounded hover:bg-gray-700 mt-1" href="#">
