@@ -1,5 +1,5 @@
 import React from 'react'
-import { FaBell, FaUserCircle, FaSearch } from 'react-icons/fa'
+import { FaBell, FaUserCircle } from 'react-icons/fa'
 
 const Navbar: React.FC = () => {
   return (
