@@ -3,6 +3,8 @@ import Sidebar from './layouts/sidebar'
 import Navbar from './layouts/navbar'
 import Footer from './layouts/footer'
 import Users from './layouts/users'
+import Register from './layouts/Register'
+import Login from './layouts/Login'
 import './App.css'
 
 function App() {
@@ -16,6 +18,8 @@ function App() {
 
   const renderMain = () => {
     if (route === '/users') return <Users />
+    else if (route === '/register') return <Register />
+    else if (route === '/login') return <Login />
 
     return (
       <div className="w-full h-full flex items-center justify-center">

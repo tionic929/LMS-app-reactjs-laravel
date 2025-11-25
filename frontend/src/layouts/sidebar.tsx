@@ -21,6 +21,14 @@ const Sidebar: React.FC = () => {
           <FaUsers className="w-5 h-5" />
           <span>Users</span>
         </a>
+        <a className="flex items-center gap-3 px-3 py-2 rounded hover:bg-gray-700 mt-1" href="#/register">
+          <FaUsers className="w-5 h-5" />
+          <span>Register</span>
+        </a>
+        <a className="flex items-center gap-3 px-3 py-2 rounded hover:bg-gray-700 mt-1" href="#/login">
+          <FaUsers className="w-5 h-5" />
+          <span>Login</span>
+        </a>
         <a className="flex items-center gap-3 px-3 py-2 rounded hover:bg-gray-700 mt-1" href="#">
           <FaCog className="w-5 h-5" />
           <span>Settings</span>
