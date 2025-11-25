@@ -31,10 +31,21 @@ class AuthController extends Controller
 
     public function logout(Request $request)
     {
+        \Log::info("LOGOUT START", [
+            "csrf_token" => $request->header("X-XSRF-TOKEN"),
+            "session_id" => $request->session()->getId(),
+        ]);
+
         Auth::logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
+        \Log::info("LOGOUT END", [
+            "new_session_id" => $request->session()->getId(),
+            "new_csrf" => csrf_token(),
+        ]);
+
         return response()->json(['message' => 'Logged out']);
     }
+
 }

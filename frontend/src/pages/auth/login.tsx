@@ -12,9 +12,7 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center">
-      
-      {/* Login Card: Minimalist design */}
+    <div className="flex align-center items-center justify-center h-full w-full">
       <div className="w-full max-w-sm bg-white p-8 rounded-xl shadow-lg border border-gray-100">
         
         <h2 className="text-3xl font-bold text-center text-gray-800 mb-8">

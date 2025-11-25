@@ -1,15 +1,13 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\UsersController;
-use App\Http\Controllers\CoursesController;
-use App\Http\Controllers\NotificationsController;
-use App\Http\Controllers\DiscussionsController;
+use App\Http\Controllers\AuthController;
+use Illuminate\Http\Request;
 
-Route::resource('users', UsersController::class);
-Route::resource('courses', CoursesController::class);
-Route::resource('notifications', NotificationsController::class);
-Route::resource('announcements', DiscussionsController::class);
+
+Route::post('/login', [AuthController::class, 'login']);
+Route::post('/logout', [AuthController::class, 'logout']);
+Route::get('/user', [AuthController::class, 'user'])->middleware('auth:sanctum');
 
 Route::middleware(['auth:sanctum', 'role:admin'])
     ->get('/admin/dashboard', fn() => ['message' => 'Admin Access']);

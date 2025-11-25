@@ -17,7 +17,7 @@ const App: React.FC = () => {
   return (
     <div className="h-screen flex">
       {user && <Sidebar />}
-      <div className="flex-1 flex flex-col justify-center align-center min-h-screen py-10">
+      <div className="flex-1 flex flex-col justify-center align-center ">
         {user && <Navbar />}
         <main className="flex-1 justify-center overflow-auto p-6">
             <Routes>
