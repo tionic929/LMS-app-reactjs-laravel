@@ -3,11 +3,12 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use Illuminate\Http\Request;
-
+use App\Http\Controllers\UsersController;
 
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/logout', [AuthController::class, 'logout']);
 Route::get('/user', [AuthController::class, 'user'])->middleware('auth:sanctum');
+Route::resource('users', UsersController::class)->except(['create', 'edit']);
 
 Route::middleware(['auth:sanctum', 'role:admin'])
     ->get('/admin/dashboard', fn() => ['message' => 'Admin Access']);
