@@ -22,7 +22,7 @@ const UsersList: User[] = [
 
 const roleLabel = (r: Role) => (r === 'instructor' ? 'Instructor' : 'Student')
 
-export default function UsersLayout() {
+const Users: React.FC = () => {
 	const [filter, setFilter] = useState<'all' | Role>('all')
 	const [query, setQuery] = useState('')
 
@@ -127,3 +127,4 @@ export default function UsersLayout() {
 	)
 }
 
+export default Users
