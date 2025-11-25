@@ -9,7 +9,6 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import { useAuth } from "./contexts/AuthContext";
 import UsersList from './pages/UsersList'
 import Announcements from './pages/AnnouncementsPage'
-import Register from './pages/Register'
 import './App.css'
 
 const App: React.FC = () => {
@@ -28,8 +27,6 @@ const App: React.FC = () => {
                 <Route path="/" element={<Dashboard />} />
                 <Route path="/users" element={<UsersList />} />
                 <Route path="/announcements" element={<Announcements />} />
-                <Route path="/register" element={<Register />} />
-                <Route path="/login" element={<Login />} />
               </Route>
             </Routes>
         </main>
