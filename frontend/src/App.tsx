@@ -2,9 +2,9 @@ import { useEffect, useState } from 'react'
 import Sidebar from './layouts/sidebar'
 import Navbar from './layouts/navbar'
 import Footer from './layouts/footer'
-import Users from './layouts/users'
-import Register from './layouts/Register'
-import Login from './layouts/Login'
+import Users from './pages/users'
+import Register from './pages/Register'
+import Login from './pages/Login'
 import './App.css'
 
 function App() {
