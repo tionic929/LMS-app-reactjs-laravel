@@ -6,6 +6,7 @@ import Navbar from './layouts/navbar'
 import Footer from './layouts/footer'
 import Users from './pages/Users'
 import Announcements from './pages/AnnouncementsPage'
+import Courses from './pages/Course'
 import Register from './pages/Register'
 import Login from './pages/Login'
 import './App.css'
@@ -50,6 +51,7 @@ function App() {
             } />
             <Route path="/users" element={<Users />} />
             <Route path="/announcements" element={<Announcements />} />
+            <Route path="/courses" element={<Courses />} />
             <Route path="/register" element={<Register />} />
             <Route path="/login" element={<Login />} />
           </Routes>
