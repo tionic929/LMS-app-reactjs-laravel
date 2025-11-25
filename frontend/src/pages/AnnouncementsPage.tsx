@@ -104,6 +104,7 @@ const AnnouncementsPage: React.FC = () => {
               className="w-60 rounded-md border border-gray-200 bg-white px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
             <select
+              title="filter"
               value={activeFilter}
               onChange={(e) => setActiveFilter(e.target.value)}
               className="px-3 py-2 rounded-md border border-gray-200 bg-white text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[100px]"

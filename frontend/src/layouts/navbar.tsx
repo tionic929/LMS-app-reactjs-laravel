@@ -14,9 +14,9 @@ const Navbar: React.FC = () => {
   };
 
   return (
-    <header className="fixed top-0 left-16 right-0 bg-gray-800 text-gray-100 p-3 shadow z-30">
-      <div className="max-w-6xl mx-auto flex items-center justify-between gap-4">
-        <div className="flex items-center gap-4">
+    <nav className="top-0 bg-gray-800 text-gray-100 shadow p-4">
+      <div className="max-w-8xl mx-auto flex items-center justify-between gap-4">
+        <div className="flex items-start gap-4">
           <button aria-label="Search" className="text-gray-100 hover:text-white p-2 rounded-md hidden md:inline-flex" >
             <FaSearch />
           </button>
@@ -29,7 +29,7 @@ const Navbar: React.FC = () => {
           </button>
 
           <div className="flex items-center gap-2">
-            <button className="flex items-center gap-2 p-1 rounded-md hover:bg-gray-700">
+            <button className="flex items-center gap-2 p-3 rounded-md hover:bg-gray-700">
               <FaUserCircle className="w-6 h-6" />
               <span className="hidden sm:inline">{user?.name ?? 'Account'}{user?.role ?? 'Role Not Found'}</span>
             </button>
@@ -40,7 +40,7 @@ const Navbar: React.FC = () => {
           </div>
         </div>
       </div>
-    </header>
+    </nav>
   );
 };
 
