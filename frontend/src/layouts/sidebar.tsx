@@ -1,7 +1,7 @@
 // Sidebar.jsx (The Fixed Component)
 
 import React from "react";
-import { FaHome, FaUsers,  } from "react-icons/fa";
+import { FaHome, FaUsers, FaUserCircle  } from "react-icons/fa";
 import { FaArrowUpRightFromSquare, FaArrowRightFromBracket } from "react-icons/fa6";
 import { BsMegaphoneFill } from "react-icons/bs";
 import { FaBook } from "react-icons/fa6";
@@ -43,6 +43,13 @@ const Sidebar: React.FC = () => {
         >
           <FaBook className="w-5 h-5" />
           <span>Courses</span>
+        </Link>
+        <Link
+          to="/register"
+          className="flex items-center gap-3 px-3 py-2 rounded hover:bg-gray-700 mt-1"
+        >
+          <FaUserCircle className="w-5 h-5" />
+          <span>Register</span>
         </Link>
       </nav>
       
