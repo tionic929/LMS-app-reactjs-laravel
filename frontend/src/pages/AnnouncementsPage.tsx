@@ -93,15 +93,20 @@ const AnnouncementsPage: React.FC = () => {
     <main className="flex-1 overflow-auto p-6">
       <div className="max-w-6xl mx-auto">
         <div className="flex flex-row justify-between items-center">
-          <h1 className="text-2xl font-semibold text-gray-900">
-            Announcements
-          </h1>
+          <div>
+            <h1 className="text-2xl font-semibold text-gray-900">
+              Announcements
+            </h1>
+            <p className="text-sm text-gray-500">
+              Stay updated with the latest news and updates
+            </p>
+          </div>
           <div className="flex items-center gap-2">
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search announcements..."
-              className="w-60 rounded-md border border-gray-200 bg-white px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="flex-1 rounded-md border border-gray-200 bg-white px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
             <select
               value={activeFilter}
@@ -198,17 +203,20 @@ const AnnouncementsPage: React.FC = () => {
                     <div
                       className={`${styles.headerColor} text-white px-6 py-4 rounded-t-lg`}
                     >
-                      <div className="flex flex-col">
-                        <div className="flex justify-between items-center mb-2">
-                          <span
-                            className={`${styles.badgeColor} ${styles.badgeTextColor} px-2 py-1 rounded-full text-xs font-medium capitalize`}
-                          >
-                            {announcement.type}
-                          </span>
-                          <span className="text-xs opacity-90">
-                            Posted on {announcement.date}
-                          </span>
-                        </div>
+                      <div className="flex items-center justify-center">
+                        <svg
+                          className="h-12 w-12 mr-4"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M15 17h5l-5 5v-5zM15 7h5l-5-5v5zM4 12h9m-9 4h6m-6-8h9"
+                          />
+                        </svg>
                         <h2 className="text-xl font-semibold">
                           {announcement.title}
                         </h2>
@@ -217,9 +225,21 @@ const AnnouncementsPage: React.FC = () => {
 
                     {/* Card content */}
                     <div className="p-6">
+                      <div className="flex gap-2 mb-3">
+                        <span
+                          className={`${styles.badgeColor} ${styles.badgeTextColor} px-2 py-1 rounded-full text-xs font-medium capitalize`}
+                        >
+                          {announcement.type}
+                        </span>
+                      </div>
                       <p className="text-gray-600 mb-3">
                         {announcement.content}
                       </p>
+                      <div className="flex justify-end">
+                        <span className="text-xs text-gray-500">
+                          Posted on {announcement.date}
+                        </span>
+                      </div>
                     </div>
                   </div>
 
