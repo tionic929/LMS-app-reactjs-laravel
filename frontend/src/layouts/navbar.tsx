@@ -14,7 +14,7 @@ const Navbar: React.FC = () => {
   };
 
   return (
-    <header className="bg-gray-800 text-gray-100 p-3 shadow">
+    <header className="fixed top-0 left-16 right-0 bg-gray-800 text-gray-100 p-3 shadow z-30">
       <div className="max-w-6xl mx-auto flex items-center justify-between gap-4">
         <div className="flex items-center gap-4">
           <button aria-label="Search" className="text-gray-100 hover:text-white p-2 rounded-md hidden md:inline-flex" >
@@ -41,7 +41,7 @@ const Navbar: React.FC = () => {
         </div>
       </div>
     </header>
-  )
-}
+  );
+};
 
-export default Navbar
+export default Navbar;

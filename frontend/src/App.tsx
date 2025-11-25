@@ -1,5 +1,5 @@
 import React from "react";
-import { Routes, Route, Link, Navigate } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
 import Sidebar from "./layouts/sidebar";
 import Footer from "./layouts/footer";
 import Navbar from "./layouts/navbar";
@@ -7,25 +7,31 @@ import Login from "./pages/auth/login";
 import Dashboard from "./pages/dashboard";
 import ProtectedRoute from "./components/ProtectedRoute";
 import { useAuth } from "./contexts/AuthContext";
+import UsersList from './pages/UsersList'
+import Announcements from './pages/AnnouncementsPage'
+import Register from './pages/Register'
+import './App.css'
 
 const App: React.FC = () => {
   const { user, loading } = useAuth();
-  
+
   return (
     <div className="h-screen flex">
       {user && <Sidebar />}
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col justify-center align-center min-h-screen py-10">
         {user && <Navbar />}
-        <main className="flex-1 overflow-auto p-6">
-          <div className="max-w-4xl mx-auto">
+        <main className="flex-1 justify-center overflow-auto p-6">
             <Routes>
               <Route path="/login" element={user ? <Navigate to="/" replace /> : <Login />} />
 
               <Route element={<ProtectedRoute />}>
                 <Route path="/" element={<Dashboard />} />
+                <Route path="/users" element={<UsersList />} />
+                <Route path="/announcements" element={<Announcements />} />
+                <Route path="/register" element={<Register />} />
+                <Route path="/login" element={<Login />} />
               </Route>
             </Routes>
-          </div>
         </main>
         {user && <Footer />}
       </div>
