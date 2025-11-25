@@ -18,7 +18,7 @@ function App() {
       <div className="h-screen flex">
         <Sidebar />
 
-        <div className="flex-1 flex flex-col">
+        <div className="flex-1 flex flex-col md:pl-64 pt-16 pb-16 min-h-screen">
           <Navbar />
           <Routes>
             <Route path="/" element={
