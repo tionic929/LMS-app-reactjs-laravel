@@ -1,42 +1,43 @@
-import { useState } from 'react'
-import './App.css'
-import Sidebar from './layouts/sidebar'
-import Footer from './layouts/footer'
-import Navbar from './layouts/navbar'
+import React from "react";
+import { Routes, Route } from "react-router-dom";
+import Sidebar from "./layouts/sidebar";
+import Footer from "./layouts/footer";
+import Navbar from "./layouts/navbar";
+import Login from "./pages/auth/login";
+import Dashboard from "./pages/dashboard";
+import ProtectedRoute from "./components/ProtectedRoute";
+import { useAuth } from "./contexts/AuthContext";
 
-function App() {
+const App: React.FC = () => {
+  const { user, loading } = useAuth();
+
+  if (loading) 
+    return <div className="h-screen flex items-center justify-center">Loading...</div>;
+
   return (
-    <>
     <div className="h-screen flex">
-      <Sidebar />
-        <div className="flex-1 flex flex-col">
-        <Navbar />
-          <main className="flex-1 overflow-auto p-6">
-            <div className="max-w-4xl mx-auto">
+      {user && <Sidebar />}
+      <div className="flex-1 flex flex-col">
+        {user && <Navbar />}
+        <main className="flex-1 overflow-auto p-6">
+          <div className="max-w-4xl mx-auto">
+            {/* Your routes go here */}
+            <Routes>
+              {/* Public route */}
+              <Route path="/login" element={<Login />} />
 
-              <div className="mt-6">
-                <div className="text-2xl">HELLO</div>
-                <div className="text-5xl">HELLO</div>
-              </div>
-
-              <h1 className="mt-6">Vite + React</h1>
-
-              <div className="card mt-4">
-                <p>
-                  Edit <code>src/App.tsx</code> and save to test HMR
-                </p>
-              </div>
-
-              <p className="read-the-docs mt-4">
-                Click on the Vite and React logos to learn more
-              </p>
-            </div>
-          </main>
-        <Footer />
-        </div>
+              {/* Protected routes */}
+              <Route element={<ProtectedRoute />}>
+                <Route path="/" element={<Dashboard />} />
+                <Route path="/profile" element={<Dashboard />} />
+              </Route>
+            </Routes>
+          </div>
+        </main>
+        {user && <Footer />}
       </div>
-      </>
-  )
-}
+    </div>
+  );
+};
 
-export default App
+export default App;

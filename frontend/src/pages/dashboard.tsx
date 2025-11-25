@@ -1,10 +1,5 @@
 import React, { Component } from 'react'
-import Sidebar from '../layouts/sidebar'
-import Navbar from '../layouts/navbar'
-import Footer from '../layouts/footer'
-import { Chart } from 'react-google-charts';
-
-import './App.css'
+import '../App.css'
 
 const cardcounters = [
   { title: 'total users', count: 1500 },
@@ -18,12 +13,6 @@ class Dashboard extends Component {
   render(){
   return (
     <>
-    <div className="h-screen flex">
-      <Sidebar />
-
-      <div className="flex-1 flex flex-col">
-        <Navbar />
-
         <main className="flex-1 overflow-auto p-6">
 
           {/* card counters section */}
@@ -55,23 +44,9 @@ class Dashboard extends Component {
           </div>
 
           <div className="my-8 max-w-6xl mx-auto">
-            <Chart
-              chartType="ScatterChart"
-              data={[
-                ["Age", "Weight"],
-                [4, 5.5],
-                [8, 12],
-              ]}
-              width="100%"
-              height="400px"
-              legendToggle
-            />;
+          
           </div>
         </main>
-
-        <Footer />
-      </div>
-    </div>
     </>
   )
 }
