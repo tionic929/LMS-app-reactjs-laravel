@@ -1,6 +1,6 @@
 import { useState } from 'react'
 
-export default function LoginLayout() {
+const Login: React.FC = () => {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [remember, setRemember] = useState(false)
@@ -62,3 +62,5 @@ export default function LoginLayout() {
     </main>
   )
 }
+
+export default Login
