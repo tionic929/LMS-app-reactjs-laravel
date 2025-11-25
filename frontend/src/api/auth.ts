@@ -30,3 +30,8 @@ export const fetchUser = async () => {
 export const logout = async () => {
   return api.post("/logout");
 };  
+
+export const hasRole = (user: any, role: string) => {
+  if (!user) return false;
+  return user.role === role;
+};

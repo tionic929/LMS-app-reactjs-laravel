@@ -12,19 +12,21 @@ class AuthController extends Controller
             'email'    => 'required|email',
             'password' => 'required'
         ]);
+
         // removed debug dump to allow normal login flow
         if (!Auth::attempt($credentials)) {
             return response()->json(['message' => 'Invalid credentials'], 401);
         }
 
         $request->session()->regenerate();
+        $user = Auth::user()->load(['admin', 'instructor', 'learner']);
 
         return response()->json(['message' => 'Logged in'], 200);
     }
 
     public function user(Request $request)
     {
-        return $request->user();
+        return $request->user()->load(['admin', 'instructor', 'learner']);
     }
 
     public function logout(Request $request)

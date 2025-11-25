@@ -1,6 +1,5 @@
 import React, { Component } from 'react'
 import '../App.css'
-
 const cardcounters = [
   { title: 'total users', count: 1500 },
   { title: 'total instructors', count: 300 },
@@ -9,8 +8,8 @@ const cardcounters = [
 ];
 
 class Dashboard extends Component {
-
-  render(){
+  
+  render() {
   return (
     <>
         <main className="flex-1 overflow-auto p-6">

@@ -31,7 +31,7 @@ const Navbar: React.FC = () => {
           <div className="flex items-center gap-2">
             <button className="flex items-center gap-2 p-1 rounded-md hover:bg-gray-700">
               <FaUserCircle className="w-6 h-6" />
-              <span className="hidden sm:inline">{user?.name ?? 'Account'}</span>
+              <span className="hidden sm:inline">{user?.name ?? 'Account'}{user?.role ?? 'Role Not Found'}</span>
             </button>
 
             <button onClick={handleLogout} className="ml-2 px-3 py-1 rounded-md bg-red-600 hover:bg-red-700 text-white">
