@@ -64,13 +64,13 @@ const AnnouncementsPage: React.FC = () => {
       date: "November 26, 2025",
     },
     {
-        id: 4, 
-        title: "Holiday Schedule Announcement",
-        content:
-          "Please be informed of the upcoming holiday schedule. The LMS will be accessible, but support services will be limited.",
-        type: "info",
-        date: "November 27, 2025",
-    }
+      id: 4,
+      title: "Holiday Schedule Announcement",
+      content:
+        "Please be informed of the upcoming holiday schedule. The LMS will be accessible, but support services will be limited.",
+      type: "info",
+      date: "November 27, 2025",
+    },
   ];
 
   const filterOptions = [
@@ -93,7 +93,7 @@ const AnnouncementsPage: React.FC = () => {
     <main className="flex-1 overflow-auto p-6">
       <div className="max-w-6xl mx-auto">
         <div className="flex flex-row justify-between items-center">
-          <h1 className="text-3xl font-bold text-gray-900 mb-6">
+          <h1 className="text-2xl font-semibold text-gray-900">
             Announcements
           </h1>
           <div className="flex items-center gap-2">
@@ -144,7 +144,7 @@ const AnnouncementsPage: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredAnnouncements.length === 0 ? (
             // Empty state when no results
-            <div className="text-center py-12">
+            <div className="col-span-full text-center py-12">
               <div className="text-gray-400 mb-4">
                 <svg
                   className="mx-auto h-12 w-12"
@@ -160,25 +160,27 @@ const AnnouncementsPage: React.FC = () => {
                   />
                 </svg>
               </div>
-              <h3 className="text-lg font-medium text-gray-900 mb-2">
-                No announcements found
-              </h3>
-              <p className="text-gray-500">
-                {query
-                  ? `No announcements match "${query}"`
-                  : `No ${activeFilter} announcements available`}
-              </p>
-              {(query || activeFilter !== "all") && (
-                <button
-                  onClick={() => {
-                    setQuery("");
-                    setActiveFilter("all");
-                  }}
-                  className="mt-4 text-blue-500 hover:text-blue-600 text-sm font-medium"
-                >
-                  Clear filters
-                </button>
-              )}
+              <div className="mx-auto max-w-md">
+                <h3 className="text-lg font-medium text-gray-900 mb-2">
+                  No announcements found
+                </h3>
+                <p className="text-gray-500">
+                  {query
+                    ? `No announcements match "${query}"`
+                    : `No ${activeFilter} announcements available`}
+                </p>
+                {(query || activeFilter !== "all") && (
+                  <button
+                    onClick={() => {
+                      setQuery("");
+                      setActiveFilter("all");
+                    }}
+                    className="mt-4 text-blue-500 hover:text-blue-600 text-sm font-medium"
+                  >
+                    Clear filters
+                  </button>
+                )}
+              </div>
             </div>
           ) : (
             // Render filtered announcements
@@ -196,26 +198,28 @@ const AnnouncementsPage: React.FC = () => {
                     <div
                       className={`${styles.headerColor} text-white px-6 py-4 rounded-t-lg`}
                     >
-                    <div className="flex flex-col">
-                      <div className="flex justify-between items-center mb-2">
-                        <span
-                          className={`${styles.badgeColor} ${styles.badgeTextColor} px-2 py-1 rounded-full text-xs font-medium capitalize`}
-                        >
-                          {announcement.type}
-                        </span>
-                        <span className="text-xs opacity-90">
-                          Posted on {announcement.date}
-                        </span>
+                      <div className="flex flex-col">
+                        <div className="flex justify-between items-center mb-2">
+                          <span
+                            className={`${styles.badgeColor} ${styles.badgeTextColor} px-2 py-1 rounded-full text-xs font-medium capitalize`}
+                          >
+                            {announcement.type}
+                          </span>
+                          <span className="text-xs opacity-90">
+                            Posted on {announcement.date}
+                          </span>
+                        </div>
+                        <h2 className="text-xl font-semibold">
+                          {announcement.title}
+                        </h2>
                       </div>
-                      <h2 className="text-xl font-semibold">
-                        {announcement.title}
-                      </h2>
                     </div>
-                  </div>
 
                     {/* Card content */}
                     <div className="p-6">
-                      <p className="text-gray-600 mb-3">{announcement.content}</p>
+                      <p className="text-gray-600 mb-3">
+                        {announcement.content}
+                      </p>
                     </div>
                   </div>
 
@@ -229,23 +233,47 @@ const AnnouncementsPage: React.FC = () => {
                       className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-blue-50 hover:bg-blue-100 text-blue-600 hover:text-blue-700 transition-colors duration-200 border-r border-gray-200"
                       title="Edit announcement"
                     >
-                      <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                      <svg
+                        className="h-4 w-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                        />
                       </svg>
                       <span className="text-sm font-medium">Edit</span>
                     </button>
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        if (window.confirm(`Are you sure you want to delete "${announcement.title}"?`)) {
+                        if (
+                          window.confirm(
+                            `Are you sure you want to delete "${announcement.title}"?`
+                          )
+                        ) {
                           alert(`Delete announcement: ${announcement.title}`);
                         }
                       }}
                       className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-red-50 hover:bg-red-100 text-red-600 hover:text-red-700 transition-colors duration-200"
                       title="Delete announcement"
                     >
-                      <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      <svg
+                        className="h-4 w-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                        />
                       </svg>
                       <span className="text-sm font-medium">Delete</span>
                     </button>
