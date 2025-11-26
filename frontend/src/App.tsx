@@ -35,7 +35,6 @@ const App: React.FC = () => {
               </Route>
             </Routes>
         </main>
-        {user && <Footer />}
       </div>
     </div>
   );
