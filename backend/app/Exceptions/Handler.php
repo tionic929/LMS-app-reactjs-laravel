@@ -17,11 +17,21 @@ class Handler extends ExceptionHandler
         //
     ];
 
+    public function render($request, Throwable $exception)
+    {
+        if ($exception instanceof \Illuminate\Session\TokenMismatchException) {
+            return response()->json(['message' => 'CSRF token expired'], 401);
+        }
+        return parent::render($request, $exception);
+    }
+
     protected function unauthenticated($request, AuthenticationException $exception)
     {
-        return $request->expectsJson()
-            ? response()->json(['message' => 'Unauthorized'], 401)
-            : redirect()->guest(route('login')); // only used for web
+        if ($request->expectsJson()) {
+            return response()->json(['message' => 'Unauthenticated'], 401);
+        }
+
+        return redirect()->guest(route('login'));
     }
 
     /**

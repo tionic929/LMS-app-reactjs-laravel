@@ -6,35 +6,45 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use App\Models\User;
 
-class Userscontroller extends Controller
+class UsersController extends Controller
 {
     /**
      * Display a listing of the resource.
      */
     public function index()
     {
-        $user = User::orderBy('id', 'asc')->get();
-        return response()->json($user);
+        $users = User::select('id', 'name', 'email', 'role')
+                ->orderBy('id', 'asc')
+                ->paginate(10);
+        return response()->json([
+            'success' => true,
+            'data' => $users,
+        ]);
     }
 
     public function getPaginatedUsers(Request $request)
-    {
-        $search = $request->query('search');
+        {
+            $search = $request->query('search');
+            $role = $request->query('role');
 
-        $query = User::query();
+            $query = User::select('id', 'name', 'email', 'role')->orderBy('id', 'asc');
 
-        if ($search) {
-            $query->where(function ($q) use ($search) {
-                $q->where('name', 'LIKE', "%{$search}%")
-                ->orWhere('email', 'LIKE', "%{$search}%")
-                ->orWhere('id', $search);
-            });
+            // Apply Search Filter (Name, Email, or ID)
+            if ($search) {
+                $query->where(function ($q) use ($search) {
+                    $q->where('name', 'LIKE', "%{$search}%")
+                    ->orWhere('email', 'LIKE', "%{$search}%")
+                    ->orWhere('id', $search);
+                });
+            }
+
+            // Apply Role Filter
+            if ($role && $role !== 'all') {
+                $query->where('role', $role);
+            }
+
+            return response()->json($query->paginate(5));
         }
-
-        return response()->json(
-            $query->paginate(10)
-        );
-    }
     
     /**
      * Show the form for creating a new resource.
@@ -53,6 +63,7 @@ class Userscontroller extends Controller
         $user->name = $request->name;
         $user->email = $request->email;
         $user->password = Hash::make($request->password);
+        $user->role = $request->role;
         $user->save();
         return response()->json($user);
     }
@@ -60,9 +71,8 @@ class Userscontroller extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(string $id)
+    public function show(Request $request, User $user)
     {
-        $user = User::findOrFail($id);
         return response()->json($user);
     }
 
@@ -77,12 +87,21 @@ class Userscontroller extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, string $id)
-    {
-        $user = User::findOrFail($id);
+    public function update(Request $request, User $user)
+    {   
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|max:255|unique:users,email,' . $user->id, // Use $user->id here
+            'role' => 'required|in:admin,instructor,learner', 
+            'password' => 'nullable|string|min:8',
+        ]);
+
         $user->name = $request->name;
         $user->email = $request->email;
         $user->role = $request->role;
+        if($request->filled('password')){
+            $user->password = Hash::make($request->passowrd);
+        }
         $user->save();
         return response()->json($user);
     }

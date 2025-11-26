@@ -7,8 +7,8 @@ import Login from "./pages/auth/login";
 import Dashboard from "./pages/dashboard";
 import ProtectedRoute from "./components/ProtectedRoute";
 import { useAuth } from "./contexts/AuthContext";
-import UsersList from './pages/UsersList'
 import Announcements from './pages/AnnouncementsPage'
+import UsersIndex from "./pages/Admin/Users/Index";
 import './App.css'
 
 const App: React.FC = () => {
@@ -19,13 +19,13 @@ const App: React.FC = () => {
       {user && <Sidebar />}
       <div className="flex-1 flex flex-col justify-center align-center ">
         {user && <Navbar />}
-        <main className="flex-1 justify-center overflow-auto p-6">
+        <main className="flex-1 justify-center overflow-auto ">
             <Routes>
               <Route path="/login" element={user ? <Navigate to="/" replace /> : <Login />} />
 
               <Route element={<ProtectedRoute />}>
                 <Route path="/" element={<Dashboard />} />
-                <Route path="/users" element={<UsersList />} />
+                <Route path="/users" element={<UsersIndex />} />
                 <Route path="/announcements" element={<Announcements />} />
               </Route>
             </Routes>
