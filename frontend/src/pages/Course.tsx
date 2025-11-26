@@ -1,6 +1,9 @@
 import React from "react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { HiOutlineBookOpen, HiOutlinePlus } from "react-icons/hi";
+import { RiCheckLine } from "react-icons/ri";
+import { LiaTimesSolid } from "react-icons/lia";
 
 const Course: React.FC = () => {
   const [query, setQuery] = useState("");
@@ -86,27 +89,14 @@ const Course: React.FC = () => {
             </select>
             <button
               onClick={() => setShowModal(true)}
-              className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md flex items-center gap-2 text-sm font-medium shadow-sm"
+              className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md inline-flex items-center gap-2 text-sm font-medium shadow-sm"
             >
-              <svg
-                className="h-4 w-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 4v16m8-8H4"
-                />
-              </svg>
+              <HiOutlinePlus className="w-5 h-5" />
               Add New
             </button>
           </div>
         </div>
         &nbsp;
-
         {/* Add New Course Modal */}
         {showModal && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -162,14 +152,16 @@ const Course: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setShowModal(false)}
-                    className="px-4 py-2 text-gray-600 hover:text-gray-800"
+                    className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 inline-flex items-center gap-2"
                   >
+                    <LiaTimesSolid className="w-5 h-5" />
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600"
+                    className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 inline-flex items-center gap-2"
                   >
+                    <RiCheckLine className="w-5 h-5" />
                     Add Course
                   </button>
                 </div>
@@ -177,7 +169,6 @@ const Course: React.FC = () => {
             </div>
           </div>
         )}
-
         <div className="mb-4">
           <p className="text-sm text-gray-600">
             Showing {filteredCourses.length} of {courses.length} courses
@@ -249,19 +240,7 @@ const Course: React.FC = () => {
                       className={`${styles.headerColor} text-white px-6 py-4 rounded-t-lg`}
                     >
                       <div className="flex items-center justify-center">
-                        <svg
-                          className="h-12 w-12"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
-                          />
-                        </svg>
+                        <HiOutlineBookOpen className="h-10 w-10 mr-2" />
                       </div>
                     </div>
 
