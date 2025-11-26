@@ -1,7 +1,5 @@
-import { Component } from "react";
 
-class Footer extends Component {
-  render() {
+const Footer: React.FC = () => {
     return (
         <>
             <footer className="fixed bottom-0 left-0 right-0 bg-gray-800 text-white p-4 z-30">
@@ -10,8 +8,7 @@ class Footer extends Component {
                 </div>
             </footer>
         </>
-        );
-    }
+    )
 }
 
 export default Footer;
