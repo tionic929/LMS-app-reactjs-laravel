@@ -10,6 +10,7 @@ import { useAuth } from "./contexts/AuthContext";
 import UsersList from './pages/UsersList'
 import Announcements from './pages/AnnouncementsPage'
 import Courses from './pages/Course'
+import CourseDetails from './pages/CourseDetails'
 import Register from './pages/Register'
 import './App.css'
 
@@ -30,6 +31,7 @@ const App: React.FC = () => {
                 <Route path="/users" element={<UsersList />} />
                 <Route path="/announcements" element={<Announcements />} />
                 <Route path="/courses" element={<Courses />} />
+                <Route path="/courses/:id" element={<CourseDetails />} />
                 <Route path="/register" element={<Register />} />
               </Route>
             </Routes>
