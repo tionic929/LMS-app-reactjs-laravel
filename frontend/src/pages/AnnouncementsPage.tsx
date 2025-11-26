@@ -1,9 +1,71 @@
-import React from "react";
-import { useState } from "react";
+import React, { useEffect, useState } from "react";
+import axios from "axios";
+import { MdAnnouncement, MdDelete } from "react-icons/md";
+import { IoIosAddCircle } from "react-icons/io";
+import { ImFilesEmpty } from "react-icons/im";
+import { FaEdit } from "react-icons/fa";
+
+interface Announcement {
+  id: number;
+  title: string;
+  content: string;
+  type: string;
+  date?: string;
+  created_at?: string;
+}
 
 const AnnouncementsPage: React.FC = () => {
   const [query, setQuery] = useState("");
   const [activeFilter, setActiveFilter] = useState("all");
+
+  const [announcements, setAnnouncements] = useState<Announcement[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Add modal
+  const [isAddOpen, setIsAddOpen] = useState(false);
+  const [newTitle, setNewTitle] = useState("");
+  const [newContent, setNewContent] = useState("");
+  const [newType, setNewType] = useState("info");
+  const [creating, setCreating] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
+
+  // Edit modal
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [editId, setEditId] = useState<number | null>(null);
+  const [editTitle, setEditTitle] = useState("");
+  const [editContent, setEditContent] = useState("");
+  const [editType, setEditType] = useState("info");
+  const [editing, setEditing] = useState(false);
+  const [editError, setEditError] = useState<string | null>(null);
+
+  const client = axios.create({ baseURL: "http://localhost:8000/api", withCredentials: true });
+  client.defaults.xsrfCookieName = "XSRF-TOKEN";
+  client.defaults.xsrfHeaderName = "X-XSRF-TOKEN";
+
+  const ensureCsrf = async () => {
+    try {
+      await axios.get("http://localhost:8000/sanctum/csrf-cookie", { withCredentials: true });
+
+      const getCookie = (name: string) => {
+        const match = document.cookie.match(new RegExp("(^|; )" + name + "=([^;]*)"));
+        return match ? decodeURIComponent(match[2]) : null;
+      };
+
+      const xsrf = getCookie("XSRF-TOKEN");
+
+      if (xsrf) {
+        client.defaults.headers.common["X-XSRF-TOKEN"] = xsrf;
+      }
+
+      // Debug only in development
+      // eslint-disable-next-line no-console
+      console.debug("ensureCsrf: XSRF cookie=", xsrf, "client header=", client.defaults.headers.common["X-XSRF-TOKEN"]);
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.debug("Failed to fetch CSRF cookie via /sanctum/csrf-cookie", e);
+    }
+  };
 
   const getAnnouncementStyles = (type: string) => {
     switch (type) {
@@ -14,6 +76,7 @@ const AnnouncementsPage: React.FC = () => {
           badgeColor: "bg-blue-700",
           badgeTextColor: "text-blue-100",
         };
+
       case "warning":
         return {
           headerColor: "bg-yellow-500",
@@ -21,6 +84,7 @@ const AnnouncementsPage: React.FC = () => {
           badgeColor: "bg-yellow-600",
           badgeTextColor: "text-yellow-100",
         };
+
       case "success":
         return {
           headerColor: "bg-green-500",
@@ -28,6 +92,7 @@ const AnnouncementsPage: React.FC = () => {
           badgeColor: "bg-green-700",
           badgeTextColor: "text-green-100",
         };
+
       default:
         return {
           headerColor: "bg-gray-500",
@@ -38,40 +103,132 @@ const AnnouncementsPage: React.FC = () => {
     }
   };
 
-  const announcements = [
-    {
-      id: 1,
-      title: "Welcome to Our Learning Management System",
-      content:
-        "We're excited to have you join our LMS platform. Here you'll find all the tools and resources you need for your learning journey.",
-      type: "info",
-      date: "November 24, 2025",
-    },
-    {
-      id: 2,
-      title: "System Maintenance Scheduled",
-      content:
-        "The system will be undergoing maintenance this weekend. Please save your work and log out before the scheduled time.",
-      type: "warning",
-      date: "November 25, 2025",
-    },
-    {
-      id: 3,
-      title: "New Course Available: Advanced React",
-      content:
-        "We have added a new advanced React course to help you deepen your understanding and skills.",
-      type: "success",
-      date: "November 26, 2025",
-    },
-    {
-      id: 4,
-      title: "Holiday Schedule Announcement",
-      content:
-        "Please be informed of the upcoming holiday schedule. The LMS will be accessible, but support services will be limited.",
-      type: "info",
-      date: "November 27, 2025",
-    },
-  ];
+  // Normalize various response shapes into Announcement[]
+  const normalizeAnnouncements = (raw: any): Announcement[] => {
+    if (!raw) return [];
+
+    let arr: any[] = [];
+
+    if (Array.isArray(raw)) arr = raw;
+    else if (Array.isArray(raw.data)) arr = raw.data;
+    else if (Array.isArray(raw.announcements)) arr = raw.announcements;
+    else if (raw && typeof raw === "object") {
+      if (raw.data && !Array.isArray(raw.data) && typeof raw.data === "object") arr = [raw.data];
+      else arr = [raw];
+    }
+
+    return arr.map((a: any) => ({
+      id: a.id,
+      title: a.title,
+      content: a.content,
+      type: a.type ?? "info",
+      date: a.date ?? (a.created_at ? new Date(a.created_at).toLocaleDateString() : undefined),
+      created_at: a.created_at,
+    }));
+  };
+
+  const fetchAnnouncements = async () => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const res = await client.get("/announcements");
+      const data = normalizeAnnouncements(res.data);
+      setAnnouncements(data);
+    } catch (err: any) {
+      setError(err?.response?.data?.message ?? err?.message ?? "Failed to load announcements");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    void fetchAnnouncements();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const createAnnouncement = async () => {
+    setCreateError(null);
+
+    if (!newTitle.trim() || !newContent.trim()) {
+      setCreateError("Title and content are required");
+      return;
+    }
+
+    setCreating(true);
+
+    try {
+      const payload = { title: newTitle.trim(), content: newContent.trim(), type: newType };
+      await ensureCsrf();
+
+      const res = await client.post("/announcements", payload);
+      const created = normalizeAnnouncements(res.data)[0];
+
+      if (created) setAnnouncements((prev) => [created, ...prev]);
+      else void fetchAnnouncements();
+
+      setNewTitle("");
+      setNewContent("");
+      setNewType("info");
+      setIsAddOpen(false);
+    } catch (err: any) {
+      setCreateError(err?.response?.data?.message ?? err?.message ?? "Failed to create announcement");
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const openEdit = (a: Announcement) => {
+    setEditId(a.id);
+    setEditTitle(a.title);
+    setEditContent(a.content);
+    setEditType(a.type ?? "info");
+    setEditError(null);
+    setIsEditOpen(true);
+  };
+
+  const updateAnnouncement = async () => {
+    if (!editId) return;
+
+    setEditError(null);
+
+    if (!editTitle.trim() || !editContent.trim()) {
+      setEditError("Title and content are required");
+      return;
+    }
+
+    setEditing(true);
+
+    try {
+      const payload = { title: editTitle.trim(), content: editContent.trim(), type: editType };
+      await ensureCsrf();
+
+      const res = await client.put(`/announcements/${editId}`, payload);
+      const updated = normalizeAnnouncements(res.data)[0];
+
+      if (updated) setAnnouncements((prev) => prev.map((p) => (p.id === editId ? updated : p)));
+      else void fetchAnnouncements();
+
+      setIsEditOpen(false);
+      setEditId(null);
+    } catch (err: any) {
+      setEditError(err?.response?.data?.message ?? err?.message ?? "Failed to update announcement");
+    } finally {
+      setEditing(false);
+    }
+  };
+
+  const deleteAnnouncement = async (id: number, title: string) => {
+    if (!window.confirm(`Are you sure you want to delete "${title}"?`)) return;
+
+    try {
+      await ensureCsrf();
+      await client.delete(`/announcements/${id}`);
+      setAnnouncements((prev) => prev.filter((a) => a.id !== id));
+    } catch (err: any) {
+      alert(err?.response?.data?.message ?? err?.message ?? "Failed to delete announcement");
+    }
+  };
 
   const filterOptions = [
     { label: "All", value: "all", color: "gray" },
@@ -81,11 +238,10 @@ const AnnouncementsPage: React.FC = () => {
   ];
 
   const filteredAnnouncements = announcements.filter((announcement) => {
-    const matchesFilter =
-      activeFilter === "all" || announcement.type === activeFilter;
+    const matchesFilter = activeFilter === "all" || announcement.type === activeFilter;
     const matchesSearch =
-      announcement.title.toLowerCase().includes(query.toLowerCase()) ||
-      announcement.content.toLowerCase().includes(query.toLowerCase());
+      announcement.title.toLowerCase().includes(query.toLowerCase()) || announcement.content.toLowerCase().includes(query.toLowerCase());
+
     return matchesFilter && matchesSearch;
   });
 
@@ -94,13 +250,10 @@ const AnnouncementsPage: React.FC = () => {
       <div className="max-w-6xl mx-auto">
         <div className="flex flex-row justify-between items-center">
           <div>
-            <h1 className="text-2xl font-semibold text-gray-900">
-              Announcements
-            </h1>
-            <p className="text-sm text-gray-500">
-              Stay updated with the latest news and updates
-            </p>
+            <h1 className="text-2xl font-semibold text-gray-900">Announcements</h1>
+            <p className="text-sm text-gray-500">Stay updated with the latest news and updates</p>
           </div>
+
           <div className="flex items-center gap-2">
             <input
               value={query}
@@ -108,6 +261,7 @@ const AnnouncementsPage: React.FC = () => {
               placeholder="Search announcements..."
               className="flex-1 rounded-md border border-gray-200 bg-white px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
+
             <select
               value={activeFilter}
               onChange={(e) => setActiveFilter(e.target.value)}
@@ -119,61 +273,47 @@ const AnnouncementsPage: React.FC = () => {
                 </option>
               ))}
             </select>
-            <button className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md flex items-center gap-2 text-sm font-medium shadow-sm">
-              <svg
-                className="h-4 w-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                />
-              </svg>
-              Search
+
+            <button
+              onClick={() => setIsAddOpen(true)}
+              className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md flex items-center gap-2 text-sm font-medium shadow-sm"
+            >
+              <IoIosAddCircle className="h-4 w-4" />
+              Add Announcement
             </button>
           </div>
         </div>
-        &nbsp;
+
         <div className="mb-4">
-          <p className="text-sm text-gray-600">
-            Showing {filteredAnnouncements.length} of {announcements.length}{" "}
-            announcements
-            {activeFilter !== "all" && ` (filtered by ${activeFilter})`}
-            {query && ` (search: "${query}")`}
-          </p>
+          {loading ? (
+            <p className="text-sm text-gray-600">Loading announcements...</p>
+          ) : error ? (
+            <div className="text-sm text-red-600">
+              <p className="mb-2">Error: {error}</p>
+              <button onClick={() => void fetchAnnouncements()} className="text-blue-500 hover:text-blue-600 text-sm font-medium">
+                Retry
+              </button>
+            </div>
+          ) : (
+            <p className="text-sm text-gray-600">
+              Showing {filteredAnnouncements.length} of {announcements.length} announcements
+              {activeFilter !== "all" && ` (filtered by ${activeFilter})`}
+              {query && ` (search: "${query}")`}
+            </p>
+          )}
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+
+        <div className="flex flex-col gap-6">
           {filteredAnnouncements.length === 0 ? (
-            // Empty state when no results
-            <div className="col-span-full text-center py-12">
+            <div className="text-center py-12">
               <div className="text-gray-400 mb-4">
-                <svg
-                  className="mx-auto h-12 w-12"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={1}
-                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                  />
-                </svg>
+                <ImFilesEmpty className="mx-auto h-12 w-12" />
               </div>
+
               <div className="mx-auto max-w-md">
-                <h3 className="text-lg font-medium text-gray-900 mb-2">
-                  No announcements found
-                </h3>
-                <p className="text-gray-500">
-                  {query
-                    ? `No announcements match "${query}"`
-                    : `No ${activeFilter} announcements available`}
-                </p>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">No announcements found</h3>
+                <p className="text-gray-500">{query ? `No announcements match "${query}"` : `No ${activeFilter} announcements available`}</p>
+
                 {(query || activeFilter !== "all") && (
                   <button
                     onClick={() => {
@@ -188,113 +328,61 @@ const AnnouncementsPage: React.FC = () => {
               </div>
             </div>
           ) : (
-            // Render filtered announcements
-            filteredAnnouncements.map((announcement) => {
+            filteredAnnouncements.map((announcement: Announcement) => {
               const styles = getAnnouncementStyles(announcement.type);
 
               return (
                 <div
                   key={announcement.id}
-                  className={`bg-white rounded-lg shadow-xl hover:shadow-2xl border-b-4 ${styles.borderColor} overflow-hidden flex flex-col`}
+                  className={`w-full bg-white rounded-lg shadow-xl hover:shadow-2xl border-b-4 ${styles.borderColor} overflow-hidden flex flex-col`}
                 >
-                  {/* Main card content */}
                   <div className="flex-1">
-                    {/* Colored header section */}
-                    <div
-                      className={`${styles.headerColor} text-white px-6 py-4 rounded-t-lg`}
-                    >
+                    <div className={`${styles.headerColor} text-white px-6 py-4 rounded-t-lg`}>
                       <div className="flex items-center justify-center">
-                        <svg
-                          className="h-12 w-12 mr-4"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M15 17h5l-5 5v-5zM15 7h5l-5-5v5zM4 12h9m-9 4h6m-6-8h9"
-                          />
-                        </svg>
-                        <h2 className="text-xl font-semibold">
-                          {announcement.title}
-                        </h2>
+                        <MdAnnouncement className="h-12 w-12 mr-4" />
+                        <h2 className="text-xl font-semibold break-words">{announcement.title}</h2>
                       </div>
                     </div>
 
-                    {/* Card content */}
                     <div className="p-6">
                       <div className="flex gap-2 mb-3">
-                        <span
-                          className={`${styles.badgeColor} ${styles.badgeTextColor} px-2 py-1 rounded-full text-xs font-medium capitalize`}
-                        >
+                        <span className={`${styles.badgeColor} ${styles.badgeTextColor} px-2 py-1 rounded-full text-xs font-medium capitalize`}>
                           {announcement.type}
                         </span>
                       </div>
-                      <p className="text-gray-600 mb-3">
-                        {announcement.content}
-                      </p>
+
+                      <div className="mb-3">
+                        <p className="text-gray-600 whitespace-pre-wrap break-words max-h-40 overflow-auto">{announcement.content}</p>
+                      </div>
+
                       <div className="flex justify-end">
-                        <span className="text-xs text-gray-500">
-                          Posted on {announcement.date}
-                        </span>
+                        <span className="text-xs text-gray-500">Posted on {announcement.date}</span>
                       </div>
                     </div>
                   </div>
 
-                  {/* Action buttons at bottom */}
                   <div className="flex border-t border-gray-200">
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        alert(`Edit announcement: ${announcement.title}`);
+                        openEdit(announcement);
                       }}
                       className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-blue-50 hover:bg-blue-100 text-blue-600 hover:text-blue-700 transition-colors duration-200 border-r border-gray-200"
                       title="Edit announcement"
                     >
-                      <svg
-                        className="h-4 w-4"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                        />
-                      </svg>
+                      <FaEdit className="h-4 w-4" />
                       <span className="text-sm font-medium">Edit</span>
                     </button>
+
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        if (
-                          window.confirm(
-                            `Are you sure you want to delete "${announcement.title}"?`
-                          )
-                        ) {
-                          alert(`Delete announcement: ${announcement.title}`);
-                        }
+                        void deleteAnnouncement(announcement.id, announcement.title);
                       }}
                       className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-red-50 hover:bg-red-100 text-red-600 hover:text-red-700 transition-colors duration-200"
                       title="Delete announcement"
                     >
-                      <svg
-                        className="h-4 w-4"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                        />
-                      </svg>
+                      <MdDelete className="h-4 w-4" />
                       <span className="text-sm font-medium">Delete</span>
                     </button>
                   </div>
@@ -303,6 +391,88 @@ const AnnouncementsPage: React.FC = () => {
             })
           )}
         </div>
+
+        {/* Add Modal */}
+        {isAddOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center">
+            <div className="absolute inset-0 bg-black opacity-40" onClick={() => setIsAddOpen(false)} />
+            <div className="bg-white rounded-lg shadow-xl z-10 w-full max-w-lg mx-4">
+              <div className="px-6 py-4 border-b">
+                <h3 className="text-lg font-medium">Create Announcement</h3>
+              </div>
+
+              <div className="p-6">
+                {createError && <p className="text-sm text-red-600 mb-3">{createError}</p>}
+
+                <label className="block text-sm font-medium text-gray-700">Title</label>
+                <input value={newTitle} onChange={(e) => setNewTitle(e.target.value)} className="mt-1 mb-3 block w-full rounded-md border border-gray-200 px-3 py-2" />
+
+                <label className="block text-sm font-medium text-gray-700">Content</label>
+                <textarea value={newContent} onChange={(e) => setNewContent(e.target.value)} className="mt-1 mb-3 block w-full rounded-md border border-gray-200 px-3 py-2" rows={4} />
+
+                <label className="block text-sm font-medium text-gray-700">Type</label>
+                <select value={newType} onChange={(e) => setNewType(e.target.value)} className="mt-1 mb-3 block w-full rounded-md border border-gray-200 px-3 py-2">
+                  {filterOptions.filter((f) => f.value !== "all").map((f) => (
+                    <option key={f.value} value={f.value}>
+                      {f.label}
+                    </option>
+                  ))}
+                </select>
+
+                <div className="flex justify-end gap-2">
+                  <button onClick={() => setIsAddOpen(false)} className="px-4 py-2 rounded-md bg-gray-100 hover:bg-gray-200 text-sm" disabled={creating}>
+                    Cancel
+                  </button>
+
+                  <button onClick={() => void createAnnouncement()} className="px-4 py-2 rounded-md bg-blue-600 hover:bg-blue-700 text-white text-sm" disabled={creating}>
+                    {creating ? "Creating..." : "Create"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Edit Modal */}
+        {isEditOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center">
+            <div className="absolute inset-0 bg-black opacity-40" onClick={() => setIsEditOpen(false)} />
+            <div className="bg-white rounded-lg shadow-xl z-10 w-full max-w-lg mx-4">
+              <div className="px-6 py-4 border-b">
+                <h3 className="text-lg font-medium">Edit Announcement</h3>
+              </div>
+
+              <div className="p-6">
+                {editError && <p className="text-sm text-red-600 mb-3">{editError}</p>}
+
+                <label className="block text-sm font-medium text-gray-700">Title</label>
+                <input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} className="mt-1 mb-3 block w-full rounded-md border border-gray-200 px-3 py-2" />
+
+                <label className="block text-sm font-medium text-gray-700">Content</label>
+                <textarea value={editContent} onChange={(e) => setEditContent(e.target.value)} className="mt-1 mb-3 block w-full rounded-md border border-gray-200 px-3 py-2" rows={4} />
+
+                <label className="block text-sm font-medium text-gray-700">Type</label>
+                <select value={editType} onChange={(e) => setEditType(e.target.value)} className="mt-1 mb-3 block w-full rounded-md border border-gray-200 px-3 py-2">
+                  {filterOptions.filter((f) => f.value !== "all").map((f) => (
+                    <option key={f.value} value={f.value}>
+                      {f.label}
+                    </option>
+                  ))}
+                </select>
+
+                <div className="flex justify-end gap-2">
+                  <button onClick={() => setIsEditOpen(false)} className="px-4 py-2 rounded-md bg-gray-100 hover:bg-gray-200 text-sm" disabled={editing}>
+                    Cancel
+                  </button>
+
+                  <button onClick={() => void updateAnnouncement()} className="px-4 py-2 rounded-md bg-blue-600 hover:bg-blue-700 text-white text-sm" disabled={editing}>
+                    {editing ? "Updating..." : "Update"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </main>
   );
