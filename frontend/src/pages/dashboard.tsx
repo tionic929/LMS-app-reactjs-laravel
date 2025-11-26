@@ -1,4 +1,4 @@
-import React, { Component } from 'react'
+import { Component } from 'react'
 import '../App.css'
 const cardcounters = [
   { title: 'total users', count: 1500 },
