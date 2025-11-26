@@ -9,6 +9,9 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import { useAuth } from "./contexts/AuthContext";
 import Announcements from './pages/AnnouncementsPage'
 import UsersIndex from "./pages/Admin/Users/Index";
+import Courses from "./pages/Course";
+import Register from "./pages/Register";
+
 import './App.css'
 
 const App: React.FC = () => {
