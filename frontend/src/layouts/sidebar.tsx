@@ -1,8 +1,10 @@
 // Sidebar.jsx (The Fixed Component)
 
 import React from "react";
-import { FaHome, FaUser, FaUsers } from "react-icons/fa";
-import { FaArrowRightFromBracket } from "react-icons/fa6";
+import { FaHome, FaUsers, FaUserCircle  } from "react-icons/fa";
+import { FaArrowUpRightFromSquare, FaArrowRightFromBracket } from "react-icons/fa6";
+import { BsMegaphoneFill } from "react-icons/bs";
+import { FaBook } from "react-icons/fa6";
 import { Link } from "react-router-dom";
 
 const Sidebar: React.FC = () => {
@@ -28,13 +30,26 @@ const Sidebar: React.FC = () => {
           <FaUsers className="w-5 h-5" />
           <span>Users</span>
         </Link>
-        <Link to="/announcements" className="flex items-center gap-3 px-3 py-2 rounded hover:bg-gray-700 mt-1">
-          <FaUsers className="w-5 h-5" />
+        <Link
+          to="/announcements"
+          className="flex items-center gap-3 px-3 py-2 rounded hover:bg-gray-700 mt-1"
+        >
+          <BsMegaphoneFill className="w-5 h-5" />
           <span>Announcements</span>
         </Link>
-        <Link to="/profile" className="flex items-center gap-3 px-3 py-2 rounded hover:bg-gray-700 mt-1">
-          <FaUser className="w-5 h-5" />
-          <span>Profile</span>
+        <Link
+          to="/courses"
+          className="flex items-center gap-3 px-3 py-2 rounded hover:bg-gray-700 mt-1"
+        >
+          <FaBook className="w-5 h-5" />
+          <span>Courses</span>
+        </Link>
+        <Link
+          to="/register"
+          className="flex items-center gap-3 px-3 py-2 rounded hover:bg-gray-700 mt-1"
+        >
+          <FaUserCircle className="w-5 h-5" />
+          <span>Register</span>
         </Link>
       </nav>
       
