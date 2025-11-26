@@ -18,8 +18,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   useEffect(() => {
     fetchUser()
-      .then((res) => setUser(res.data.data.data))
-      .catch(() => setUser([]))
+      .then((res) => setUser(res.data))
+      .catch(() => setUser(null))
       .finally(() => setLoading(false));
   }, []);
 
