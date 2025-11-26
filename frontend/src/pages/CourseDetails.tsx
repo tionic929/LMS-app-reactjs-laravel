@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { PiStudentFill } from "react-icons/pi";
+import { PiStudentFill, PiUsersThreeBold } from "react-icons/pi";
 import { RiDeleteBin6Line, RiCheckLine, RiMegaphoneLine } from "react-icons/ri";
 import {
   LiaTimesSolid,
@@ -13,7 +13,7 @@ import {
   MdOutlineSlowMotionVideo,
 } from "react-icons/md";
 import { HiOutlineBookOpen, HiOutlinePlus } from "react-icons/hi";
-import { FaUsers, FaRegFileAlt, FaRegCommentDots } from "react-icons/fa";
+import { FaRegFileAlt, FaRegCommentDots } from "react-icons/fa";
 import { FaLink } from "react-icons/fa6";
 import { VscRequestChanges } from "react-icons/vsc";
 import { BsSend } from "react-icons/bs";
@@ -243,7 +243,7 @@ const CourseDetails: React.FC = () => {
                     : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
                 }`}
               >
-                <FaUsers className="h-4 w-4" />
+                <PiUsersThreeBold className="h-4 w-4" />
                 Learners
                 <span className="bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full text-xs">
                   {learners.length}
