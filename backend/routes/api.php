@@ -9,11 +9,16 @@ use App\Http\Controllers\AnnouncementController;
 
 Route::post('/login', [AuthController::class, 'login'])->name('login');
 Route::post('/logout', [AuthController::class, 'logout']);
+Route::resource('users', UsersController::class)
+     ->except(['create', 'edit', 'index']); 
+// get authenticated user on current session
+Route::get('/user', [AuthController::class, 'user']);
+// paginated list with query search and filters
+Route::get('/users', [UsersController::class, 'getPaginatedUsers']);
 
 Route::middleware('auth:sanctum')->group(function () {
-    // Users CRUD (admin only logic can be inside controller/policies)
-    Route::resource('users', UsersController::class)
-         ->except(['create', 'edit', 'index']);
+    // CRUD
+});
 
     // Authenticated user details
     Route::get('/user', [AuthController::class, 'user']);
