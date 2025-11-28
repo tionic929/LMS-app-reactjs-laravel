@@ -20,7 +20,7 @@ const App: React.FC = () => {
 
   // Define widths for easy calculation
   const expandedWidth = 'w-64'; // 256px
-  const collapsedWidth = 'w-20'; // 80px
+  const collapsedWidth = 'w-[70px]'; // 80px
   
   // Calculate margin based on state
   const marginClass = isCollapsed ? 'ml-20' : 'ml-64';
@@ -31,7 +31,6 @@ const App: React.FC = () => {
   }
 
   return (
-    // Change to h-screen flex relative to hold the sidebar
     <div className="h-screen flex relative bg-gray-100"> 
       {/* 1. Sidebar (Fixed) */}
       {user && (
@@ -48,7 +47,7 @@ const App: React.FC = () => {
         className={`flex-1 flex flex-col ${marginClass} transition-all duration-300 ease-in-out`} // <-- Apply dynamic margin
       >
         {user && <Navbar />}
-        <main className="flex-1 overflow-y-auto p-6 md:p-8"> {/* <-- ADDED padding for content */}
+        <main className="flex-1 overflow-y-auto"> {/* <-- ADDED padding for content */}
             <Routes>
               <Route path="/login" element={user ? <Navigate to="/" replace /> : <Login />} />
 

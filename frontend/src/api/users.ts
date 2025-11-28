@@ -6,6 +6,16 @@ export interface User {
   name: string;
   email: string;
   role: "instructor" | "learner" | "admin";
+  is_enabled: boolean; // New: Account status
+    is_confirmed: boolean; // New: Instructor confirmation status
+    is_banned_from_comments: boolean;
+}
+
+export interface UserAnalytics {
+    totalUsers: number;
+    activeUsers: number;
+    unconfirmedInstructors: number;
+    bannedUsers: number;
 }
 
 export interface CreateUserPayload {
@@ -52,6 +62,11 @@ export const getAllUsers = async (
         return response.data; 
 };
 
+export async function getUsersAnalytics(): Promise<UserAnalytics>{
+    const response = await api.get('/users/analytics');
+    return response.data;
+}
+
 export const createUser = async (data: CreateUserPayload) => {
   const response = await api.post("/users", data);
   return response.data;
@@ -71,3 +86,10 @@ export const deleteUser = async (id: number) => {
     const response = await api.delete(`/users/${id}`);
     return response.data;
 }
+
+export const toggleUserField = async (userId: number, field: keyof User) => {
+    const response = await api.put(`/users/${userId}/toggle`, { 
+        field: field 
+    });
+    return response.data;
+};
