@@ -1,4 +1,6 @@
 import React, { useEffect, useState } from "react";
+import { useAuth } from "../contexts/AuthContext";
+import { Navigate } from "react-router-dom";
 import axios from "axios";
 import { MdAnnouncement, MdDelete } from "react-icons/md";
 import { IoIosAddCircle } from "react-icons/io";
@@ -15,6 +17,12 @@ interface Announcement {
 }
 
 const AnnouncementsPage: React.FC = () => {
+  const { user } = useAuth();
+
+  // Only admins can access this page
+  if (!user || user.role !== 'admin') {
+    return <Navigate to="/" replace />;
+  }
   const [query, setQuery] = useState("");
   const [activeFilter, setActiveFilter] = useState("all");
 

@@ -2,7 +2,7 @@
 
 import React from "react";
 import { FaHome, FaUsers, FaUserCircle  } from "react-icons/fa";
-import { FaArrowUpRightFromSquare, FaArrowRightFromBracket } from "react-icons/fa6";
+import { FaArrowRightFromBracket } from "react-icons/fa6";
 import { BsMegaphoneFill } from "react-icons/bs";
 import { FaBook } from "react-icons/fa6";
 import { Link } from "react-router-dom";
