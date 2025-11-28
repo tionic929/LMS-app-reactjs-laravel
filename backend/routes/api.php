@@ -9,15 +9,15 @@ use App\Http\Controllers\AnnouncementController;
 
 Route::post('/login', [AuthController::class, 'login'])->name('login');
 Route::post('/logout', [AuthController::class, 'logout']);
+Route::resource('users', UsersController::class)
+     ->except(['create', 'edit', 'index']); 
+// get authenticated user on current session
+Route::get('/user', [AuthController::class, 'user']);
+// paginated list with query search and filters
+Route::get('/users', [UsersController::class, 'getPaginatedUsers']);
 
 Route::middleware('auth:sanctum')->group(function () {
     // CRUD
-    Route::resource('users', UsersController::class)
-         ->except(['create', 'edit', 'index']); 
-    // get authenticated user on current session
-    Route::get('/user', [AuthController::class, 'user']);
-    // paginated list with query search and filters
-    Route::get('/users', [UsersController::class, 'getPaginatedUsers']);
 });
 
 // Announcements API - public endpoints (no auth required)

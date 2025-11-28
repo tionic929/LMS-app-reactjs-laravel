@@ -1,15 +1,28 @@
-// Sidebar.jsx (The Fixed Component)
+// Sidebar.jsx
 
 import React from "react";
-import { FaHome, FaUsers, FaUserCircle  } from "react-icons/fa";
-import { FaArrowUpRightFromSquare, FaArrowRightFromBracket } from "react-icons/fa6";
+import { FaHome, FaUsers, FaUserCircle, FaBook } from "react-icons/fa";
+import { FaArrowRightFromBracket } from "react-icons/fa6";
 import { BsMegaphoneFill } from "react-icons/bs";
-import { FaBook } from "react-icons/fa6";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom"; // Added useLocation for active states
 import { useAuth } from "../contexts/AuthContext";
+import { MdMenu } from 'react-icons/md';
 
-const Sidebar: React.FC = () => {
+interface SidebarProps {
+    isCollapsed: boolean;
+    setIsCollapsed: React.Dispatch<React.SetStateAction<boolean>>;
+    expandedWidth: string; // e.g., "w-64"
+    collapsedWidth: string; // e.g., "w-20"
+}
+
+const Sidebar: React.FC<SidebarProps> = ({ 
+    isCollapsed, 
+    setIsCollapsed, 
+    expandedWidth, 
+    collapsedWidth 
+}) => {
     const { user, logout } = useAuth();
+    const location = useLocation(); // To highlight active link
   
     const handleLogout = async () => {
       try {
@@ -18,77 +31,122 @@ const Sidebar: React.FC = () => {
         console.error('Logout failed', err);
       }
     };
-  return (
-    // REMOVED: fixed, left-0, top-0, bottom-0, z-50
-    // ADDED: flex-shrink-0 (optional, but good practice)
-    <aside className="w-64 bg-gray-200 text-gray-900 p-4 border-r border-gray-300 flex flex-col flex-shrink-0  md:flex overflow-hidden">
-      <div className="flex items-center align-center gap-3 px-2 pb-4 border-b border-gray-400">
-        <div className="text-3xl font-bold text-blue-800">LMS</div>
-      </div>
-      
-      {/* ... navigation content ... */}
+    
+    const toggleCollapse = () => {
+        setIsCollapsed(prev => !prev);
+    };
 
-      <nav className="mt-4 flex-1">
-        
-        {/* Navigation Links */}
-        <Link to="/" className="flex items-center gap-3 px-3 py-2 rounded hover:bg-gray-700 hover:text-gray-100">
-          <FaHome className="w-5 h-5" />
-          <span>Home</span>
-        </Link>
-        {/* ... other links ... */}
-        <Link to="/users" className="flex items-center gap-3 px-3 py-2 rounded hover:bg-gray-700 hover:text-gray-100 mt-1">
-          <FaUsers className="w-5 h-5" />
-          <span>Users</span>
-        </Link>
-        <Link
-          to="/announcements"
-          className="flex items-center gap-3 px-3 py-2 rounded hover:bg-gray-700 hover:text-gray-100 mt-1"
+    // 1. Container Width Logic
+    const widthClass = isCollapsed ? collapsedWidth : expandedWidth;
+    
+    // 2. Shared Transition Logic (Matches Laravel Breeze ease-in-out)
+    const sidebarTransition = "transition-[width] duration-300 ease-in-out";
+    const textTransition = "transition-all duration-300 ease-in-out";
+
+    // 3. Text Visibility Logic (Fade + Slide)
+    // If collapsed: opacity 0, move left slightly (-translate-x-2), hidden overflow
+    const textClass = isCollapsed 
+        ? "opacity-0 -translate-x-10 overflow-hidden" 
+        : "opacity-100 translate-x-0 w-auto";
+
+    const navItems = [
+        { to: "/", icon: FaHome, label: "Home" },
+        { to: "/users", icon: FaUsers, label: "Users" },
+        { to: "/announcements", icon: BsMegaphoneFill, label: "Announcements" },
+        { to: "/courses", icon: FaBook, label: "Courses" },
+        { to: "/register", icon: FaUserCircle, label: "Register" }
+    ];
+
+    return (
+        <aside 
+            className={`${widthClass} bg-gray-800 text-gray-200 border-r border-gray-700 flex flex-col flex-shrink-0 fixed h-screen z-50 ${sidebarTransition} overflow-hidden`}
         >
-          <BsMegaphoneFill className="w-5 h-5" />
-          <span>Announcements</span>
-        </Link>
-        <Link
-          to="/courses"
-          className="flex items-center gap-3 px-3 py-2 rounded hover:bg-gray-700 hover:text-gray-100 mt-1"
-        >
-          <FaBook className="w-5 h-5" />
-          <span>Courses</span>
-        </Link>
-        <Link
-          to="/register"
-          className="flex items-center gap-3 px-3 py-2 rounded hover:bg-gray-700 hover:text-gray-100 mt-1"
-        >
-          <FaUserCircle className="w-5 h-5" />
-          <span>Register</span>
-        </Link>
-      </nav>
-      
-      {/* Optional: Logout button at the bottom */}
-      <div className="flex flex-col pt-4 border-t border-gray-700">
-        {/* Account Button Section */}
-        <div className=""> {/* Reduced vertical padding for a tighter fit */}
-          <button className="flex items-center gap-2 px-3 py-2 w-full rounded-md hover:bg-gray-700 hover:text-gray-100 text-left">
-            {/* Ensure icons and text align nicely */}
-            <FaUserCircle className="w-6 h-6 flex-shrink-0" />
-            <span className="hidden sm:inline truncate">
-              {user?.name ?? 'Account'} {user?.role ?? 'Role Not Found'}
-            </span>
-          </button>
-        </div>
-        
-        {/* Logout Button Section */}
-        <div className="py-1"> {/* Reduced vertical padding */}
-          <button 
-            onClick={handleLogout} 
-            className="w-full flex items-center gap-3 px-3 py-2 rounded hover:bg-gray-700 hover:text-gray-100 text-red-400 text-left"
-          >
-            <FaArrowRightFromBracket className="w-5 h-5 flex-shrink-0" />
-            <span>Logout</span>
-          </button>
-        </div>
-      </div>
-    </aside>
-  );
+            {/* --- HEADER --- */}
+            <div className="flex items-center h-16 px-4 border-b border-gray-700 bg-gray-900/50">
+                {/* Icon Wrapper - Fixed width to prevent squishing */}
+                <div className={`flex items-center justify-center  ${textTransition} ${textClass}`}>
+                    <FaBook className="w-6 h-6 text-blue-500" />
+                </div>
+
+                {/* Text Wrapper */}
+                <div className={`ml-3 font-bold text-xl text-blue-500 whitespace-nowrap ${textTransition} ${textClass}`}>
+                    LMS
+                </div>
+                
+                {/* Toggle Button - Absolute positioned to right or hidden logic based on preference, 
+                    but keeping it inline for this layout */}
+                <button
+                    onClick={toggleCollapse}
+                    className={`ml-auto p-1.5 rounded-md hover:bg-gray-700 text-gray-400 hover:text-white focus:outline-none focus:ring-2 focus:ring-gray-500 ${isCollapsed ? 'absolute right-4' : ''}`}
+                >
+                     {/* The icon rotates 180 degrees when collapsed */}
+                    <MdMenu className={`w-6 h-6 transition-transform duration-300 ${isCollapsed ? 'rotate-180' : ''}`} />
+                </button>
+            </div>
+            
+            {/* --- NAVIGATION --- */}
+            <nav className="flex-1 px-3 py-4 space-y-2 overflow-y-hidden overflow-x-hidden">
+                {navItems.map((item) => {
+                    const isActive = location.pathname === item.to;
+                    
+                    return (
+                        <Link 
+                            key={item.to} 
+                            to={item.to}
+                            title={isCollapsed ? item.label : ""} // Tooltip for accessibility when collapsed
+                            className={`
+                                flex items-center px-3 py-2.5 rounded-lg group relative
+                                ${isActive ? 'bg-blue-600 text-white' : 'text-gray-400 hover:bg-gray-700 hover:text-white'}
+                                transition-colors duration-200
+                            `}
+                        >
+                            {/* Icon - Fixed Minimum Width to anchor it */}
+                            <div className={`flex-shrink-0 inline-flex items-center justify-center ${isActive ? 'text-white' : 'text-gray-400 group-hover:text-white'}`}>
+                                <item.icon className="w-5 h-5" />
+                            </div>
+
+                            {/* Text - Animates opacity and position */}
+                            <span className={`ml-3 whitespace-nowrap font-medium ${textTransition} ${textClass}`}>
+                                {item.label}
+                            </span>
+
+                            {/* Optional: Tooltip bubble style (often seen in Laravel kits) logic could go here */}
+                        </Link>
+                    );
+                })}
+            </nav>
+            
+            {/* --- FOOTER (User/Logout) --- */}
+            <div className="p-4 border-t border-gray-700 bg-gray-900/50">
+                <div className="flex flex-col gap-1">
+                    
+                    {/* User Info */}
+                    <div className="flex items-center px-3 py-2 rounded-lg text-gray-300">
+                        <div className="flex-shrink-0">
+                            <FaUserCircle className="w-6 h-6" />
+                        </div>
+                        <div className={`ml-3 ${textTransition} ${textClass}`}>
+                            <p className="text-sm font-medium text-white truncate">{user?.name ?? 'User'}</p>
+                            <p className="text-xs text-gray-500 truncate">{user?.role ?? 'Guest'}</p>
+                        </div>
+                    </div>
+
+                    {/* Logout Button */}
+                    <button 
+                        onClick={handleLogout} 
+                        className="flex items-center w-full px-3 py-2 text-left rounded-lg text-red-400 hover:bg-gray-700 hover:text-red-300 transition-colors"
+                    >
+                        <div className="flex-shrink-0">
+                            <FaArrowRightFromBracket className="w-5 h-5" />
+                        </div>
+                        <span className={`ml-3 font-medium whitespace-nowrap ${textTransition} ${textClass}`}>
+                            Logout
+                        </span>
+                    </button>
+                </div>
+            </div>
+        </aside>
+    );
 };
 
 export default Sidebar;

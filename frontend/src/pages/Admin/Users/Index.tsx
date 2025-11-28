@@ -68,14 +68,13 @@ const UsersIndex: React.FC = () => {
     }
   }
 
-  // Debounce Search & Filter Changes
   useEffect(() => {
     const handler = setTimeout(() => {
       fetchUsers(1, query, filter);
-    }, 500);
+    }, 500); // Waits 500ms before running fetchUsers
 
     return () => {
-      clearTimeout(handler);
+      clearTimeout(handler); // Clears the timer if query/filter changes again
     };
   }, [query, filter]);
 

@@ -23,28 +23,28 @@ class UsersController extends Controller
     }
 
     public function getPaginatedUsers(Request $request)
-        {
-            $search = $request->query('search');
-            $role = $request->query('role');
+    {
+        $search = $request->query('search');
+        $role = $request->query('role');
 
-            $query = User::select('id', 'name', 'email', 'role')->orderBy('id', 'asc');
+        $query = User::select('id', 'name', 'email', 'role')->orderBy('id', 'asc');
 
-            // Apply Search Filter (Name, Email, or ID)
-            if ($search) {
-                $query->where(function ($q) use ($search) {
-                    $q->where('name', 'LIKE', "%{$search}%")
-                    ->orWhere('email', 'LIKE', "%{$search}%")
-                    ->orWhere('id', $search);
-                });
-            }
-
-            // Apply Role Filter
-            if ($role && $role !== 'all') {
-                $query->where('role', $role);
-            }
-
-            return response()->json($query->paginate(5));
+        // Apply Search Filter (Name, Email, or ID)
+        if ($search) {
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'LIKE', "%{$search}%")
+                ->orWhere('email', 'LIKE', "%{$search}%")
+                ->orWhere('id', $search);
+            });
         }
+
+        // Apply Role Filter
+        if ($role && $role !== 'all') {
+            $query->where('role', $role);
+        }
+
+        return response()->json($query->paginate(5));
+    }
     
     /**
      * Show the form for creating a new resource.
