@@ -35,4 +35,4 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Announcements resource (admin checks for write actions are inside controller methods)
     Route::resource('announcements', AnnouncementController::class);
-});
+
