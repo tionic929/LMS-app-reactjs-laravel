@@ -18,7 +18,6 @@ Route::get('/users', [UsersController::class, 'getPaginatedUsers']);
 
 Route::middleware('auth:sanctum')->group(function () {
     // CRUD
-});
 
     // Authenticated user details
     Route::get('/user', [AuthController::class, 'user']);
