@@ -58,6 +58,8 @@ const CourseDetails: React.FC = () => {
 
   const [course, setCourse] = useState<Course | null>(null);
   const [isInstructor, setIsInstructor] = useState(false);
+  const [isLearner, setIsLearner] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [isEnrolled, setIsEnrolled] = useState(false);
   const [hasPendingRequest, setHasPendingRequest] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -66,7 +68,7 @@ const CourseDetails: React.FC = () => {
   // Active tab state
   const [activeTab, setActiveTab] = useState<
     "learners" | "comments" | "announcements" | "requests" | "materials"
-  >("learners");
+  >("materials");
 
   // Management modals state
   const [showEditModal, setShowEditModal] = useState(false);
@@ -114,6 +116,23 @@ const CourseDetails: React.FC = () => {
     fetchCourseData();
   }, [id]);
 
+  // Redirect non-instructors away from learners tab
+  useEffect(() => {
+    if (!isInstructor && !isAdmin && activeTab === "learners") {
+      setActiveTab("materials");
+    }
+  }, [isInstructor, isAdmin, activeTab]);
+
+  useEffect(() => {
+    if (
+      (isInstructor || isAdmin) &&
+      activeTab === "materials" &&
+      learners.length > 0
+    ) {
+      setActiveTab("learners");
+    }
+  }, [isInstructor, isAdmin, activeTab, learners.length]);
+
   const fetchCourseData = async () => {
     if (!id) return;
 
@@ -125,6 +144,8 @@ const CourseDetails: React.FC = () => {
 
       setCourse(data.course);
       setIsInstructor(data.is_instructor);
+      setIsLearner(data.is_learner);
+      setIsAdmin(data.is_admin);
       setIsEnrolled(data.is_enrolled || false);
       setHasPendingRequest(data.has_pending_request || false);
 
@@ -341,7 +362,8 @@ const CourseDetails: React.FC = () => {
             {error || "Course Not Found"}
           </h1>
           <p className="text-gray-600 mb-6">
-            The course you're looking for doesn't exist or you don't have access to it.
+            The course you're looking for doesn't exist or you don't have access
+            to it.
           </p>
           <button
             onClick={() => navigate("/courses")}
@@ -385,7 +407,7 @@ const CourseDetails: React.FC = () => {
                 </div>
               </div>
             </div>
-            {isInstructor ? (
+            {isInstructor || isAdmin ? (
               <div className="flex gap-2">
                 <button
                   onClick={() => setShowEditModal(true)}
@@ -434,7 +456,9 @@ const CourseDetails: React.FC = () => {
                       className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-md text-sm font-medium inline-flex items-center gap-2"
                     >
                       <HiOutlinePlus className="h-5 w-5" />
-                      {course?.privacy === "private" ? "Request to Join" : "Join Course"}
+                      {course?.privacy === "private"
+                        ? "Request to Join"
+                        : "Join Course"}
                     </button>
                   )
                 ) : (
@@ -454,20 +478,22 @@ const CourseDetails: React.FC = () => {
         <div className="bg-white">
           <div className="border-b border-gray-200 px-6">
             <nav className="flex">
-              <button
-                onClick={() => setActiveTab("learners")}
-                className={`flex items-center gap-2 px-6 py-4 text-sm font-medium border-b-2 ${
-                  activeTab === "learners"
-                    ? "border-blue-500 text-blue-600"
-                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-                }`}
-              >
-                <PiUsersThreeBold className="h-4 w-4" />
-                Learners
-                <span className="bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full text-xs">
-                  {learners.length}
-                </span>
-              </button>
+              {(isInstructor || isAdmin) && (
+                <button
+                  onClick={() => setActiveTab("learners")}
+                  className={`flex items-center gap-2 px-6 py-4 text-sm font-medium border-b-2 ${
+                    activeTab === "learners"
+                      ? "border-blue-500 text-blue-600"
+                      : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                  }`}
+                >
+                  <PiUsersThreeBold className="h-4 w-4" />
+                  Learners
+                  <span className="bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full text-xs">
+                    {learners.length}
+                  </span>
+                </button>
+              )}
               {isInstructor && (
                 <button
                   onClick={() => setActiveTab("requests")}
@@ -484,7 +510,8 @@ const CourseDetails: React.FC = () => {
                   </span>
                 </button>
               )}
-              <button
+              {isInstructor && (
+                <button
                 onClick={() => setActiveTab("materials")}
                 className={`flex items-center gap-2 px-6 py-4 text-sm font-medium border-b-2 ${
                   activeTab === "materials"
@@ -498,6 +525,7 @@ const CourseDetails: React.FC = () => {
                   {materials.length}
                 </span>
               </button>
+              )}
               <button
                 onClick={() => setActiveTab("comments")}
                 className={`flex items-center gap-2 px-6 py-4 text-sm font-medium border-b-2 ${
@@ -566,7 +594,10 @@ const CourseDetails: React.FC = () => {
                             {learner.email}
                           </td>
                           <td className="py-4 px-4 text-sm text-gray-600">
-                            {learner.enrolled_at || new Date(learner.pivot?.created_at || learner.created_at).toLocaleDateString()}
+                            {learner.enrolled_at ||
+                              new Date(
+                                learner.pivot?.created_at || learner.created_at
+                              ).toLocaleDateString()}
                           </td>
                           <td className="py-4 px-4">
                             <button
@@ -593,12 +624,15 @@ const CourseDetails: React.FC = () => {
                     <div key={request.id} className="border rounded-lg p-4">
                       <div className="flex justify-between items-start">
                         <div>
-                          <h3 className="font-medium">{request.user?.name || 'Unknown'}</h3>
+                          <h3 className="font-medium">
+                            {request.user?.name || "Unknown"}
+                          </h3>
                           <p className="text-sm text-gray-600">
-                            {request.user?.email || ''}
+                            {request.user?.email || ""}
                           </p>
                           <p className="text-xs text-gray-500">
-                            Requested on {new Date(request.created_at).toLocaleDateString()}
+                            Requested on{" "}
+                            {new Date(request.created_at).toLocaleDateString()}
                           </p>
                         </div>
                         <div className="flex gap-2">
@@ -703,8 +737,13 @@ const CourseDetails: React.FC = () => {
                               <p className="text-xs text-gray-500 mt-1">
                                 {material.type === "file" &&
                                   material.file_type?.toUpperCase()}
-                                {material.type === "file" && material.file_type && " • "}
-                                Uploaded {new Date(material.created_at).toLocaleDateString()}
+                                {material.type === "file" &&
+                                  material.file_type &&
+                                  " • "}
+                                Uploaded{" "}
+                                {new Date(
+                                  material.created_at
+                                ).toLocaleDateString()}
                               </p>
                             </div>
                           </div>
@@ -758,7 +797,7 @@ const CourseDetails: React.FC = () => {
                                   : "text-gray-900"
                               }`}
                             >
-                              {comment.user?.name || 'Unknown User'}
+                              {comment.user?.name || "Unknown User"}
                             </span>
                             {comment.user?.id === course.instructor_id && (
                               <span className="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs rounded-full">
@@ -766,7 +805,9 @@ const CourseDetails: React.FC = () => {
                               </span>
                             )}
                             <span className="text-xs text-gray-500">
-                              {new Date(comment.created_at).toLocaleDateString()}
+                              {new Date(
+                                comment.created_at
+                              ).toLocaleDateString()}
                             </span>
                           </div>
                           <p className="text-gray-700">{comment.content}</p>
@@ -815,12 +856,17 @@ const CourseDetails: React.FC = () => {
                             {announcement.content}
                           </p>
                           <p className="text-xs text-gray-500">
-                            Posted on {new Date(announcement.created_at).toLocaleDateString()}
+                            Posted on{" "}
+                            {new Date(
+                              announcement.created_at
+                            ).toLocaleDateString()}
                           </p>
                         </div>
                         {isInstructor && (
                           <button
-                            onClick={() => handleDeleteAnnouncement(announcement.id)}
+                            onClick={() =>
+                              handleDeleteAnnouncement(announcement.id)
+                            }
                             className="px-3 py-1 bg-red-500 text-white text-sm rounded-md hover:bg-red-600 font-medium ml-4 inline-flex items-center gap-1"
                           >
                             <RiDeleteBin6Line className="h-4 w-4" />
@@ -890,7 +936,9 @@ const CourseDetails: React.FC = () => {
                 <input
                   type="text"
                   value={editForm.title}
-                  onChange={(e) => setEditForm({ ...editForm, title: e.target.value })}
+                  onChange={(e) =>
+                    setEditForm({ ...editForm, title: e.target.value })
+                  }
                   className="w-full px-3 py-2 border border-gray-300 rounded-md"
                   required
                 />
@@ -901,7 +949,9 @@ const CourseDetails: React.FC = () => {
                 </label>
                 <textarea
                   value={editForm.content}
-                  onChange={(e) => setEditForm({ ...editForm, content: e.target.value })}
+                  onChange={(e) =>
+                    setEditForm({ ...editForm, content: e.target.value })
+                  }
                   className="w-full px-3 py-2 border border-gray-300 rounded-md"
                   rows={3}
                   required
@@ -913,7 +963,12 @@ const CourseDetails: React.FC = () => {
                 </label>
                 <select
                   value={editForm.privacy}
-                  onChange={(e) => setEditForm({ ...editForm, privacy: e.target.value as 'public' | 'private' })}
+                  onChange={(e) =>
+                    setEditForm({
+                      ...editForm,
+                      privacy: e.target.value as "public" | "private",
+                    })
+                  }
                   className="w-full px-3 py-2 border border-gray-300 rounded-md"
                 >
                   <option value="public">Public</option>
@@ -927,7 +982,12 @@ const CourseDetails: React.FC = () => {
                 <input
                   type="number"
                   value={editForm.capacity}
-                  onChange={(e) => setEditForm({ ...editForm, capacity: parseInt(e.target.value) })}
+                  onChange={(e) =>
+                    setEditForm({
+                      ...editForm,
+                      capacity: parseInt(e.target.value),
+                    })
+                  }
                   className="w-full px-3 py-2 border border-gray-300 rounded-md"
                 />
               </div>
@@ -1006,7 +1066,9 @@ const CourseDetails: React.FC = () => {
                 <input
                   type="text"
                   value={materialForm.title}
-                  onChange={(e) => setMaterialForm({ ...materialForm, title: e.target.value })}
+                  onChange={(e) =>
+                    setMaterialForm({ ...materialForm, title: e.target.value })
+                  }
                   className="w-full px-3 py-2 border border-gray-300 rounded-md"
                   required
                 />
@@ -1020,7 +1082,9 @@ const CourseDetails: React.FC = () => {
                   <input
                     type="text"
                     value={materialForm.url}
-                    onChange={(e) => setMaterialForm({ ...materialForm, url: e.target.value })}
+                    onChange={(e) =>
+                      setMaterialForm({ ...materialForm, url: e.target.value })
+                    }
                     placeholder="/files/document.pdf"
                     className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
                     required
@@ -1034,7 +1098,9 @@ const CourseDetails: React.FC = () => {
                   <input
                     type="url"
                     value={materialForm.url}
-                    onChange={(e) => setMaterialForm({ ...materialForm, url: e.target.value })}
+                    onChange={(e) =>
+                      setMaterialForm({ ...materialForm, url: e.target.value })
+                    }
                     placeholder="https://..."
                     className="w-full px-3 py-2 border border-gray-300 rounded-md"
                     required
@@ -1048,7 +1114,12 @@ const CourseDetails: React.FC = () => {
                 </label>
                 <textarea
                   value={materialForm.description}
-                  onChange={(e) => setMaterialForm({ ...materialForm, description: e.target.value })}
+                  onChange={(e) =>
+                    setMaterialForm({
+                      ...materialForm,
+                      description: e.target.value,
+                    })
+                  }
                   className="w-full px-3 py-2 border border-gray-300 rounded-md"
                   rows={3}
                 />
