@@ -122,7 +122,6 @@ const Course: React.FC = () => {
             )}
           </div>
         </div>
-        &nbsp;
         {/* Add New Course Modal */}
         {showModal && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
