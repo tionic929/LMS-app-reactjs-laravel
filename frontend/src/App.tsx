@@ -10,6 +10,7 @@ import { useAuth } from "./contexts/AuthContext";
 import Announcements from './pages/AnnouncementsPage'
 import UsersIndex from "./pages/Admin/Users/Index";
 import Courses from "./pages/Course";
+import CourseDetails from './pages/CourseDetails'
 import Register from "./pages/Register";
 import AccountUpdate from "./pages/Account/Update";
 
@@ -56,6 +57,7 @@ const App: React.FC = () => {
                 <Route path="/users" element={<UsersIndex />} />
                 <Route path="/announcements" element={<Announcements />} />
                 <Route path="/courses" element={<Courses />} />
+                <Route path="/courses/:id" element={<CourseDetails />} />
                 <Route path="/register" element={<Register />} />
                 <Route path="/account/update" element={<AccountUpdate />} />
               </Route>
