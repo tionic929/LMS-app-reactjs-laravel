@@ -80,6 +80,22 @@ class CourseController extends Controller
         // Check if user is the instructor
         $isInstructor = auth()->check() && $course->instructor_id === auth()->id();
 
+        // Check enrollment status for authenticated user
+        $isEnrolled = false;
+        $hasPendingRequest = false;
+
+        if (auth()->check()) {
+            $isEnrolled = CourseEnrollment::where('course_id', $course->id)
+                ->where('user_id', auth()->id())
+                ->where('status', 'active')
+                ->exists();
+
+            $hasPendingRequest = CourseJoinRequest::where('course_id', $course->id)
+                ->where('user_id', auth()->id())
+                ->where('status', 'pending')
+                ->exists();
+        }
+
         // Filter sensitive data based on permissions
         if (!$isInstructor) {
             $course->unsetRelation('joinRequests');
@@ -88,6 +104,8 @@ class CourseController extends Controller
         return response()->json([
             'course' => $course,
             'is_instructor' => $isInstructor,
+            'is_enrolled' => $isEnrolled,
+            'has_pending_request' => $hasPendingRequest,
         ]);
     }
 
@@ -320,5 +338,80 @@ class CourseController extends Controller
         $announcement->delete();
 
         return response()->json(['message' => 'Announcement deleted']);
+    }
+
+    /**
+     * Enroll in a public course or request to join a private course
+     */
+    public function enroll(Course $course)
+    {
+        $user = auth()->user();
+
+        // Check if already enrolled
+        $existingEnrollment = CourseEnrollment::where('course_id', $course->id)
+            ->where('user_id', $user->id)
+            ->first();
+
+        if ($existingEnrollment) {
+            return response()->json(['message' => 'Already enrolled'], 400);
+        }
+
+        // Check if course is full
+        if ($course->current_enrolled >= $course->capacity) {
+            return response()->json(['message' => 'Course is full'], 400);
+        }
+
+        if ($course->privacy === 'public') {
+            // Directly enroll for public courses
+            CourseEnrollment::create([
+                'course_id' => $course->id,
+                'user_id' => $user->id,
+                'status' => 'active',
+                'enrolled_at' => now(),
+            ]);
+
+            $course->increment('current_enrolled');
+
+            return response()->json(['message' => 'Successfully enrolled']);
+        } else {
+            // Create join request for private courses
+            $existingRequest = CourseJoinRequest::where('course_id', $course->id)
+                ->where('user_id', $user->id)
+                ->where('status', 'pending')
+                ->first();
+
+            if ($existingRequest) {
+                return response()->json(['message' => 'Join request already pending'], 400);
+            }
+
+            CourseJoinRequest::create([
+                'course_id' => $course->id,
+                'user_id' => $user->id,
+                'status' => 'pending',
+            ]);
+
+            return response()->json(['message' => 'Join request submitted']);
+        }
+    }
+
+    /**
+     * Leave a course (unenroll)
+     */
+    public function leave(Course $course)
+    {
+        $user = auth()->user();
+
+        $enrollment = CourseEnrollment::where('course_id', $course->id)
+            ->where('user_id', $user->id)
+            ->first();
+
+        if (!$enrollment) {
+            return response()->json(['message' => 'Not enrolled in this course'], 400);
+        }
+
+        $enrollment->delete();
+        $course->decrement('current_enrolled');
+
+        return response()->json(['message' => 'Successfully left the course']);
     }
 }

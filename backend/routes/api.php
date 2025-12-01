@@ -23,6 +23,8 @@ Route::resource('courses', CourseController::class);
 
 // Course specific routes
 Route::middleware('auth:sanctum')->group(function () {
+    Route::post('/courses/{course}/enroll', [CourseController::class, 'enroll']);
+    Route::post('/courses/{course}/leave', [CourseController::class, 'leave']);
     Route::get('/courses/{course}/learners', [CourseController::class, 'learners']);
     Route::delete('/courses/{course}/learners/{userId}', [CourseController::class, 'removeLearner']);
     Route::get('/courses/{course}/join-requests', [CourseController::class, 'joinRequests']);
