@@ -13,14 +13,13 @@ return new class extends Migration
     {
         Schema::create('courses', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('instructor_id')->constrained('users')->onDelete('cascade');
             $table->string('title');
             $table->text('content')->nullable();
-            $table->string('author');
             $table->enum('privacy', ['public', 'private'])->default('public');
-            $table->integer('currentEnrolled')->default(0);
-            $table->integer('capacity')->default(0);
-            // $table->enum('status', ['active', 'disbanded'])->default('active');
-            // $table->boolean('requireApproval')->default(false);
+            $table->integer('current_enrolled')->default(0);
+            $table->integer('capacity')->default(50);
+            $table->enum('status', ['active', 'disbanded'])->default('active');
             $table->timestamps();
         });
     }
