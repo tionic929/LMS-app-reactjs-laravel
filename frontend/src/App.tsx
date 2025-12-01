@@ -23,7 +23,8 @@ const App: React.FC = () => {
   const collapsedWidth = 'w-[70px]'; // 80px
   
   // Calculate margin based on state
-  const marginClass = isCollapsed ? 'ml-20' : 'ml-64';
+  const calculatedMargin = isCollapsed ? 'ml-20' : 'ml-64';
+  const marginClass = user ? calculatedMargin : 'ml-0';
 
   if (loading) {
       // Handle loading state if necessary
@@ -32,22 +33,20 @@ const App: React.FC = () => {
 
   return (
     <div className="h-screen flex relative bg-gray-100"> 
-      {/* 1. Sidebar (Fixed) */}
       {user && (
         <Sidebar 
-          isCollapsed={isCollapsed} // <-- Pass state down
-          setIsCollapsed={setIsCollapsed} // <-- Pass setter function down
+          isCollapsed={isCollapsed} 
+          setIsCollapsed={setIsCollapsed} 
           expandedWidth={expandedWidth}
           collapsedWidth={collapsedWidth}
         />
       )}
 
-      {/* 2. Main Content Wrapper */}
       <div 
-        className={`flex-1 flex flex-col ${marginClass} transition-all duration-300 ease-in-out`} // <-- Apply dynamic margin
+        className={`flex-1 flex flex-col ${marginClass} transition-all duration-300 ease-in-out`} 
       >
         {user && <Navbar />}
-        <main className="flex-1 overflow-y-auto"> {/* <-- ADDED padding for content */}
+        <main className="flex-1 overflow-y-auto"> 
             <Routes>
               <Route path="/login" element={user ? <Navigate to="/" replace /> : <Login />} />
 

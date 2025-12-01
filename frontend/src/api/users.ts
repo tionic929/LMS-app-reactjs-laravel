@@ -2,11 +2,11 @@ import type { Update } from "vite/types/hmrPayload.js";
 import api from "./axios"; // Your configured axios instance
 
 export interface User {
-  id: number;
-  name: string;
-  email: string;
-  role: "instructor" | "learner" | "admin";
-  is_enabled: boolean; // New: Account status
+    id: number;
+    name: string;
+    email: string;
+    role: "instructor" | "learner" | "admin";
+    is_enabled: boolean; // New: Account status
     is_confirmed: boolean; // New: Instructor confirmation status
     is_banned_from_comments: boolean;
 }

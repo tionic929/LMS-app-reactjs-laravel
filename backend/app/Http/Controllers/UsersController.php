@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use App\Models\User;
+use App\Models\Announcement;
 use Illuminate\Validation\Rule;
 
 class UsersController extends Controller
@@ -60,12 +61,18 @@ class UsersController extends Controller
     }
 
     public function getUsersAnalytics()
-    {
+    {   
+        $totalAnnouncements = Announcement::count();
         $totalUsers = User::count();
+        $totalInstructors = User::where('role', 'instructor')
+            ->count();
+
+        $totalLearners = User::where('role', 'learner')
+            ->count();
 
         $activeUsers = User::where('is_enabled', true)
-                        ->where('is_banned_from_comments', false)
-                        ->count();
+            ->where('is_banned_from_comments', false)
+            ->count();
 
         // 3. Pending Instructors (role = 'instructor' AND is_confirmed = false)
         $unconfirmedInstructors = User::where('role', 'instructor')
@@ -77,6 +84,11 @@ class UsersController extends Controller
 
         return response()->json([
             'totalUsers' => $totalUsers,
+            'totalInstructors' => $totalInstructors,
+            'totalLearners' => $totalLearners,
+
+            'totalAnnouncements' => $totalAnnouncements,
+
             'activeUsers' => $activeUsers,
             'unconfirmedInstructors' => $unconfirmedInstructors,
             'bannedUsers' => $bannedUsers,
