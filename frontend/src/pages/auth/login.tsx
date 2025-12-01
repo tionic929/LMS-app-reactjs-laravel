@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { useAuth } from "../../contexts/AuthContext"; // <-- Integrated Logic
 import MonkeyPNG from '../../assets/monkey.png';
 import { FaBook, FaUser, FaLock } from 'react-icons/fa6'; // Assuming this icon is correctly imported
+import { Link } from 'react-router-dom';
 
 const Login: React.FC = () => {
   const [email, setEmail] = useState('')
@@ -119,13 +120,23 @@ const Login: React.FC = () => {
             {/* Create Account Link */}
             <p className="mt-4 text-center text-sm text-gray-600">
               Don't have an account? 
-              <button 
-                type="button" 
-                onClick={() => alert('Register flow not implemented')} 
+              <Link
+                to="/register" // Use the 'to' prop for navigation
                 className="ml-1 font-medium text-indigo-600 hover:text-indigo-500 hover:underline"
               >
                 Create account
-              </button>
+              </Link>
+            </p>
+
+            {/* Sign up as instructor */}
+            <p className="mt-4 text-center text-sm text-gray-600">
+              Want to share your knowledge?
+              <Link
+                to="/registerInstructor" // Use the 'to' prop for navigation
+                className="ml-1 font-medium text-indigo-600 hover:text-indigo-500 hover:underline"
+              >
+                Click me!
+              </Link>
             </p>
 
           </form>

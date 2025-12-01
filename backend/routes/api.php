@@ -8,6 +8,8 @@ use App\Http\Controllers\AnnouncementController;
 
 
 Route::post('/login', [AuthController::class, 'login'])->name('login');
+Route::post('/register', [AuthController::class, 'register']);
+Route::post('/registerInstructor', [AuthController::class, 'registerInstructor']);
 Route::post('/logout', [AuthController::class, 'logout']);
 
 Route::get('/users/analytics', [UsersController::class, 'getUsersAnalytics']);
