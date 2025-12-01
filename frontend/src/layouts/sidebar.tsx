@@ -1,10 +1,11 @@
-// Sidebar.jsx
+// Sidebar
 
-import React, { useState } from "react";
+import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { FaHome, FaUsers, FaUserCircle, FaBook } from "react-icons/fa";
 import { FaArrowRightFromBracket } from "react-icons/fa6";
 import { BsMegaphoneFill } from "react-icons/bs";
-import { Link, useLocation } from "react-router-dom"; // Added useLocation for active states
+import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { MdMenu } from 'react-icons/md';
 
@@ -22,8 +23,11 @@ const Sidebar: React.FC<SidebarProps> = ({
     collapsedWidth 
 }) => {
     const { user, logout } = useAuth();
-    const location = useLocation(); // To highlight active link
+    const location = useLocation();
     const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+        const sidebarRef = useRef<HTMLElement | null>(null);
+        const userButtonRef = useRef<HTMLButtonElement | null>(null);
+        const [panelPos, setPanelPos] = useState<{ left: number; bottom: number }>({ left: 0, bottom: 0 });
   
     const handleLogout = async () => {
       try {
@@ -40,6 +44,32 @@ const Sidebar: React.FC<SidebarProps> = ({
     const toggleUserMenu = () => {
         setIsUserMenuOpen(prev => !prev);
     };
+
+    // Position the modal panel next to the sidebar footer button
+    useLayoutEffect(() => {
+        if (!isUserMenuOpen) return;
+        const placePanel = () => {
+            const sidebarRect = sidebarRef.current?.getBoundingClientRect();
+            const buttonRect = userButtonRef.current?.getBoundingClientRect();
+            if (!sidebarRect || !buttonRect) return;
+            const left = Math.round(sidebarRect.right + 8); // 8px gap from sidebar edge
+            const bottom = Math.round(window.innerHeight - buttonRect.bottom);
+            setPanelPos({ left, bottom });
+        };
+        placePanel();
+        window.addEventListener('resize', placePanel);
+        return () => window.removeEventListener('resize', placePanel);
+    }, [isUserMenuOpen, isCollapsed]);
+
+    // Close on Escape
+    useEffect(() => {
+        if (!isUserMenuOpen) return;
+        const onKey = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') setIsUserMenuOpen(false);
+        };
+        window.addEventListener('keydown', onKey);
+        return () => window.removeEventListener('keydown', onKey);
+    }, [isUserMenuOpen]);
 
     // 1. Container Width Logic
     const widthClass = isCollapsed ? collapsedWidth : expandedWidth;
@@ -63,7 +93,9 @@ const Sidebar: React.FC<SidebarProps> = ({
     ];
 
     return (
+        <>
         <aside 
+            ref={sidebarRef}
             className={`${widthClass} bg-gray-800 text-gray-200 border-r border-gray-700 flex flex-col flex-shrink-0 fixed h-screen z-50 ${sidebarTransition} overflow-hidden`}
         >
             {/* --- HEADER --- */}
@@ -126,6 +158,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                 <div className="flex flex-col gap-2">
                     {/* User Info (toggle dropdown) */}
                     <button
+                        ref={userButtonRef}
                         onClick={toggleUserMenu}
                         className="flex items-center w-full px-3 py-2 text-left rounded-lg text-gray-300 hover:bg-gray-700 hover:text-white transition-colors"
                     >
@@ -137,35 +170,64 @@ const Sidebar: React.FC<SidebarProps> = ({
                             <p className="text-xs text-gray-500 truncate">{user?.role ?? 'Guest'}</p>
                         </div>
                     </button>
-
-                    {/* Dropdown items */}
-                    {isUserMenuOpen && (
-                        <div className="mt-1 ml-10 flex flex-col gap-1">
-                            <Link
-                                to="/account/update"
-                                className="flex items-center px-3 py-2 rounded-lg text-gray-300 hover:bg-gray-700 hover:text-white transition-colors"
-                            >
-                                <span className={`font-medium whitespace-nowrap ${textTransition} ${textClass}`}>Update User</span>
-                            </Link>
-                            <button
-                                type="button"
-                                disabled
-                                className="flex items-center px-3 py-2 rounded-lg text-gray-500 cursor-not-allowed bg-gray-800"
-                            >
-                                <span className={`font-medium whitespace-nowrap ${textTransition} ${textClass}`}>Settings (soon)</span>
-                            </button>
-                            <button
-                                onClick={handleLogout}
-                                className="flex items-center px-3 py-2 rounded-lg text-red-400 hover:bg-gray-700 hover:text-red-300 transition-colors"
-                            >
-                                <FaArrowRightFromBracket className="w-5 h-5" />
-                                <span className={`ml-3 font-medium whitespace-nowrap ${textTransition} ${textClass}`}>Logout</span>
-                            </button>
-                        </div>
-                    )}
+                    {/* Modal rendered via portal, positioned beside the sidebar footer */}
                 </div>
             </div>
         </aside>
+        {isUserMenuOpen && createPortal(
+            <>
+                {/* Overlay to capture outside clicks */}
+                <div
+                    className="fixed inset-0 z-40 bg-black/0"
+                    onClick={() => setIsUserMenuOpen(false)}
+                    aria-hidden="true"
+                />
+                {/* Panel */}
+                <div
+                    role="dialog"
+                    aria-modal="true"
+                    className="fixed z-50 bg-gray-800 border border-gray-700 rounded-lg shadow-xl w-64 max-w-[85vw] text-gray-200"
+                    style={{ left: panelPos.left, bottom: panelPos.bottom }}
+                    onClick={(e) => e.stopPropagation()}
+                >
+                    <div className="p-3 border-b border-gray-700">
+                        <div className="flex items-center gap-3">
+                            <FaUserCircle className="w-8 h-8 text-gray-300" />
+                            <div className="min-w-0">
+                                <p className="text-sm font-semibold truncate">{user?.name ?? 'User'}</p>
+                                <p className="text-xs text-gray-400 truncate">{user?.role ?? 'Guest'}</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="p-2 flex flex-col">
+                        <Link
+                            to="/account/update"
+                            onClick={() => setIsUserMenuOpen(false)}
+                            className="px-3 py-2 rounded-md hover:bg-gray-700/70 transition-colors"
+                        >
+                            Account Details
+                        </Link>
+                        <button
+                            type="button"
+                            disabled
+                            className="px-3 py-2 rounded-md text-gray-500 cursor-not-allowed bg-gray-800/70 mt-1 text-left"
+                        >
+                            Settings (soon)
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => { setIsUserMenuOpen(false); handleLogout(); }}
+                            className="mt-2 flex items-center px-3 py-2 rounded-md text-red-400 hover:bg-gray-700/70 hover:text-red-300 transition-colors text-left"
+                        >
+                            <FaArrowRightFromBracket className="w-5 h-5" />
+                            <span className="ml-2 font-medium">Logout</span>
+                        </button>
+                    </div>
+                </div>
+            </>,
+            document.body
+        )}
+        </>
     );
 };
 
