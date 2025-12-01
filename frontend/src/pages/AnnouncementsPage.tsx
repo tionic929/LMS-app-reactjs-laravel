@@ -21,9 +21,9 @@ const AnnouncementsPage: React.FC = () => {
   const { user } = useAuth();
 
   // Allow admins, instructors, and learners to access; others redirected
-  if (!user || !['admin', 'instructor', 'learner'].includes(user.role)) {
-    return <Navigate to="/" replace />;
-  }
+  // if (!user || !['admin', 'instructor', 'learner'].includes(user.role)) {
+  //   return <Navigate to="/" replace />;
+  // }
   const [query, setQuery] = useState("");
   const [activeFilter, setActiveFilter] = useState("all");
 

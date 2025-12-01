@@ -1,57 +1,104 @@
 import React, { useState, useEffect } from 'react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-// Assuming you'll create a new API function here for historical data (e.g., getHistoricalUserData)
+import api from '../../api/axios';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
-// --- SIMULATED API CALL ---
-const getHistoricalUserData = async () => {
-    // In a real app, this would be an API call, e.g., api.get('/analytics/user-history')
-    // We use your static data here for demonstration:
-    return [
-        { name: 'Mon', 'Users Added': 4000, 'Courses Completed': 2400 },
-        { name: 'Tue', 'Users Added': 3000, 'Courses Completed': 1398 },
-        { name: 'Wed', 'Users Added': 2000, 'Courses Completed': 9800 },
-        { name: 'Thu', 'Users Added': 2780, 'Courses Completed': 3908 },
-        { name: 'Fri', 'Users Added': 1890, 'Courses Completed': 4800 },
-    ];
+// --- Type Definitions for Clarity ---
+interface AnalyticsSnapshot {
+    totalUsers: number;
+    totalInstructors: number;
+    totalLearners: number;
+    totalAnnouncements: number;
+    activeUsers: number;
+    unconfirmedInstructors: number;
+    bannedUsers: number;
+}
+
+interface ChartDataPoint {
+    name: string;
+    value: number;
+    // Add other properties if you need to chart them
+}
+
+// ------------------------------------
+
+// Updated API call to fetch the snapshot data
+const getSnapshotData = async (): Promise<AnalyticsSnapshot> => {
+    try {
+        const response = await api.get('/users/analytics');
+        return response.data;
+    } catch (error) {
+        console.error("Error fetching analytics data:", error);
+        // Return a mock structure on failure
+        return {
+            totalUsers: 0,
+            totalInstructors: 0,
+            totalLearners: 0,
+            totalAnnouncements: 0,
+            activeUsers: 0,
+            unconfirmedInstructors: 0,
+            bannedUsers: 0,
+        };
+    }
 };
-// ----------------------------
+
+/**
+ * Transforms the single snapshot object into an array suitable for Recharts.
+ * We'll focus on the core user and administrative totals.
+ */
+const transformSnapshotToChartData = (snapshot: AnalyticsSnapshot): ChartDataPoint[] => {
+    return [
+        { name: 'Total Users', value: snapshot.totalUsers },
+        { name: 'Total Instructors', value: snapshot.totalInstructors },
+        { name: 'Total Learners', value: snapshot.totalLearners },
+        { name: 'Active Users', value: snapshot.activeUsers },
+        { name: 'Unconfirmed Instructors', value: snapshot.unconfirmedInstructors },
+        { name: 'Banned Users', value: snapshot.bannedUsers },
+        { name: 'Total Announcements', value: snapshot.totalAnnouncements },
+    ].filter(item => item.value > 0); // Filter out zero values if desired
+};
 
 
-const LineChartUsers = () => {
-    const [chartData, setChartData] = useState([]);
+const BarChartAnalytics = () => {
+    const [chartData, setChartData] = useState<ChartDataPoint[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        getHistoricalUserData().then(data => {
-            setChartData(data);
+        getSnapshotData().then(snapshot => {
+            const transformedData = transformSnapshotToChartData(snapshot);
+            setChartData(transformedData);
             setLoading(false);
         });
     }, []);
 
     if (loading) {
-        return <div className="p-6 text-center text-gray-500">Loading historical data...</div>;
+        return <div className="p-6 text-center text-gray-500">Loading analytics data...</div>;
     }
 
+    if (chartData.length === 0) {
+        return <div className="p-6 text-center text-gray-500">No data available for chart visualization.</div>;
+    }
+
+    // Charting the transformed data (snapshot totals) as a BarChart
     return (
         <div className="bg-white p-6 rounded-lg shadow-md">
-            <h3 className="text-lg font-semibold mb-4">Weekly User & Course Activity</h3>
+            <h3 className="text-lg font-semibold mb-4">User & System Totals Overview</h3>
             <ResponsiveContainer width="100%" height={300}>
-                <LineChart
-                    data={chartData} // Using fetched data
+                <BarChart
+                    data={chartData}
                     margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
                 >
                     <CartesianGrid strokeDasharray="3 3" stroke="#ccc" />
                     <XAxis dataKey="name" />
-                    <YAxis />
+                    <YAxis allowDecimals={false} />
                     <Tooltip />
                     <Legend />
                     
-                    <Line type="monotone" dataKey="Users Added" stroke="#4F46E5" activeDot={{ r: 8 }} strokeWidth={2} />
-                    <Line type="monotone" dataKey="Courses Completed" stroke="#10B981" strokeWidth={2} />
-                </LineChart>
+                    {/* The Bar component will use the dataKey "value" */}
+                    <Bar dataKey="value" name="Count" fill="#4F46E5" radius={[4, 4, 0, 0]} />
+                </BarChart>
             </ResponsiveContainer>
         </div>
     );
 };
 
-export default LineChartUsers;
+export default BarChartAnalytics;

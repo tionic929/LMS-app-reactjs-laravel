@@ -8,8 +8,15 @@ class Instructor extends Model
 {
     protected $fillable = [
         'user_id',
-        'department',
-        'specialization'
+        // 'department',
+        // 'specialization',
+        'first_name',
+        'middle_initial',
+        'last_name',
+        'date_of_birth',
+        'phone_number',
+        'address',
+        'status',
     ];
 
     public function user()
