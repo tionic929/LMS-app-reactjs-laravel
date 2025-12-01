@@ -19,8 +19,8 @@ interface Announcement {
 const AnnouncementsPage: React.FC = () => {
   const { user } = useAuth();
 
-  // Only admins can access this page
-  if (!user || user.role !== 'admin') {
+  // Allow admins, instructors, and learners to access; others redirected
+  if (!user || !['admin', 'instructor', 'learner'].includes(user.role)) {
     return <Navigate to="/" replace />;
   }
   const [query, setQuery] = useState("");
@@ -283,13 +283,15 @@ const AnnouncementsPage: React.FC = () => {
               ))}
             </select>
 
-            <button
-              onClick={() => setIsAddOpen(true)}
-              className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md flex items-center gap-2 text-sm font-medium shadow-sm"
-            >
-              <IoIosAddCircle className="h-4 w-4" />
-              Add Announcement
-            </button>
+            {user.role === 'admin' && (
+              <button
+                onClick={() => setIsAddOpen(true)}
+                className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md flex items-center gap-2 text-sm font-medium shadow-sm"
+              >
+                <IoIosAddCircle className="h-4 w-4" />
+                Add Announcement
+              </button>
+            )}
           </div>
         </div>
 
@@ -370,31 +372,33 @@ const AnnouncementsPage: React.FC = () => {
                     </div>
                   </div>
 
-                  <div className="flex border-t border-gray-200">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        openEdit(announcement);
-                      }}
-                      className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-blue-50 hover:bg-blue-100 text-blue-600 hover:text-blue-700 transition-colors duration-200 border-r border-gray-200"
-                      title="Edit announcement"
-                    >
-                      <FaEdit className="h-4 w-4" />
-                      <span className="text-sm font-medium">Edit</span>
-                    </button>
+                  {user.role === 'admin' && (
+                    <div className="flex border-t border-gray-200">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openEdit(announcement);
+                        }}
+                        className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-blue-50 hover:bg-blue-100 text-blue-600 hover:text-blue-700 transition-colors duration-200 border-r border-gray-200"
+                        title="Edit announcement"
+                      >
+                        <FaEdit className="h-4 w-4" />
+                        <span className="text-sm font-medium">Edit</span>
+                      </button>
 
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        void deleteAnnouncement(announcement.id, announcement.title);
-                      }}
-                      className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-red-50 hover:bg-red-100 text-red-600 hover:text-red-700 transition-colors duration-200"
-                      title="Delete announcement"
-                    >
-                      <MdDelete className="h-4 w-4" />
-                      <span className="text-sm font-medium">Delete</span>
-                    </button>
-                  </div>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          void deleteAnnouncement(announcement.id, announcement.title);
+                        }}
+                        className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-red-50 hover:bg-red-100 text-red-600 hover:text-red-700 transition-colors duration-200"
+                        title="Delete announcement"
+                      >
+                        <MdDelete className="h-4 w-4" />
+                        <span className="text-sm font-medium">Delete</span>
+                      </button>
+                    </div>
+                  )}
                 </div>
               );
             })
