@@ -35,6 +35,15 @@ export const deleteCourse = async (id: string | number) => {
   return api.delete(`/courses/${id}`);
 };
 
+// Enrollment
+export const enrollInCourse = async (courseId: string | number) => {
+  return api.post(`/courses/${courseId}/enroll`);
+};
+
+export const leaveCourse = async (courseId: string | number) => {
+  return api.post(`/courses/${courseId}/leave`);
+};
+
 // Learner management
 export const getCourseLearners = async (courseId: string | number) => {
   return api.get(`/courses/${courseId}/learners`);

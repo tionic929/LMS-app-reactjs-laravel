@@ -5,6 +5,8 @@ import {
   getCourse,
   updateCourse,
   deleteCourse,
+  enrollInCourse,
+  leaveCourse,
   removeLearner,
   acceptJoinRequest,
   rejectJoinRequest,
@@ -56,6 +58,8 @@ const CourseDetails: React.FC = () => {
 
   const [course, setCourse] = useState<Course | null>(null);
   const [isInstructor, setIsInstructor] = useState(false);
+  const [isEnrolled, setIsEnrolled] = useState(false);
+  const [hasPendingRequest, setHasPendingRequest] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -121,6 +125,8 @@ const CourseDetails: React.FC = () => {
 
       setCourse(data.course);
       setIsInstructor(data.is_instructor);
+      setIsEnrolled(data.is_enrolled || false);
+      setHasPendingRequest(data.has_pending_request || false);
 
       // Set data from course relationships
       setLearners(data.course.active_learners || []);
@@ -210,6 +216,33 @@ const CourseDetails: React.FC = () => {
     } catch (err: any) {
       console.error("Error rejecting request:", err);
       alert(err.response?.data?.message || "Failed to reject request");
+    }
+  };
+
+  const handleEnrollCourse = async () => {
+    if (!id) return;
+
+    try {
+      const response = await enrollInCourse(id);
+      await fetchCourseData();
+      alert(response.data.message || "Successfully enrolled!");
+    } catch (err: any) {
+      console.error("Error enrolling:", err);
+      alert(err.response?.data?.message || "Failed to enroll in course");
+    }
+  };
+
+  const handleLeaveCourse = async () => {
+    if (!id) return;
+    if (!confirm("Are you sure you want to leave this course?")) return;
+
+    try {
+      const response = await leaveCourse(id);
+      await fetchCourseData();
+      alert(response.data.message || "Successfully left the course");
+    } catch (err: any) {
+      console.error("Error leaving course:", err);
+      alert(err.response?.data?.message || "Failed to leave course");
     }
   };
 
@@ -352,7 +385,7 @@ const CourseDetails: React.FC = () => {
                 </div>
               </div>
             </div>
-            {isInstructor && (
+            {isInstructor ? (
               <div className="flex gap-2">
                 <button
                   onClick={() => setShowEditModal(true)}
@@ -368,6 +401,50 @@ const CourseDetails: React.FC = () => {
                   <RiDeleteBin6Line className="h-5 w-5" />
                   Disband
                 </button>
+              </div>
+            ) : (
+              <div className="flex gap-2">
+                {user ? (
+                  isEnrolled ? (
+                    <button
+                      onClick={handleLeaveCourse}
+                      className="bg-red-500 hover:bg-red-600 text-white px-6 py-2 rounded-md text-sm font-medium inline-flex items-center gap-2"
+                    >
+                      <LiaUserMinusSolid className="h-5 w-5" />
+                      Leave Course
+                    </button>
+                  ) : hasPendingRequest ? (
+                    <button
+                      disabled
+                      className="bg-gray-400 text-white px-6 py-2 rounded-md text-sm font-medium inline-flex items-center gap-2 cursor-not-allowed"
+                    >
+                      <VscRequestChanges className="h-5 w-5" />
+                      Request Pending
+                    </button>
+                  ) : course && course.current_enrolled >= course.capacity ? (
+                    <button
+                      disabled
+                      className="bg-gray-400 text-white px-6 py-2 rounded-md text-sm font-medium cursor-not-allowed"
+                    >
+                      Course Full
+                    </button>
+                  ) : (
+                    <button
+                      onClick={handleEnrollCourse}
+                      className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-md text-sm font-medium inline-flex items-center gap-2"
+                    >
+                      <HiOutlinePlus className="h-5 w-5" />
+                      {course?.privacy === "private" ? "Request to Join" : "Join Course"}
+                    </button>
+                  )
+                ) : (
+                  <button
+                    onClick={() => navigate("/login")}
+                    className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-md text-sm font-medium inline-flex items-center gap-2"
+                  >
+                    Login to Join
+                  </button>
+                )}
               </div>
             )}
           </div>
