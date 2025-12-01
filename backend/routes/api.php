@@ -6,6 +6,7 @@ use App\Http\Controllers\UsersController;
 use App\Http\Controllers\CourseController;
 use App\Http\Controllers\NotificationsController;
 use App\Http\Controllers\DiscussionsController;
+use App\Http\Controllers\AnnouncementController;
 use App\Http\Controllers\AuthController;
 
 // Authentication routes
@@ -34,8 +35,17 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/courses/{course}/announcements/{announcementId}', [CourseController::class, 'deleteAnnouncement']);
 });
 
+// System-wide announcements (admin only for create/update/delete)
+Route::get('announcements', [AnnouncementController::class, 'index']);
+Route::get('announcements/{announcement}', [AnnouncementController::class, 'show']);
+Route::middleware(['auth:sanctum', 'role:admin'])->group(function () {
+    Route::post('announcements', [AnnouncementController::class, 'store']);
+    Route::put('announcements/{announcement}', [AnnouncementController::class, 'update']);
+    Route::delete('announcements/{announcement}', [AnnouncementController::class, 'destroy']);
+});
+
 Route::resource('notifications', NotificationsController::class);
-Route::resource('announcements', DiscussionsController::class);
+Route::resource('discussions', DiscussionsController::class);
 Route::resource('users', UsersController::class)->except(['create', 'edit']);
 
 Route::middleware(['auth:sanctum', 'role:admin'])
