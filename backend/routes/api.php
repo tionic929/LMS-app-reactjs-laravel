@@ -50,6 +50,8 @@ Route::resource('users', UsersController::class)->except(['create', 'edit', 'ind
 Route::get('/user', [AuthController::class, 'user']);
 Route::get('/users', [UsersController::class, 'getPaginatedUsers']);
 Route::post('/login', [AuthController::class, 'login'])->name('login');
+Route::post('/register', [AuthController::class, 'register']);
+Route::post('/registerInstructor', [AuthController::class, 'registerInstructor']);
 Route::post('/logout', [AuthController::class, 'logout']);
 
 Route::middleware('auth:sanctum')->group(function () {

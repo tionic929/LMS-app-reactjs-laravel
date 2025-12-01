@@ -5,7 +5,7 @@ import { createPortal } from "react-dom";
 import { FaHome, FaUsers, FaUserCircle, FaBook } from "react-icons/fa";
 import { FaArrowRightFromBracket } from "react-icons/fa6";
 import { BsMegaphoneFill } from "react-icons/bs";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom"; // Added useLocation for active states
 import { useAuth } from "../contexts/AuthContext";
 import { MdMenu } from 'react-icons/md';
 
@@ -14,6 +14,15 @@ interface SidebarProps {
     setIsCollapsed: React.Dispatch<React.SetStateAction<boolean>>;
     expandedWidth: string; // e.g., "w-64"
     collapsedWidth: string; // e.g., "w-20"
+}
+
+// Define the structure for a navigation item
+interface NavItem {
+    to: string;
+    icon: React.ElementType;
+    label: string;
+    // Define which roles can see this link
+    roles: ('admin' | 'instructor' | 'learner')[]; 
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ 
@@ -74,23 +83,49 @@ const Sidebar: React.FC<SidebarProps> = ({
     // 1. Container Width Logic
     const widthClass = isCollapsed ? collapsedWidth : expandedWidth;
     
-    // 2. Shared Transition Logic (Matches Laravel Breeze ease-in-out)
+    // 2. Shared Transition Logic
     const sidebarTransition = "transition-[width] duration-300 ease-in-out";
     const textTransition = "transition-all duration-300 ease-in-out";
 
-    // 3. Text Visibility Logic (Fade + Slide)
-    // If collapsed: opacity 0, move left slightly (-translate-x-2), hidden overflow
+    // 3. Text Visibility Logic
     const textClass = isCollapsed 
         ? "opacity-0 -translate-x-10 overflow-hidden" 
         : "opacity-100 translate-x-0 w-auto";
 
-    const navItems = [
-        { to: "/", icon: FaHome, label: "Home" },
-        { to: "/users", icon: FaUsers, label: "Users" },
-        { to: "/announcements", icon: BsMegaphoneFill, label: "Announcements" },
-        { to: "/courses", icon: FaBook, label: "Courses" },
-        { to: "/register", icon: FaUserCircle, label: "Register" }
+    // --- RBAC: Define ALL Navigation Items ---
+    const allNavItems: NavItem[] = [
+        { 
+            to: "/", 
+            icon: FaHome, 
+            label: "Dashboard", 
+            roles: ['admin', 'instructor', 'learner'] 
+        },
+        { 
+            to: "/users", 
+            icon: FaUsers, 
+            label: "User Management", 
+            roles: ['admin'] // Only Admin can manage users
+        },
+        { 
+            to: "/announcements", 
+            icon: BsMegaphoneFill, 
+            label: "Announcements", 
+            roles: ['admin', 'instructor', 'learner'] 
+        },
+        { 
+            to: "/courses", 
+            icon: FaBook, 
+            label: "Courses/Community", 
+            roles: ['admin', 'instructor', 'learner'] 
+        },
+        // Removed the '/register' link as it's typically pre-auth or part of Admin user management
     ];
+
+    // --- RBAC: Filter Navigation Items based on the authenticated user's role ---
+    const navItems = allNavItems.filter(item => 
+        user?.role && item.roles.includes(user.role as ('admin' | 'instructor' | 'learner'))
+    );
+
 
     return (
         <>
@@ -100,23 +135,17 @@ const Sidebar: React.FC<SidebarProps> = ({
         >
             {/* --- HEADER --- */}
             <div className="flex items-center h-16 px-4 border-b border-gray-700 bg-gray-900/50">
-                {/* Icon Wrapper - Fixed width to prevent squishing */}
                 <div className={`flex items-center justify-center  ${textTransition} ${textClass}`}>
                     <FaBook className="w-6 h-6 text-blue-500" />
                 </div>
-
-                {/* Text Wrapper */}
                 <div className={`ml-3 font-bold text-xl text-blue-500 whitespace-nowrap ${textTransition} ${textClass}`}>
                     LMS
                 </div>
-                
-                {/* Toggle Button - Absolute positioned to right or hidden logic based on preference, 
-                    but keeping it inline for this layout */}
                 <button
+                    title="collapse"
                     onClick={toggleCollapse}
                     className={`ml-auto p-1.5 rounded-md hover:bg-gray-700 text-gray-400 hover:text-white focus:outline-none focus:ring-2 focus:ring-gray-500 ${isCollapsed ? 'absolute right-4' : ''}`}
                 >
-                     {/* The icon rotates 180 degrees when collapsed */}
                     <MdMenu className={`w-6 h-6 transition-transform duration-300 ${isCollapsed ? 'rotate-180' : ''}`} />
                 </button>
             </div>
@@ -130,24 +159,19 @@ const Sidebar: React.FC<SidebarProps> = ({
                         <Link 
                             key={item.to} 
                             to={item.to}
-                            title={isCollapsed ? item.label : ""} // Tooltip for accessibility when collapsed
+                            title={isCollapsed ? item.label : ""}
                             className={`
                                 flex items-center px-3 py-2.5 rounded-lg group relative
                                 ${isActive ? 'bg-blue-600 text-white' : 'text-gray-400 hover:bg-gray-700 hover:text-white'}
                                 transition-colors duration-200
                             `}
                         >
-                            {/* Icon - Fixed Minimum Width to anchor it */}
                             <div className={`flex-shrink-0 inline-flex items-center justify-center ${isActive ? 'text-white' : 'text-gray-400 group-hover:text-white'}`}>
                                 <item.icon className="w-5 h-5" />
                             </div>
-
-                            {/* Text - Animates opacity and position */}
                             <span className={`ml-3 whitespace-nowrap font-medium ${textTransition} ${textClass}`}>
                                 {item.label}
                             </span>
-
-                            {/* Optional: Tooltip bubble style (often seen in Laravel kits) logic could go here */}
                         </Link>
                     );
                 })}
@@ -167,7 +191,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                         </div>
                         <div className={`ml-3 ${textTransition} ${textClass}`}>
                             <p className="text-sm font-medium text-white truncate">{user?.name ?? 'User'}</p>
-                            <p className="text-xs text-gray-500 truncate">{user?.role ?? 'Guest'}</p>
+                            <p className="text-xs text-gray-500 truncate">{user?.role ? user.role.charAt(0).toUpperCase() + user.role.slice(1) : 'Guest'}</p>
                         </div>
                     </button>
                     {/* Modal rendered via portal, positioned beside the sidebar footer */}

@@ -5,6 +5,7 @@ import api from '../api/axios'
 
 const Navbar: React.FC = () => {
   const { user } = useAuth();
+  
   const [open, setOpen] = useState(false);
   const [notifications, setNotifications] = useState<any[]>([]);
   const dropdownRef = useRef<HTMLDivElement | null>(null);
