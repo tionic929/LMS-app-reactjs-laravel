@@ -22,7 +22,7 @@ const App: React.FC = () => {
       {user && <Sidebar />}
       <div className="flex-1 flex flex-col justify-center align-center min-h-screen py-10">
         {user && <Navbar />}
-        <main className="flex-1 justify-center overflow-auto p-6">
+        <main className="flex-1 justify-center overflow-auto">
             <Routes>
               <Route path="/login" element={user ? <Navigate to="/" replace /> : <Login />} />
 

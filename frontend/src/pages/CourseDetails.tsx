@@ -1,5 +1,19 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { useAuth } from "../contexts/AuthContext";
+import {
+  getCourse,
+  updateCourse,
+  deleteCourse,
+  removeLearner,
+  acceptJoinRequest,
+  rejectJoinRequest,
+  addCourseMaterial,
+  deleteCourseMaterial,
+  addCourseComment,
+  addCourseAnnouncement,
+  deleteCourseAnnouncement,
+} from "../api/courses";
 import { PiStudentFill, PiUsersThreeBold } from "react-icons/pi";
 import { RiDeleteBin6Line, RiCheckLine, RiMegaphoneLine } from "react-icons/ri";
 import {
@@ -18,12 +32,32 @@ import { FaLink } from "react-icons/fa6";
 import { VscRequestChanges } from "react-icons/vsc";
 import { BsSend } from "react-icons/bs";
 
+interface Course {
+  id: number;
+  instructor_id: number;
+  title: string;
+  content: string;
+  instructor_name: string;
+  privacy: string;
+  current_enrolled: number;
+  capacity: number;
+  status: string;
+  active_learners?: any[];
+  join_requests?: any[];
+  materials?: any[];
+  comments?: any[];
+  announcements?: any[];
+}
+
 const CourseDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { user } = useAuth();
 
-  // Mock instructor check - in real app, this would come from auth context
-  const isInstructor = true; // Set to true for demo purposes
+  const [course, setCourse] = useState<Course | null>(null);
+  const [isInstructor, setIsInstructor] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   // Active tab state
   const [activeTab, setActiveTab] = useState<
@@ -45,122 +79,236 @@ const CourseDetails: React.FC = () => {
     content: "",
   });
 
-  // Mock data for management features
-  const [joinRequests] = useState([
-    {
-      id: 1,
-      name: "Alice Johnson",
-      email: "alice@example.com",
-      requestedAt: "2025-11-20",
-    },
-    {
-      id: 2,
-      name: "Bob Smith",
-      email: "bob@example.com",
-      requestedAt: "2025-11-21",
-    },
-    {
-      id: 3,
-      name: "Carol Davis",
-      email: "carol@example.com",
-      requestedAt: "2025-11-22",
-    },
-  ]);
+  // Edit form state
+  const [editForm, setEditForm] = useState<{
+    title: string;
+    content: string;
+    privacy: "public" | "private";
+    capacity: number;
+  }>({
+    title: "",
+    content: "",
+    privacy: "public",
+    capacity: 50,
+  });
 
-  const [learners] = useState([
-    {
-      id: 1,
-      name: "John Doe",
-      email: "john@example.com",
-      enrolledAt: "1/16/2024",
-      status: "active",
-    },
-    {
-      id: 2,
-      name: "Jane Smith",
-      email: "jane@example.com",
-      enrolledAt: "1/17/2024",
-      status: "active",
-    },
-  ]);
+  // Material form state
+  const [materialForm, setMaterialForm] = useState({
+    title: "",
+    url: "",
+    description: "",
+  });
 
-  const [comments] = useState([
-    {
-      id: 1,
-      author: "Alice Johnson",
-      content: "Great course! Very informative.",
-      postedAt: "2025-11-20",
-      isInstructor: false,
-    },
-    {
-      id: 2,
-      author: "Bob Smith",
-      content: "The assignments are challenging but rewarding.",
-      postedAt: "2025-11-21",
-      isInstructor: false,
-    },
-  ]);
+  // Data states
+  const [learners, setLearners] = useState<any[]>([]);
+  const [joinRequests, setJoinRequests] = useState<any[]>([]);
+  const [materials, setMaterials] = useState<any[]>([]);
+  const [comments, setComments] = useState<any[]>([]);
+  const [announcements, setAnnouncements] = useState<any[]>([]);
 
-  const [courseAnnouncements] = useState([
-    {
-      id: 1,
-      title: "Welcome to the Course!",
-      content:
-        "Welcome everyone! Let's make this an amazing learning experience.",
-      postedAt: "2025-11-15",
-    },
-  ]);
+  useEffect(() => {
+    fetchCourseData();
+  }, [id]);
 
-  const [materials] = useState([
-    {
-      id: 1,
-      title: "Course Syllabus",
-      type: "file" as const,
-      fileType: "pdf",
-      url: "/files/syllabus.pdf",
-      uploadedAt: "2025-11-20",
-    },
-    {
-      id: 2,
-      title: "Introduction Video",
-      type: "video" as const,
-      url: "https://youtube.com/watch?v=example",
-      uploadedAt: "2025-11-21",
-    },
-    {
-      id: 3,
-      title: "HTML Documentation",
-      type: "link" as const,
-      url: "https://developer.mozilla.org/en-US/docs/Web/HTML",
-      uploadedAt: "2025-11-22",
-    },
-  ]);
+  const fetchCourseData = async () => {
+    if (!id) return;
 
-  // Mock course data
-  const courses = [
-    {
-      id: 1,
-      title: "Web Development Fundamentals",
-      content:
-        "Learn the basics of HTML, CSS, and JavaScript to build modern web applications.",
-      author: "John Doe",
-      privacy: "Public",
-      currentEnrolled: "32",
-      capacity: "50",
-    },
-  ];
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await getCourse(id);
+      const data = response.data;
 
-  const course = courses.find((c) => c.id === parseInt(id || "0"));
+      setCourse(data.course);
+      setIsInstructor(data.is_instructor);
 
-  if (!course) {
+      // Set data from course relationships
+      setLearners(data.course.active_learners || []);
+      setJoinRequests(data.course.join_requests || []);
+      setMaterials(data.course.materials || []);
+      setComments(data.course.comments || []);
+      setAnnouncements(data.course.announcements || []);
+
+      // Initialize edit form
+      setEditForm({
+        title: data.course.title,
+        content: data.course.content || "",
+        privacy: data.course.privacy,
+        capacity: data.course.capacity,
+      });
+    } catch (err: any) {
+      console.error("Error fetching course:", err);
+      setError(err.response?.data?.message || "Failed to load course");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleUpdateCourse = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!id) return;
+
+    try {
+      await updateCourse(id, editForm);
+      await fetchCourseData();
+      setShowEditModal(false);
+      alert("Course updated successfully!");
+    } catch (err: any) {
+      console.error("Error updating course:", err);
+      alert(err.response?.data?.message || "Failed to update course");
+    }
+  };
+
+  const handleDeleteCourse = async () => {
+    if (!id) return;
+    if (!confirm("Are you sure you want to disband this course?")) return;
+
+    try {
+      await deleteCourse(id);
+      alert("Course disbanded successfully");
+      navigate("/courses");
+    } catch (err: any) {
+      console.error("Error deleting course:", err);
+      alert(err.response?.data?.message || "Failed to disband course");
+    }
+  };
+
+  const handleRemoveLearner = async (userId: number) => {
+    if (!id) return;
+    if (!confirm("Are you sure you want to remove this learner?")) return;
+
+    try {
+      await removeLearner(id, userId);
+      await fetchCourseData();
+      alert("Learner removed successfully");
+    } catch (err: any) {
+      console.error("Error removing learner:", err);
+      alert(err.response?.data?.message || "Failed to remove learner");
+    }
+  };
+
+  const handleAcceptRequest = async (requestId: number) => {
+    if (!id) return;
+
+    try {
+      await acceptJoinRequest(id, requestId);
+      await fetchCourseData();
+      alert("Request accepted");
+    } catch (err: any) {
+      console.error("Error accepting request:", err);
+      alert(err.response?.data?.message || "Failed to accept request");
+    }
+  };
+
+  const handleRejectRequest = async (requestId: number) => {
+    if (!id) return;
+
+    try {
+      await rejectJoinRequest(id, requestId);
+      await fetchCourseData();
+      alert("Request rejected");
+    } catch (err: any) {
+      console.error("Error rejecting request:", err);
+      alert(err.response?.data?.message || "Failed to reject request");
+    }
+  };
+
+  const handleAddMaterial = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!id) return;
+
+    try {
+      await addCourseMaterial(id, {
+        title: materialForm.title,
+        type: materialType,
+        url: materialForm.url,
+        description: materialForm.description,
+      });
+      await fetchCourseData();
+      setShowAddMaterialModal(false);
+      setMaterialForm({ title: "", url: "", description: "" });
+      alert("Material added successfully!");
+    } catch (err: any) {
+      console.error("Error adding material:", err);
+      alert(err.response?.data?.message || "Failed to add material");
+    }
+  };
+
+  const handleDeleteMaterial = async (materialId: number) => {
+    if (!id) return;
+    if (!confirm("Are you sure you want to delete this material?")) return;
+
+    try {
+      await deleteCourseMaterial(id, materialId);
+      await fetchCourseData();
+      alert("Material deleted");
+    } catch (err: any) {
+      console.error("Error deleting material:", err);
+      alert(err.response?.data?.message || "Failed to delete material");
+    }
+  };
+
+  const handleAddComment = async () => {
+    if (!id || !newComment.trim()) return;
+
+    try {
+      await addCourseComment(id, newComment);
+      await fetchCourseData();
+      setNewComment("");
+      alert("Comment posted!");
+    } catch (err: any) {
+      console.error("Error adding comment:", err);
+      alert(err.response?.data?.message || "Failed to post comment");
+    }
+  };
+
+  const handleAddAnnouncement = async () => {
+    if (!id || !newAnnouncement.title.trim() || !newAnnouncement.content.trim())
+      return;
+
+    try {
+      await addCourseAnnouncement(id, newAnnouncement);
+      await fetchCourseData();
+      setNewAnnouncement({ title: "", content: "" });
+      alert("Announcement posted!");
+    } catch (err: any) {
+      console.error("Error adding announcement:", err);
+      alert(err.response?.data?.message || "Failed to post announcement");
+    }
+  };
+
+  const handleDeleteAnnouncement = async (announcementId: number) => {
+    if (!id) return;
+
+    try {
+      await deleteCourseAnnouncement(id, announcementId);
+      await fetchCourseData();
+      alert("Announcement deleted");
+    } catch (err: any) {
+      console.error("Error deleting announcement:", err);
+      alert(err.response?.data?.message || "Failed to delete announcement");
+    }
+  };
+
+  if (loading) {
+    return (
+      <main className="flex-1 overflow-auto p-6">
+        <div className="max-w-4xl mx-auto text-center py-12">
+          <p className="text-gray-600">Loading course...</p>
+        </div>
+      </main>
+    );
+  }
+
+  if (error || !course) {
     return (
       <main className="flex-1 overflow-auto p-6">
         <div className="max-w-4xl mx-auto text-center py-12">
           <h1 className="text-2xl font-bold text-gray-900 mb-4">
-            Course Not Found
+            {error || "Course Not Found"}
           </h1>
           <p className="text-gray-600 mb-6">
-            The course you're looking for doesn't exist.
+            The course you're looking for doesn't exist or you don't have access to it.
           </p>
           <button
             onClick={() => navigate("/courses")}
@@ -199,7 +347,7 @@ const CourseDetails: React.FC = () => {
 
                   <span className="text-white-200 text-sm inline-flex items-center gap-1">
                     <PiStudentFill className="text-white-200 h-5 w-5" />
-                    {course.currentEnrolled} / {course.capacity} learners
+                    {course.current_enrolled} / {course.capacity} learners
                   </span>
                 </div>
               </div>
@@ -214,13 +362,7 @@ const CourseDetails: React.FC = () => {
                   Edit
                 </button>
                 <button
-                  onClick={() => {
-                    if (
-                      confirm("Are you sure you want to disband this course?")
-                    ) {
-                      alert("Course disbanded");
-                    }
-                  }}
+                  onClick={handleDeleteCourse}
                   className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md text-sm font-medium inline-flex items-center gap-1"
                 >
                   <RiDeleteBin6Line className="h-5 w-5" />
@@ -304,7 +446,7 @@ const CourseDetails: React.FC = () => {
                 <RiMegaphoneLine className="h-4 w-4" />
                 Announcements
                 <span className="bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full text-xs">
-                  {courseAnnouncements.length}
+                  {announcements.length}
                 </span>
               </button>
             </nav>
@@ -347,13 +489,11 @@ const CourseDetails: React.FC = () => {
                             {learner.email}
                           </td>
                           <td className="py-4 px-4 text-sm text-gray-600">
-                            {learner.enrolledAt}
+                            {learner.enrolled_at || new Date(learner.pivot?.created_at || learner.created_at).toLocaleDateString()}
                           </td>
                           <td className="py-4 px-4">
                             <button
-                              onClick={() =>
-                                alert(`Removed ${learner.name} from course`)
-                              }
+                              onClick={() => handleRemoveLearner(learner.id)}
                               className="flex items-center gap-1 px-3 py-1 bg-red-500 text-white text-sm rounded-md hover:bg-red-600 font-medium"
                             >
                               <LiaUserMinusSolid className="h-4 w-4" />
@@ -376,28 +516,24 @@ const CourseDetails: React.FC = () => {
                     <div key={request.id} className="border rounded-lg p-4">
                       <div className="flex justify-between items-start">
                         <div>
-                          <h3 className="font-medium">{request.name}</h3>
+                          <h3 className="font-medium">{request.user?.name || 'Unknown'}</h3>
                           <p className="text-sm text-gray-600">
-                            {request.email}
+                            {request.user?.email || ''}
                           </p>
                           <p className="text-xs text-gray-500">
-                            Requested on {request.requestedAt}
+                            Requested on {new Date(request.created_at).toLocaleDateString()}
                           </p>
                         </div>
                         <div className="flex gap-2">
                           <button
-                            onClick={() =>
-                              alert(`Accepted ${request.name}'s request`)
-                            }
+                            onClick={() => handleAcceptRequest(request.id)}
                             className="px-3 py-1 bg-green-500 text-white text-sm rounded-md hover:bg-green-600 font-medium inline-flex items-center gap-1"
                           >
                             <RiCheckLine className="h-4 w-4" />
                             Accept
                           </button>
                           <button
-                            onClick={() =>
-                              alert(`Rejected ${request.name}'s request`)
-                            }
+                            onClick={() => handleRejectRequest(request.id)}
                             className="px-3 py-1 bg-red-500 text-white text-sm rounded-md hover:bg-red-600 font-medium inline-flex items-center gap-1"
                           >
                             <LiaTimesSolid className="h-4 w-4" />
@@ -489,18 +625,16 @@ const CourseDetails: React.FC = () => {
                               </h4>
                               <p className="text-xs text-gray-500 mt-1">
                                 {material.type === "file" &&
-                                  material.fileType?.toUpperCase()}
-                                {material.type === "file" && " • "}
-                                Uploaded {material.uploadedAt}
+                                  material.file_type?.toUpperCase()}
+                                {material.type === "file" && material.file_type && " • "}
+                                Uploaded {new Date(material.created_at).toLocaleDateString()}
                               </p>
                             </div>
                           </div>
 
                           {isInstructor && (
                             <button
-                              onClick={() =>
-                                alert(`Deleted material: ${material.title}`)
-                              }
+                              onClick={() => handleDeleteMaterial(material.id)}
                               className="text-red-500 hover:text-red-700"
                             >
                               <RiDeleteBin6Line className="h-5 w-5" />
@@ -542,20 +676,20 @@ const CourseDetails: React.FC = () => {
                           <div className="flex items-center gap-2 mb-2">
                             <span
                               className={`font-medium ${
-                                comment.isInstructor
+                                comment.user?.id === course.instructor_id
                                   ? "text-blue-600"
                                   : "text-gray-900"
                               }`}
                             >
-                              {comment.author}
+                              {comment.user?.name || 'Unknown User'}
                             </span>
-                            {comment.isInstructor && (
+                            {comment.user?.id === course.instructor_id && (
                               <span className="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs rounded-full">
                                 Instructor
                               </span>
                             )}
                             <span className="text-xs text-gray-500">
-                              {comment.postedAt}
+                              {new Date(comment.created_at).toLocaleDateString()}
                             </span>
                           </div>
                           <p className="text-gray-700">{comment.content}</p>
@@ -572,16 +706,11 @@ const CourseDetails: React.FC = () => {
                     value={newComment}
                     onChange={(e) => setNewComment(e.target.value)}
                     placeholder="Write your comment here..."
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md mb-3"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md mb-3 text-black"
                     rows={3}
                   />
                   <button
-                    onClick={() => {
-                      if (newComment.trim()) {
-                        alert("Comment posted!");
-                        setNewComment("");
-                      }
-                    }}
+                    onClick={handleAddComment}
                     className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 flex items-center gap-2"
                   >
                     <BsSend className="h-4 w-4" />
@@ -595,7 +724,7 @@ const CourseDetails: React.FC = () => {
             {activeTab === "announcements" && (
               <div>
                 <div className="space-y-6">
-                  {courseAnnouncements.map((announcement) => (
+                  {announcements.map((announcement: any) => (
                     <div
                       key={announcement.id}
                       className="border border-gray-200 rounded-lg p-4"
@@ -609,12 +738,12 @@ const CourseDetails: React.FC = () => {
                             {announcement.content}
                           </p>
                           <p className="text-xs text-gray-500">
-                            Posted on {announcement.postedAt}
+                            Posted on {new Date(announcement.created_at).toLocaleDateString()}
                           </p>
                         </div>
                         {isInstructor && (
                           <button
-                            onClick={() => alert("Announcement deleted")}
+                            onClick={() => handleDeleteAnnouncement(announcement.id)}
                             className="px-3 py-1 bg-red-500 text-white text-sm rounded-md hover:bg-red-600 font-medium ml-4 inline-flex items-center gap-1"
                           >
                             <RiDeleteBin6Line className="h-4 w-4" />
@@ -657,15 +786,7 @@ const CourseDetails: React.FC = () => {
                       rows={4}
                     />
                     <button
-                      onClick={() => {
-                        if (
-                          newAnnouncement.title.trim() &&
-                          newAnnouncement.content.trim()
-                        ) {
-                          alert("Announcement posted!");
-                          setNewAnnouncement({ title: "", content: "" });
-                        }
-                      }}
+                      onClick={handleAddAnnouncement}
                       className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 flex items-center gap-2"
                     >
                       <RiMegaphoneLine className="h-4 w-4" />
@@ -684,20 +805,15 @@ const CourseDetails: React.FC = () => {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 w-full max-w-md">
             <h2 className="text-xl font-bold mb-4">Edit Course</h2>
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                alert("Course updated!");
-                setShowEditModal(false);
-              }}
-            >
+            <form onSubmit={handleUpdateCourse}>
               <div className="mb-4">
                 <label className="block text-sm font-medium mb-1">
                   Course Name
                 </label>
                 <input
                   type="text"
-                  defaultValue={course.title}
+                  value={editForm.title}
+                  onChange={(e) => setEditForm({ ...editForm, title: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md"
                   required
                 />
@@ -707,7 +823,8 @@ const CourseDetails: React.FC = () => {
                   Description
                 </label>
                 <textarea
-                  defaultValue={course.content}
+                  value={editForm.content}
+                  onChange={(e) => setEditForm({ ...editForm, content: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md"
                   rows={3}
                   required
@@ -718,11 +835,12 @@ const CourseDetails: React.FC = () => {
                   Privacy
                 </label>
                 <select
-                  defaultValue={course.privacy}
+                  value={editForm.privacy}
+                  onChange={(e) => setEditForm({ ...editForm, privacy: e.target.value as 'public' | 'private' })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md"
                 >
-                  <option value="Public">Public</option>
-                  <option value="Private">Private</option>
+                  <option value="public">Public</option>
+                  <option value="private">Private</option>
                 </select>
               </div>
               <div className="mb-4">
@@ -731,7 +849,8 @@ const CourseDetails: React.FC = () => {
                 </label>
                 <input
                   type="number"
-                  defaultValue={course.capacity}
+                  value={editForm.capacity}
+                  onChange={(e) => setEditForm({ ...editForm, capacity: parseInt(e.target.value) })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md"
                 />
               </div>
@@ -762,13 +881,7 @@ const CourseDetails: React.FC = () => {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 w-full max-w-md">
             <h2 className="text-xl font-bold mb-4">Add Course Material</h2>
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                alert("Material uploaded!");
-                setShowAddMaterialModal(false);
-              }}
-            >
+            <form onSubmit={handleAddMaterial}>
               {/* Material Type Selection */}
               <div className="mb-4">
                 <label className="block text-sm font-medium mb-2">
@@ -815,6 +928,8 @@ const CourseDetails: React.FC = () => {
                 <label className="block text-sm font-medium mb-1">Title</label>
                 <input
                   type="text"
+                  value={materialForm.title}
+                  onChange={(e) => setMaterialForm({ ...materialForm, title: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md"
                   required
                 />
@@ -823,12 +938,15 @@ const CourseDetails: React.FC = () => {
               {materialType === "file" && (
                 <div className="mb-4">
                   <label className="block text-sm font-medium mb-1">
-                    Upload File
+                    Upload File (Use URL for now)
                   </label>
                   <input
-                    type="file"
+                    type="text"
+                    value={materialForm.url}
+                    onChange={(e) => setMaterialForm({ ...materialForm, url: e.target.value })}
+                    placeholder="/files/document.pdf"
                     className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
-                    accept=".pdf,.doc,.docx,.ppt,.pptx,.zip"
+                    required
                   />
                 </div>
               )}
@@ -838,6 +956,8 @@ const CourseDetails: React.FC = () => {
                   <label className="block text-sm font-medium mb-1">URL</label>
                   <input
                     type="url"
+                    value={materialForm.url}
+                    onChange={(e) => setMaterialForm({ ...materialForm, url: e.target.value })}
                     placeholder="https://..."
                     className="w-full px-3 py-2 border border-gray-300 rounded-md"
                     required
@@ -850,6 +970,8 @@ const CourseDetails: React.FC = () => {
                   Description (Optional)
                 </label>
                 <textarea
+                  value={materialForm.description}
+                  onChange={(e) => setMaterialForm({ ...materialForm, description: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md"
                   rows={3}
                 />

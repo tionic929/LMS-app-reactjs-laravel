@@ -1,50 +1,72 @@
-import React from "react";
-import { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../contexts/AuthContext";
+import { getCourses, createCourse } from "../api/courses";
 import { HiOutlineBookOpen, HiOutlinePlus } from "react-icons/hi";
 import { RiCheckLine } from "react-icons/ri";
 import { LiaTimesSolid } from "react-icons/lia";
 import { PiUsersThreeBold } from "react-icons/pi";
 import { MdLockOutline, MdOutlinePublic, MdArrowBack } from "react-icons/md";
 
+interface Course {
+  id: number;
+  title: string;
+  content: string;
+  instructor_name: string;
+  privacy: string;
+  current_enrolled: number;
+  capacity: number;
+}
+
 const Course: React.FC = () => {
   const [query, setQuery] = useState("");
   const [privacyFilter, setPrivacyFilter] = useState("all");
   const [showModal, setShowModal] = useState(false);
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
+  const { user } = useAuth();
 
-  const courses = [
-    {
-      id: 1,
-      title: "Webdevelopment Course Bootcamp",
-      content:
-        "Learn HTML, CSS, JavaScript, and the latest web development technologies in our comprehensive bootcamp",
-      author: "John Doe",
-      privacy: "public",
-      currentEnrolled: "23",
-      capacity: "50",
-    },
-    {
-      id: 2,
-      title: "Tech Enthusiasts Hub",
-      content:
-        "The system will be undergoing maintenance this weekend. Please save your work and log out before the scheduled time.",
-      author: "Jane Smith",
-      privacy: "public",
-      currentEnrolled: "15",
-      capacity: "100",
-    },
-    {
-      id: 3,
-      title: "Advanced React",
-      content:
-        "We have added a new advanced React course to help you deepen your understanding and skills.",
-      author: "Alice Johnson",
-      privacy: "private",
-      currentEnrolled: "10",
-      capacity: "30",
-    },
-  ];
+  // Form state
+  const [formData, setFormData] = useState({
+    title: "",
+    content: "",
+    privacy: "public" as "public" | "private",
+    capacity: 50,
+  });
+
+  useEffect(() => {
+    fetchCourses();
+  }, []);
+
+  const fetchCourses = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await getCourses();
+      setCourses(response.data);
+    } catch (err: any) {
+      console.error("Error fetching courses:", err);
+      setError(err.response?.data?.message || "Failed to load courses");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCreateCourse = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await createCourse(formData);
+      await fetchCourses();
+      setShowModal(false);
+      setFormData({ title: "", content: "", privacy: "public", capacity: 50 });
+      alert("Course created successfully!");
+    } catch (err: any) {
+      console.error("Error creating course:", err);
+      alert(err.response?.data?.message || "Failed to create course");
+    }
+  };
 
   const privacyFilterOptions = [
     { label: "All Privacy", value: "all" },
@@ -89,13 +111,15 @@ const Course: React.FC = () => {
                 </option>
               ))}
             </select>
-            <button
-              onClick={() => setShowModal(true)}
-              className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md inline-flex items-center gap-2 text-sm font-medium shadow-sm"
-            >
-              <HiOutlinePlus className="w-5 h-5" />
-              Add New
-            </button>
+            {user?.role === "instructor" && (
+              <button
+                onClick={() => setShowModal(true)}
+                className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md inline-flex items-center gap-2 text-sm font-medium shadow-sm"
+              >
+                <HiOutlinePlus className="w-5 h-5" />
+                Add New
+              </button>
+            )}
           </div>
         </div>
         &nbsp;
@@ -104,19 +128,17 @@ const Course: React.FC = () => {
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div className="bg-white rounded-lg p-6 w-full max-w-md">
               <h2 className="text-xl font-bold mb-4">Add New Course</h2>
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  alert("Course added!"); // Replace with actual add logic
-                  setShowModal(false);
-                }}
-              >
+              <form onSubmit={handleCreateCourse}>
                 <div className="mb-4">
                   <label className="block text-sm font-medium mb-1">
                     Title
                   </label>
                   <input
                     type="text"
+                    value={formData.title}
+                    onChange={(e) =>
+                      setFormData({ ...formData, title: e.target.value })
+                    }
                     className="w-full px-3 py-2 border border-gray-300 rounded-md"
                     required
                   />
@@ -126,6 +148,10 @@ const Course: React.FC = () => {
                     Description
                   </label>
                   <textarea
+                    value={formData.content}
+                    onChange={(e) =>
+                      setFormData({ ...formData, content: e.target.value })
+                    }
                     className="w-full px-3 py-2 border border-gray-300 rounded-md"
                     rows={3}
                     required
@@ -135,7 +161,16 @@ const Course: React.FC = () => {
                   <label className="block text-sm font-medium mb-1">
                     Privacy
                   </label>
-                  <select className="w-full px-3 py-2 border border-gray-300 rounded-md">
+                  <select
+                    value={formData.privacy}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        privacy: e.target.value as "public" | "private",
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                  >
                     <option value="public">Public</option>
                     <option value="private">Private</option>
                   </select>
@@ -146,8 +181,15 @@ const Course: React.FC = () => {
                   </label>
                   <input
                     type="number"
+                    value={formData.capacity}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        capacity: parseInt(e.target.value),
+                      })
+                    }
                     className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                    defaultValue={50}
+                    min={1}
                   />
                 </div>
                 <div className="flex justify-end gap-2">
@@ -171,14 +213,31 @@ const Course: React.FC = () => {
             </div>
           </div>
         )}
-        <div className="mb-4">
-          <p className="text-sm text-gray-600">
-            Showing {filteredCourses.length} of {courses.length} courses
-            {privacyFilter !== "all" && ` (${privacyFilter})`}
-            {query && ` (search: "${query}")`}
-          </p>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+
+        {loading ? (
+          <div className="text-center py-12">
+            <p className="text-gray-600">Loading courses...</p>
+          </div>
+        ) : error ? (
+          <div className="text-center py-12">
+            <p className="text-red-600">{error}</p>
+            <button
+              onClick={fetchCourses}
+              className="mt-4 text-blue-500 hover:text-blue-600 text-sm font-medium"
+            >
+              Try again
+            </button>
+          </div>
+        ) : (
+          <>
+            <div className="mb-4">
+              <p className="text-sm text-gray-600">
+                Showing {filteredCourses.length} of {courses.length} courses
+                {privacyFilter !== "all" && ` (${privacyFilter})`}
+                {query && ` (search: "${query}")`}
+              </p>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredCourses.length === 0 ? (
             // Empty state when no results
             <div className="col-span-full text-center py-12">
@@ -259,16 +318,20 @@ const Course: React.FC = () => {
                   </div>
                   <div className="px-6 py-3">
                     <div className="w-full bg-gray-200 rounded-full h-2 mb-2">
-                        <div
-                          className="bg-blue-500 h-2 rounded-full"
-                          style={{ width: `${(parseInt(course.currentEnrolled) / parseInt(course.capacity)) * 100}%` }}
-                        ></div>
-                      </div>
+                      <div
+                        className="bg-blue-500 h-2 rounded-full"
+                        style={{
+                          width: `${
+                            (course.current_enrolled / course.capacity) * 100
+                          }%`,
+                        }}
+                      ></div>
+                    </div>
                     <div className="flex justify-between items-center text-sm text-gray-500">
-                      {/* <span>by {course.author}</span> */}
+                      <span>by {course.instructor_name}</span>
                       <span className="flex items-center gap-1">
                         <PiUsersThreeBold className="h-4 w-4" />
-                        {course.currentEnrolled} / {course.capacity}{" "}
+                        {course.current_enrolled} / {course.capacity}
                       </span>
                     </div>
                   </div>
@@ -277,6 +340,8 @@ const Course: React.FC = () => {
             })
           )}
         </div>
+          </>
+        )}
       </div>
     </main>
   );
