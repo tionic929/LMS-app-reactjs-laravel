@@ -1,6 +1,6 @@
 // Sidebar.jsx
 
-import React from "react";
+import React, { useState } from "react";
 import { FaHome, FaUsers, FaUserCircle, FaBook } from "react-icons/fa";
 import { FaArrowRightFromBracket } from "react-icons/fa6";
 import { BsMegaphoneFill } from "react-icons/bs";
@@ -23,6 +23,7 @@ const Sidebar: React.FC<SidebarProps> = ({
 }) => {
     const { user, logout } = useAuth();
     const location = useLocation(); // To highlight active link
+    const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   
     const handleLogout = async () => {
       try {
@@ -34,6 +35,10 @@ const Sidebar: React.FC<SidebarProps> = ({
     
     const toggleCollapse = () => {
         setIsCollapsed(prev => !prev);
+    };
+
+    const toggleUserMenu = () => {
+        setIsUserMenuOpen(prev => !prev);
     };
 
     // 1. Container Width Logic
@@ -116,12 +121,14 @@ const Sidebar: React.FC<SidebarProps> = ({
                 })}
             </nav>
             
-            {/* --- FOOTER (User/Logout) --- */}
+            {/* --- FOOTER (User Dropdown) --- */}
             <div className="p-4 border-t border-gray-700 bg-gray-900/50">
-                <div className="flex flex-col gap-1">
-                    
-                    {/* User Info */}
-                    <div className="flex items-center px-3 py-2 rounded-lg text-gray-300">
+                <div className="flex flex-col gap-2">
+                    {/* User Info (toggle dropdown) */}
+                    <button
+                        onClick={toggleUserMenu}
+                        className="flex items-center w-full px-3 py-2 text-left rounded-lg text-gray-300 hover:bg-gray-700 hover:text-white transition-colors"
+                    >
                         <div className="flex-shrink-0">
                             <FaUserCircle className="w-6 h-6" />
                         </div>
@@ -129,20 +136,33 @@ const Sidebar: React.FC<SidebarProps> = ({
                             <p className="text-sm font-medium text-white truncate">{user?.name ?? 'User'}</p>
                             <p className="text-xs text-gray-500 truncate">{user?.role ?? 'Guest'}</p>
                         </div>
-                    </div>
-
-                    {/* Logout Button */}
-                    <button 
-                        onClick={handleLogout} 
-                        className="flex items-center w-full px-3 py-2 text-left rounded-lg text-red-400 hover:bg-gray-700 hover:text-red-300 transition-colors"
-                    >
-                        <div className="flex-shrink-0">
-                            <FaArrowRightFromBracket className="w-5 h-5" />
-                        </div>
-                        <span className={`ml-3 font-medium whitespace-nowrap ${textTransition} ${textClass}`}>
-                            Logout
-                        </span>
                     </button>
+
+                    {/* Dropdown items */}
+                    {isUserMenuOpen && (
+                        <div className="mt-1 ml-10 flex flex-col gap-1">
+                            <Link
+                                to="/account/update"
+                                className="flex items-center px-3 py-2 rounded-lg text-gray-300 hover:bg-gray-700 hover:text-white transition-colors"
+                            >
+                                <span className={`font-medium whitespace-nowrap ${textTransition} ${textClass}`}>Update User</span>
+                            </Link>
+                            <button
+                                type="button"
+                                disabled
+                                className="flex items-center px-3 py-2 rounded-lg text-gray-500 cursor-not-allowed bg-gray-800"
+                            >
+                                <span className={`font-medium whitespace-nowrap ${textTransition} ${textClass}`}>Settings (soon)</span>
+                            </button>
+                            <button
+                                onClick={handleLogout}
+                                className="flex items-center px-3 py-2 rounded-lg text-red-400 hover:bg-gray-700 hover:text-red-300 transition-colors"
+                            >
+                                <FaArrowRightFromBracket className="w-5 h-5" />
+                                <span className={`ml-3 font-medium whitespace-nowrap ${textTransition} ${textClass}`}>Logout</span>
+                            </button>
+                        </div>
+                    )}
                 </div>
             </div>
         </aside>

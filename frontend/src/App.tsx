@@ -11,6 +11,7 @@ import Announcements from './pages/AnnouncementsPage'
 import UsersIndex from "./pages/Admin/Users/Index";
 import Courses from "./pages/Course";
 import Register from "./pages/Register";
+import AccountUpdate from "./pages/Account/Update";
 
 import './App.css'
 
@@ -56,6 +57,7 @@ const App: React.FC = () => {
                 <Route path="/announcements" element={<Announcements />} />
                 <Route path="/courses" element={<Courses />} />
                 <Route path="/register" element={<Register />} />
+                <Route path="/account/update" element={<AccountUpdate />} />
               </Route>
             </Routes>
         </main>
