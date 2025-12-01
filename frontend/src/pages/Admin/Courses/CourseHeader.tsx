@@ -5,7 +5,7 @@ import {
   enrollInCourse,
   leaveCourse,
   deleteCourse,
-} from "../../api/courses";
+} from "../../../api/courses";
 import { PiStudentFill, PiUsersThreeBold } from "react-icons/pi";
 import { RiDeleteBin6Line } from "react-icons/ri";
 import {
