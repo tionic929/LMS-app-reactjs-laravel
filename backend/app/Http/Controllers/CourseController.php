@@ -79,6 +79,7 @@ class CourseController extends Controller
 
         // Check if user is the instructor
         $isInstructor = auth()->check() && $course->instructor_id === auth()->id();
+        $isAdmin = auth()->check() && auth()->user()->isRole('admin');
 
         // Check enrollment status for authenticated user
         $isEnrolled = false;
@@ -97,13 +98,14 @@ class CourseController extends Controller
         }
 
         // Filter sensitive data based on permissions
-        if (!$isInstructor) {
+        if (!$isInstructor && !$isAdmin) {
             $course->unsetRelation('joinRequests');
         }
 
         return response()->json([
             'course' => $course,
             'is_instructor' => $isInstructor,
+            'is_admin' => $isAdmin,
             'is_enrolled' => $isEnrolled,
             'has_pending_request' => $hasPendingRequest,
         ]);
