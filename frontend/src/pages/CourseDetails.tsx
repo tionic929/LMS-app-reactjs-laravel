@@ -640,7 +640,7 @@ const CourseDetails: React.FC = () => {
 
                                   {/* Ban/Unban from comments - only for admins */}
                                   {isAdmin &&
-                                    (learner.comment_banned ? (
+                                    (learner.pivot?.comment_banned ? (
                                       <button
                                         onClick={() =>
                                           handleUnbanUser(learner.id)
@@ -903,7 +903,7 @@ const CourseDetails: React.FC = () => {
                                 </span>
                               )}
 
-                              {isInstructor && (
+                              {comment.user?.id === course?.instructor_id && (
                                 <span className="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs rounded-full">
                                   Instructor
                                 </span>
@@ -948,9 +948,7 @@ const CourseDetails: React.FC = () => {
                             ) : (
                               <p className="text-gray-700">{comment.content}</p>
                             )}
-                            {comment.user_id === user?.id ||
-                            isInstructor ||
-                            isAdmin ? (
+                            {comment.user_id === user?.id ? (
                               <div className="mt-2">
                                 {editingCommentId !== comment.id && (
                                 <>
