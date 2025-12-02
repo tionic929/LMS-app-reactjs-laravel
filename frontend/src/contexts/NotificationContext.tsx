@@ -1,6 +1,6 @@
 // src/context/NotificationContext.tsx
 
-import React, { createContext, useState, useContext, ReactNode } from 'react';
+import React, { createContext, useState, useContext, type ReactNode } from 'react';
 import type { Notification, NotificationContextValue, NotificationType } from '../types/notifications';
 
 // Provide a default value that matches the interface structure

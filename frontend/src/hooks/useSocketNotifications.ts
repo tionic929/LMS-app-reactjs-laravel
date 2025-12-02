@@ -1,58 +1,80 @@
-// src/hooks/useSocketNotifications.ts
-
-import { useEffect, useCallback } from 'react';
+import { useEffect, useRef } from 'react'; // 💡 Import useRef
 import { io, Socket } from 'socket.io-client';
 import { useNotification } from '../contexts/NotificationContext'; 
+import { useAuth } from '../contexts/AuthContext'; 
 import type { SocketNotificationPayload, NotificationType } from '../types/notifications';
 
-// Persistent Socket instance (outside the hook to maintain connection across re-renders)
-const SOCKET_SERVER_URL = 'http://localhost:3000';
-// Define the socket instance with proper typing if necessary, or just use `any` for simplicity
-const socket: Socket = io(SOCKET_SERVER_URL, { autoConnect: false }); 
+const SOCKET_SERVER_URL = 'http://localhost:3000'; 
+
+// Function to handle socket ready confirmation (no state change)
+const handleSocketReady = (data: any) => {
+    console.log(`[CLIENT] Socket Handshake Complete: ${data.message}`);
+};
 
 const useSocketNotifications = () => {
-  const { addNotification } = useNotification();
-
-  // Memoized callback for the notification logic
-  const handleNewNotification = useCallback((data: SocketNotificationPayload) => {
-    // Basic validation to ensure data matches expected type structure
-    if (typeof data.message === 'string' && ['info', 'success', 'warning', 'error'].includes(data.type)) {
-      addNotification(data.message, data.type as NotificationType);
-      console.log(`[CLIENT] Received live notification: ${data.message}`);
-    } else {
-      console.error("[CLIENT] Received malformed socket data:", data);
-    }
-  }, [addNotification]);
-
-  useEffect(() => {
-    if (!socket.connected) {
-      socket.connect();
-      console.log(`[CLIENT] Attempting to connect to ${SOCKET_SERVER_URL}`);
-    }
+    const { user } = useAuth();
+    // Get the current, potentially unstable, addNotification function
+    const { addNotification } = useNotification();
     
-    // 1. Listener for the 'new_notification' event (from API/Recurring Events)
-    socket.on('new_notification', handleNewNotification);
+    // 1. Use a ref to store the latest addNotification function reference.
+    // This allows us to use the function inside useEffect without adding it to dependencies.
+    const addNotificationRef = useRef(addNotification); 
 
-    // 2. Listener for the initial 'status' message
-    socket.on('status', handleNewNotification);
+    // 2. Update the ref on every render. This ensures the ref always points to 
+    // the correct, latest version of the addNotification function.
+    useEffect(() => {
+        addNotificationRef.current = addNotification;
+    }, [addNotification]);
 
-    // 3. Optional: Connection status listeners
-    socket.on('connect_error', (err) => {
-      console.error(`[SOCKET ERROR] Connection failed: ${err.message}`);
-    });
-    
-    // Cleanup function: remove listeners when the hook unmounts
-    return () => {
-      socket.off('new_notification', handleNewNotification);
-      socket.off('status', handleNewNotification);
-      // We generally leave the socket connected unless the component is truly the last thing using it.
-      // socket.disconnect(); 
-    };
-    
-    // Dependencies: handleNewNotification (which depends on addNotification)
-  }, [handleNewNotification]);
 
-  return socket; // You can return the socket instance if other parts of the app need to send data
+    // 3. The main effect for socket management.
+    useEffect(() => {
+        const userId = user?.id;
+        const userRole = user?.role;
+
+        if (!userId) { 
+            console.log('[CLIENT] Waiting for authenticated user ID...');
+            return;
+        }
+
+        // Handler must use the ref to call the latest function
+        const handleNewNotification = (data: SocketNotificationPayload) => {
+            if (typeof data.message === 'string' && ['info', 'success', 'warning', 'error'].includes(data.type)) {
+                
+                // 🛑 CRITICAL FIX: Calling the function via the stable ref pointer 🛑
+                addNotificationRef.current(data.message, data.type as NotificationType); 
+                
+                console.log(`[CLIENT] Received live notification: ${data.message}`);
+            } else {
+                console.error("[CLIENT] Received malformed socket data:", data);
+            }
+        };
+
+        const socket: Socket = io(SOCKET_SERVER_URL, { 
+            query: { userId, userRole },
+            autoConnect: true 
+        });
+        
+        console.log(`[CLIENT] Attempting to connect for user ID: ${userId}`);
+        
+        socket.on('new_notification', handleNewNotification); 
+        socket.on('socket_ready', handleSocketReady); 
+
+        socket.on('connect_error', (err) => {
+            console.error(`[SOCKET ERROR] Connection failed: ${err.message}`);
+        });
+        
+        return () => {
+            console.log(`[CLIENT] Disconnecting socket for user ID: ${userId} (Cleanup complete)`);
+            socket.off('new_notification', handleNewNotification);
+            socket.off('socket_ready', handleSocketReady);
+            socket.disconnect(); 
+        };
+        
+        // 🛑 DEPENDENCY FIX: Only depends on stable user identity. 
+        // addNotification is safely accessed via the ref (addNotificationRef.current).
+        // only reconnects to the socket whenever the user id and user role changes.
+    }, [user?.id, user?.role]); 
 };
 
 export default useSocketNotifications;
