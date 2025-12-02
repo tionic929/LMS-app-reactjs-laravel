@@ -1,20 +1,21 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import { Navigate } from "react-router-dom";
-import axios from "axios";
-import { MdAnnouncement, MdDelete } from "react-icons/md";
+import { MdDelete } from "react-icons/md";
+import { IoMdInformationCircle, IoMdWarning, IoMdCloseCircle, IoMdConstruct } from "react-icons/io";
 import { IoIosAddCircle } from "react-icons/io";
 import { ImFilesEmpty } from "react-icons/im";
 import { FaEdit } from "react-icons/fa";
-
-interface Announcement {
-  id: number;
-  title: string;
-  content: string;
-  type: string;
-  date?: string;
-  created_at?: string;
-}
+import AddAnnouncementModal from "../components/modals/AddAnnouncementModal";
+import EditAnnouncementModal from "../components/modals/EditAnnouncementModal";
+import ViewAnnouncementModal from "../components/modals/ViewAnnouncementModal";
+import type { Announcement } from "../api/announcements";
+import {
+  listAnnouncements,
+  createAnnouncement,
+  updateAnnouncement,
+  deleteAnnouncement as apiDeleteAnnouncement,
+} from "../api/announcements";
 
 const AnnouncementsPage: React.FC = () => {
   const { user } = useAuth();
@@ -32,11 +33,6 @@ const AnnouncementsPage: React.FC = () => {
 
   // Add modal
   const [isAddOpen, setIsAddOpen] = useState(false);
-  const [newTitle, setNewTitle] = useState("");
-  const [newContent, setNewContent] = useState("");
-  const [newType, setNewType] = useState("info");
-  const [creating, setCreating] = useState(false);
-  const [createError, setCreateError] = useState<string | null>(null);
 
   // Edit modal
   const [isEditOpen, setIsEditOpen] = useState(false);
@@ -44,146 +40,112 @@ const AnnouncementsPage: React.FC = () => {
   const [editTitle, setEditTitle] = useState("");
   const [editContent, setEditContent] = useState("");
   const [editType, setEditType] = useState("info");
-  const [editing, setEditing] = useState(false);
-  const [editError, setEditError] = useState<string | null>(null);
 
-  const client = axios.create({ baseURL: "http://localhost:8000/api", withCredentials: true });
-  client.defaults.xsrfCookieName = "XSRF-TOKEN";
-  client.defaults.xsrfHeaderName = "X-XSRF-TOKEN";
+  // View modal
+  const [isViewOpen, setIsViewOpen] = useState(false);
+  const [viewAnnouncement, setViewAnnouncement] = useState<Announcement | null>(null);
 
-  const ensureCsrf = async () => {
-    try {
-      await axios.get("http://localhost:8000/sanctum/csrf-cookie", { withCredentials: true });
-
-      const getCookie = (name: string) => {
-        const match = document.cookie.match(new RegExp("(^|; )" + name + "=([^;]*)"));
-        return match ? decodeURIComponent(match[2]) : null;
-      };
-
-      const xsrf = getCookie("XSRF-TOKEN");
-
-      if (xsrf) {
-        client.defaults.headers.common["X-XSRF-TOKEN"] = xsrf;
-      }
-
-      // Debug only in development
-      // eslint-disable-next-line no-console
-      console.debug("ensureCsrf: XSRF cookie=", xsrf, "client header=", client.defaults.headers.common["X-XSRF-TOKEN"]);
-    } catch (e) {
-      // eslint-disable-next-line no-console
-      console.debug("Failed to fetch CSRF cookie via /sanctum/csrf-cookie", e);
-    }
-  };
-
-  const getAnnouncementStyles = (type: string) => {
+  const getTypeBadgeClass = (type: string) => {
     switch (type) {
       case "info":
-        return {
-          headerColor: "bg-blue-500",
-          borderColor: "border-blue-500",
-          badgeColor: "bg-blue-700",
-          badgeTextColor: "text-blue-100",
-        };
-
+        return "bg-blue-100 text-blue-800";
       case "warning":
-        return {
-          headerColor: "bg-yellow-500",
-          borderColor: "border-yellow-500",
-          badgeColor: "bg-yellow-600",
-          badgeTextColor: "text-yellow-100",
-        };
-
-      case "success":
-        return {
-          headerColor: "bg-green-500",
-          borderColor: "border-green-500",
-          badgeColor: "bg-green-700",
-          badgeTextColor: "text-green-100",
-        };
-
+        return "bg-yellow-100 text-yellow-800";
+      case "error":
+        return "bg-red-100 text-red-800";
+      case "maintenance":
+        return "bg-purple-100 text-purple-800";
       default:
-        return {
-          headerColor: "bg-gray-500",
-          borderColor: "border-gray-500",
-          badgeColor: "bg-gray-700",
-          badgeTextColor: "text-gray-100",
-        };
+        return "bg-gray-100 text-gray-700";
     }
   };
 
-  // Normalize various response shapes into Announcement[]
-  const normalizeAnnouncements = (raw: any): Announcement[] => {
-    if (!raw) return [];
-
-    let arr: any[] = [];
-
-    if (Array.isArray(raw)) arr = raw;
-    else if (Array.isArray(raw.data)) arr = raw.data;
-    else if (Array.isArray(raw.announcements)) arr = raw.announcements;
-    else if (raw && typeof raw === "object") {
-      if (raw.data && !Array.isArray(raw.data) && typeof raw.data === "object") arr = [raw.data];
-      else arr = [raw];
+  const getTypeAccentBar = (type: string) => {
+    switch (type) {
+      case "info":
+        return "border-l-4 border-blue-500";
+      case "warning":
+        return "border-l-4 border-yellow-500";
+      case "error":
+        return "border-l-4 border-red-500";
+      case "maintenance":
+        return "border-l-4 border-purple-500";
+      default:
+        return "border-l-4 border-gray-400";
     }
+  };
 
-    return arr.map((a: any) => ({
-      id: a.id,
-      title: a.title,
-      content: a.content,
-      type: a.type ?? "info",
-      date: a.date ?? (a.created_at ? new Date(a.created_at).toLocaleDateString() : undefined),
-      created_at: a.created_at,
-    }));
+  const getTypeDotClass = (type: string) => {
+    switch (type) {
+      case "info":
+        return "bg-blue-500";
+      case "warning":
+        return "bg-yellow-500";
+      case "error":
+        return "bg-red-500";
+      case "maintenance":
+        return "bg-purple-500";
+      default:
+        return "bg-gray-400";
+    }
+  };
+
+  const TypeIcon: React.FC<{ type: string }> = ({ type }) => {
+    const common = "w-5 h-5";
+    switch (type) {
+      case "info":
+        return <IoMdInformationCircle className={`${common} text-blue-600`} />;
+      case "warning":
+        return <IoMdWarning className={`${common} text-yellow-600`} />;
+      case "error":
+        return <IoMdCloseCircle className={`${common} text-red-600`} />;
+      case "maintenance":
+        return <IoMdConstruct className={`${common} text-purple-600`} />;
+      default:
+        return <IoMdInformationCircle className={`${common} text-gray-500`} />;
+    }
   };
 
   const fetchAnnouncements = async () => {
     setLoading(true);
     setError(null);
-
     try {
-      const res = await client.get("/announcements");
-      const data = normalizeAnnouncements(res.data);
-      setAnnouncements(data);
-    } catch (err: any) {
-      setError(err?.response?.data?.message ?? err?.message ?? "Failed to load announcements");
+      const items = await listAnnouncements();
+      setAnnouncements(items);
+    } catch (e: any) {
+      setError(e?.response?.data?.message || e?.message || "Failed to load announcements");
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => {
-    void fetchAnnouncements();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  const handleUpdateAnnouncement = async (id: number, payload: { title: string; content: string; type: string }) => {
+    const updated = await updateAnnouncement(id, payload);
+    if (updated) setAnnouncements((prev) => prev.map((p) => (p.id === id ? updated : p)));
+    else await fetchAnnouncements();
+  };
 
-  const createAnnouncement = async () => {
-    setCreateError(null);
-
-    if (!newTitle.trim() || !newContent.trim()) {
-      setCreateError("Title and content are required");
-      return;
-    }
-
-    setCreating(true);
+  const deleteAnnouncement = async (id: number, title: string) => {
+    if (!window.confirm(`Are you sure you want to delete "${title}"?`)) return;
 
     try {
-      const payload = { title: newTitle.trim(), content: newContent.trim(), type: newType };
-      await ensureCsrf();
-
-      const res = await client.post("/announcements", payload);
-      const created = normalizeAnnouncements(res.data)[0];
-
-      if (created) setAnnouncements((prev) => [created, ...prev]);
-      else void fetchAnnouncements();
-
-      setNewTitle("");
-      setNewContent("");
-      setNewType("info");
-      setIsAddOpen(false);
-    } catch (err: any) {
-      setCreateError(err?.response?.data?.message ?? err?.message ?? "Failed to create announcement");
-    } finally {
-      setCreating(false);
+      await apiDeleteAnnouncement(id);
+      setAnnouncements((prev) => prev.filter((a) => a.id !== id));
+    } catch (e) {
+      // no-op
     }
+  };
+
+  const handleCreateAnnouncement = async (payload: { title: string; content: string; type: string }) => {
+    const created = await createAnnouncement(payload);
+    if (created) setAnnouncements((prev) => [created, ...prev]);
+    else await fetchAnnouncements();
+    setIsAddOpen(false);
+  };
+
+  const openView = (a: Announcement) => {
+    setViewAnnouncement(a);
+    setIsViewOpen(true);
   };
 
   const openEdit = (a: Announcement) => {
@@ -191,117 +153,88 @@ const AnnouncementsPage: React.FC = () => {
     setEditTitle(a.title);
     setEditContent(a.content);
     setEditType(a.type ?? "info");
-    setEditError(null);
     setIsEditOpen(true);
   };
 
-  const updateAnnouncement = async () => {
-    if (!editId) return;
-
-    setEditError(null);
-
-    if (!editTitle.trim() || !editContent.trim()) {
-      setEditError("Title and content are required");
-      return;
-    }
-
-    setEditing(true);
-
-    try {
-      const payload = { title: editTitle.trim(), content: editContent.trim(), type: editType };
-      await ensureCsrf();
-
-      const res = await client.put(`/announcements/${editId}`, payload);
-      const updated = normalizeAnnouncements(res.data)[0];
-
-      if (updated) setAnnouncements((prev) => prev.map((p) => (p.id === editId ? updated : p)));
-      else void fetchAnnouncements();
-
-      setIsEditOpen(false);
-      setEditId(null);
-    } catch (err: any) {
-      setEditError(err?.response?.data?.message ?? err?.message ?? "Failed to update announcement");
-    } finally {
-      setEditing(false);
-    }
-  };
-
-  const deleteAnnouncement = async (id: number, title: string) => {
-    if (!window.confirm(`Are you sure you want to delete "${title}"?`)) return;
-
-    try {
-      await ensureCsrf();
-      await client.delete(`/announcements/${id}`);
-      setAnnouncements((prev) => prev.filter((a) => a.id !== id));
-    } catch (err: any) {
-      alert(err?.response?.data?.message ?? err?.message ?? "Failed to delete announcement");
-    }
-  };
+  useEffect(() => {
+    void fetchAnnouncements();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const filterOptions = [
-    { label: "All", value: "all", color: "gray" },
-    { label: "Info", value: "info", color: "blue" },
-    { label: "Warning", value: "warning", color: "yellow" },
-    { label: "Success", value: "success", color: "green" },
+    { label: "All", value: "all" },
+    { label: "Info", value: "info" },
+    { label: "Warning", value: "warning" },
+    { label: "Error", value: "error" },
+    { label: "Maintenance", value: "maintenance" },
   ];
 
-  const filteredAnnouncements = announcements.filter((announcement) => {
-    const matchesFilter = activeFilter === "all" || announcement.type === activeFilter;
-    const matchesSearch =
-      announcement.title.toLowerCase().includes(query.toLowerCase()) || announcement.content.toLowerCase().includes(query.toLowerCase());
-
-    return matchesFilter && matchesSearch;
-  });
+  const filteredAnnouncements = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return announcements.filter((a) => {
+      const typeOk = activeFilter === "all" || a.type === activeFilter;
+      if (!typeOk) return false;
+      if (!q) return true;
+      return (
+        (a.title ?? "").toLowerCase().includes(q) ||
+        (a.content ?? "").toLowerCase().includes(q)
+      );
+    });
+  }, [announcements, activeFilter, query]);
 
   return (
-    <main className="flex-1 overflow-auto p-6">
-      <div className="max-w-6xl mx-auto">
-        <div className="flex flex-row justify-between items-center">
-          <div>
-            <h1 className="text-2xl font-semibold text-gray-900">Announcements</h1>
-            <p className="text-sm text-gray-500">Stay updated with the latest news and updates</p>
+    <main className="max-w-7xl mx-auto p-6">
+      <div className="flex items-center justify-between mb-4">
+        <h1 className="text-3xl font-bold text-gray-900">
+          Announcements
+        </h1>
+        {user.role === "admin" && (
+          <button
+            onClick={() => setIsAddOpen(true)}
+            className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow hover:bg-indigo-700"
+          >
+            <IoIosAddCircle className="w-5 h-5" /> New Announcement
+          </button>
+        )}
+      </div>
+
+      {/* Explorer Bar */}
+      <div className="rounded-2xl p-6 border border-transparent bg-gradient-to-r from-indigo-50 to-purple-50 shadow-sm">
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div className="flex-1 min-w-0 md:max-w-xl">
+            <div className="relative">
+              <svg className="absolute top-1/2 left-4 -translate-y-1/2 w-5 h-5 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+              <input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search announcements by title or content..."
+                className="w-full pl-12 pr-4 py-3 rounded-full text-sm bg-white/80 backdrop-blur border border-indigo-100 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 shadow"
+              />
+            </div>
           </div>
-
-          <div className="flex items-center gap-2">
-            <input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search announcements..."
-              className="flex-1 rounded-md border border-gray-200 bg-white px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-
-            <select
-              title="filter"
-              value={activeFilter}
-              onChange={(e) => setActiveFilter(e.target.value)}
-              className="px-3 py-2 rounded-md border border-gray-200 bg-white text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[100px]"
-            >
-              {filterOptions.map((filter) => (
-                <option key={filter.value} value={filter.value}>
-                  {filter.label}
-                </option>
-              ))}
-            </select>
-
-            {user.role === 'admin' && (
+          <div className="flex items-center gap-2 overflow-x-auto">
+            {filterOptions.map((f) => (
               <button
-                onClick={() => setIsAddOpen(true)}
-                className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md flex items-center gap-2 text-sm font-medium shadow-sm"
+                key={f.value}
+                onClick={() => setActiveFilter(f.value)}
+                className={`px-4 py-2 rounded-full text-xs font-semibold transition-colors border ${activeFilter === f.value
+                    ? "bg-indigo-600 text-white border-indigo-600 shadow"
+                    : "bg-white/70 text-gray-700 border-indigo-100 hover:bg-white"
+                  }`}
               >
-                <IoIosAddCircle className="h-4 w-4" />
-                Add Announcement
+                {f.label}
               </button>
-            )}
+            ))}
           </div>
         </div>
 
-        <div className="mb-4">
+        <div className="mt-4">
           {loading ? (
             <p className="text-sm text-gray-600">Loading announcements...</p>
           ) : error ? (
             <div className="text-sm text-red-600">
               <p className="mb-2">Error: {error}</p>
-              <button onClick={() => void fetchAnnouncements()} className="text-blue-500 hover:text-blue-600 text-sm font-medium">
+              <button onClick={() => void fetchAnnouncements()} className="text-indigo-600 hover:text-indigo-500 text-sm font-medium">
                 Retry
               </button>
             </div>
@@ -313,180 +246,107 @@ const AnnouncementsPage: React.FC = () => {
             </p>
           )}
         </div>
+      </div>
 
-        <div className="flex flex-col gap-6">
-          {filteredAnnouncements.length === 0 ? (
-            <div className="text-center py-12">
-              <div className="text-gray-400 mb-4">
-                <ImFilesEmpty className="mx-auto h-12 w-12" />
-              </div>
-
-              <div className="mx-auto max-w-md">
-                <h3 className="text-lg font-medium text-gray-900 mb-2">No announcements found</h3>
-                <p className="text-gray-500">{query ? `No announcements match "${query}"` : `No ${activeFilter} announcements available`}</p>
-
-                {(query || activeFilter !== "all") && (
-                  <button
-                    onClick={() => {
-                      setQuery("");
-                      setActiveFilter("all");
-                    }}
-                    className="mt-4 text-blue-500 hover:text-blue-600 text-sm font-medium"
-                  >
-                    Clear filters
-                  </button>
-                )}
-              </div>
-            </div>
-          ) : (
-            filteredAnnouncements.map((announcement: Announcement) => {
-              const styles = getAnnouncementStyles(announcement.type);
-
-              return (
-                <div
-                  key={announcement.id}
-                  className={`w-full bg-white rounded-lg shadow-xl hover:shadow-2xl border-b-4 ${styles.borderColor} overflow-hidden flex flex-col`}
-                >
-                  <div className="flex-1">
-                    <div className={`${styles.headerColor} text-white px-6 py-4 rounded-t-lg`}>
-                      <div className="flex items-center justify-center">
-                        <MdAnnouncement className="h-12 w-12 mr-4" />
-                        <h2 className="text-xl font-semibold break-words">{announcement.title}</h2>
-                      </div>
-                    </div>
-
-                    <div className="p-6">
-                      <div className="flex gap-2 mb-3">
-                        <span className={`${styles.badgeColor} ${styles.badgeTextColor} px-2 py-1 rounded-full text-xs font-medium capitalize`}>
-                          {announcement.type}
-                        </span>
-                      </div>
-
-                      <div className="mb-3">
-                        <p className="text-gray-600 whitespace-pre-wrap break-words max-h-40 overflow-auto">{announcement.content}</p>
-                      </div>
-
-                      <div className="flex justify-end">
-                        <span className="text-xs text-gray-500">Posted on {announcement.date}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {user.role === 'admin' && (
-                    <div className="flex border-t border-gray-200">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          openEdit(announcement);
-                        }}
-                        className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-blue-50 hover:bg-blue-100 text-blue-600 hover:text-blue-700 transition-colors duration-200 border-r border-gray-200"
-                        title="Edit announcement"
-                      >
-                        <FaEdit className="h-4 w-4" />
-                        <span className="text-sm font-medium">Edit</span>
-                      </button>
-
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          void deleteAnnouncement(announcement.id, announcement.title);
-                        }}
-                        className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-red-50 hover:bg-red-100 text-red-600 hover:text-red-700 transition-colors duration-200"
-                        title="Delete announcement"
-                      >
-                        <MdDelete className="h-4 w-4" />
-                        <span className="text-sm font-medium">Delete</span>
-                      </button>
-                    </div>
-                  )}
-                </div>
-              );
-            })
-          )}
-        </div>
-
-        {/* Add Modal */}
-        {isAddOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center">
-            <div className="absolute inset-0 bg-black opacity-40" onClick={() => setIsAddOpen(false)} />
-            <div className="bg-white rounded-lg shadow-xl z-10 w-full max-w-lg mx-4">
-              <div className="px-6 py-4 border-b">
-                <h3 className="text-lg font-medium">Create Announcement</h3>
-              </div>
-
-              <div className="p-6">
-                {createError && <p className="text-sm text-red-600 mb-3">{createError}</p>}
-
-                <label className="block text-sm font-medium text-gray-700">Title</label>
-                <input value={newTitle} onChange={(e) => setNewTitle(e.target.value)} className="mt-1 mb-3 block w-full rounded-md border border-gray-200 px-3 py-2" />
-
-                <label className="block text-sm font-medium text-gray-700">Content</label>
-                <textarea value={newContent} onChange={(e) => setNewContent(e.target.value)} className="mt-1 mb-3 block w-full rounded-md border border-gray-200 px-3 py-2" rows={4} />
-
-                <label className="block text-sm font-medium text-gray-700">Type</label>
-                <select value={newType} onChange={(e) => setNewType(e.target.value)} className="mt-1 mb-3 block w-full rounded-md border border-gray-200 px-3 py-2">
-                  {filterOptions.filter((f) => f.value !== "all").map((f) => (
-                    <option key={f.value} value={f.value}>
-                      {f.label}
-                    </option>
-                  ))}
-                </select>
-
-                <div className="flex justify-end gap-2">
-                  <button onClick={() => setIsAddOpen(false)} className="px-4 py-2 rounded-md bg-gray-100 hover:bg-gray-200 text-sm" disabled={creating}>
-                    Cancel
-                  </button>
-
-                  <button onClick={() => void createAnnouncement()} className="px-4 py-2 rounded-md bg-blue-600 hover:bg-blue-700 text-white text-sm" disabled={creating}>
-                    {creating ? "Creating..." : "Create"}
-                  </button>
-                </div>
-              </div>
-            </div>
+      {/* Timeline List Design */}
+      <div className="pt-6">
+        {filteredAnnouncements.length === 0 ? (
+          <div className="rounded-xl p-10 text-center text-gray-500 border border-dashed border-gray-300 bg-white/60">
+            <ImFilesEmpty className="mx-auto h-12 w-12 text-gray-400" />
+            <h3 className="mt-2 text-sm font-medium text-gray-900">No announcements found</h3>
+            <p className="mt-1 text-sm text-gray-500">
+              {query ? `No announcements match "${query}"` : `No ${activeFilter} announcements available`}
+            </p>
+            {(query || activeFilter !== "all") && (
+              <button
+                onClick={() => { setQuery(""); setActiveFilter("all"); }}
+                className="mt-4 text-indigo-600 hover:text-indigo-500 text-sm font-medium"
+              >
+                Clear filters
+              </button>
+            )}
           </div>
-        )}
-
-        {/* Edit Modal */}
-        {isEditOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center">
-            <div className="absolute inset-0 bg-black opacity-40" onClick={() => setIsEditOpen(false)} />
-            <div className="bg-white rounded-lg shadow-xl z-10 w-full max-w-lg mx-4">
-              <div className="px-6 py-4 border-b">
-                <h3 className="text-lg font-medium">Edit Announcement</h3>
-              </div>
-
-              <div className="p-6">
-                {editError && <p className="text-sm text-red-600 mb-3">{editError}</p>}
-
-                <label className="block text-sm font-medium text-gray-700">Title</label>
-                <input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} className="mt-1 mb-3 block w-full rounded-md border border-gray-200 px-3 py-2" />
-
-                <label className="block text-sm font-medium text-gray-700">Content</label>
-                <textarea value={editContent} onChange={(e) => setEditContent(e.target.value)} className="mt-1 mb-3 block w-full rounded-md border border-gray-200 px-3 py-2" rows={4} />
-
-                <label className="block text-sm font-medium text-gray-700">Type</label>
-                <select value={editType} onChange={(e) => setEditType(e.target.value)} className="mt-1 mb-3 block w-full rounded-md border border-gray-200 px-3 py-2">
-                  {filterOptions.filter((f) => f.value !== "all").map((f) => (
-                    <option key={f.value} value={f.value}>
-                      {f.label}
-                    </option>
-                  ))}
-                </select>
-
-                <div className="flex justify-end gap-2">
-                  <button onClick={() => setIsEditOpen(false)} className="px-4 py-2 rounded-md bg-gray-100 hover:bg-gray-200 text-sm" disabled={editing}>
-                    Cancel
-                  </button>
-
-                  <button onClick={() => void updateAnnouncement()} className="px-4 py-2 rounded-md bg-blue-600 hover:bg-blue-700 text-white text-sm" disabled={editing}>
-                    {editing ? "Updating..." : "Update"}
-                  </button>
-                </div>
-              </div>
-            </div>
+        ) : (
+          <div className="relative">
+            <div className="absolute left-4 top-0 bottom-0 w-px bg-gradient-to-b from-indigo-200 via-gray-200 to-transparent" aria-hidden="true" />
+            <ul className="space-y-5">
+              {filteredAnnouncements.map((announcement: Announcement) => (
+                <li key={announcement.id} className="relative pl-12">
+                  <span className={`absolute left-3 top-3 w-3 h-3 rounded-full ring-4 ring-white ${getTypeDotClass(announcement.type)}`} />
+                  <article
+                    onClick={() => openView(announcement)}
+                    className={`cursor-pointer group rounded-xl bg-white border shadow-sm transition hover:shadow-md ${getTypeAccentBar(announcement.type)}`}
+                  >
+                    <div className="p-5">
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="min-w-0">
+                          <h3 className="text-base font-semibold text-gray-900 truncate">
+                            {announcement.title}
+                          </h3>
+                        </div>
+                        <div className="shrink-0">
+                          <TypeIcon type={announcement.type} />
+                        </div>
+                      </div>
+                      <p className="mt-3 text-sm text-gray-700 line-clamp-3 whitespace-pre-wrap break-words">
+                        {announcement.content}
+                      </p>
+                    </div>
+                    <footer className="px-5 py-3 border-t bg-gray-50/60 flex items-center justify-between gap-2">
+                      <div className="mt-2 flex items-center gap-2 flex-wrap">
+                        {announcement.date && (
+                          <span className="text-xs text-gray-500">Posted on {announcement.date}</span>
+                        )}
+                      </div>
+                      {user.role === 'admin' && (
+                        <div className='flex-1 align-right flex justify-end gap-4'>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); openEdit(announcement); }}
+                            className="text-indigo-600 hover:text-indigo-700 text-sm font-medium inline-flex items-center gap-1"
+                            title="Edit announcement"
+                          >
+                            <FaEdit className="w-4 h-4" /> Edit
+                          </button>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); void deleteAnnouncement(announcement.id, announcement.title); }}
+                            className="text-red-600 hover:text-red-700 text-sm font-medium inline-flex items-center gap-1"
+                            title="Delete announcement"
+                          >
+                            <MdDelete className="w-4 h-4" /> Delete
+                          </button>
+                        </div>
+                      )}
+                    </footer>
+                  </article>
+                </li>
+              ))}
+            </ul>
           </div>
         )}
       </div>
+
+      {/* Add Modal */}
+      <AddAnnouncementModal
+        show={isAddOpen}
+        onClose={() => setIsAddOpen(false)}
+        onSubmit={handleCreateAnnouncement}
+      />
+
+      {/* Edit Modal */}
+      <EditAnnouncementModal
+        show={isEditOpen}
+        onClose={() => setIsEditOpen(false)}
+        announcement={editId ? { id: editId, title: editTitle, content: editContent, type: editType } : null}
+        onSubmit={handleUpdateAnnouncement}
+      />
+
+      {/* View Modal */}
+      <ViewAnnouncementModal
+        show={isViewOpen}
+        onClose={() => setIsViewOpen(false)}
+        announcement={viewAnnouncement}
+        getTypeBadgeClass={getTypeBadgeClass}
+      />
     </main>
   );
 };
