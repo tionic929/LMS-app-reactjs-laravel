@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Hash;
 use App\Models\User;
 use App\Models\Announcement;
 use Illuminate\Validation\Rule;
+use App\Events\UserActivityEvent;
 
 class UsersController extends Controller
 {
@@ -35,7 +36,13 @@ class UsersController extends Controller
         
         // Include new boolean fields for the frontend display
         $query = User::select('id', 'name', 'email', 'role', 'is_enabled', 'is_confirmed', 'is_banned_from_comments')->orderBy('id', 'asc');
-
+        if ($request->user()) {
+            UserActivityEvent::dispatch(
+                $request->user(),
+                'Viewed Paginated Users List',
+                $request->path()
+            );
+        }
         // Apply Search Filter (Name, Email, or ID)
         if ($search) {
             $query->where(function ($q) use ($search) {

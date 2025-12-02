@@ -98,6 +98,24 @@ app.post('/api/send-notification', (req, res) => {
     }
 });
 
+app.post('/api/relay', (req, res) => {
+    // 1. Get data from the Laravel request body (Sent from NotificationService.php)
+    const { room, id, message, type } = req.body; 
+
+    // Basic validation
+    if (!room || !message) {
+        return res.status(400).json({ error: 'Room and message are required in the body.' });
+    }
+
+    // 2. Broadcast the event to the specified room (e.g., 'user:2')
+    // The event name 'new_notification' must match what useSocketNotifications.ts is listening for
+    io.to(room).emit('new_notification', { id, message, type });
+
+    console.log(`[NODE] Successfully relayed notification to room: ${room}`);
+
+    // 3. Send a success response back to Laravel
+    res.status(200).json({ success: true, broadcasted: true });
+});
 
 const PORT = 3000;
 server.listen(PORT, () => {

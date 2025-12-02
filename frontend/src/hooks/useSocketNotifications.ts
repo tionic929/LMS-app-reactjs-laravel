@@ -14,17 +14,19 @@ const handleSocketReady = (data: any) => {
 const useSocketNotifications = () => {
     const { user } = useAuth();
     // Get the current, potentially unstable, addNotification function
-    const { addNotification } = useNotification();
+    const { addNotification, triggerRefresh } = useNotification();
     
     // 1. Use a ref to store the latest addNotification function reference.
     // This allows us to use the function inside useEffect without adding it to dependencies.
     const addNotificationRef = useRef(addNotification); 
+    const triggerRefreshRef = useRef(triggerRefresh);
 
     // 2. Update the ref on every render. This ensures the ref always points to 
     // the correct, latest version of the addNotification function.
     useEffect(() => {
         addNotificationRef.current = addNotification;
-    }, [addNotification]);
+        triggerRefreshRef.current = triggerRefresh;
+    }, [addNotification, triggerRefresh]);
 
 
     // 3. The main effect for socket management.
@@ -43,7 +45,7 @@ const useSocketNotifications = () => {
                 
                 // 🛑 CRITICAL FIX: Calling the function via the stable ref pointer 🛑
                 addNotificationRef.current(data.message, data.type as NotificationType); 
-                
+                triggerRefreshRef.current();
                 console.log(`[CLIENT] Received live notification: ${data.message}`);
             } else {
                 console.error("[CLIENT] Received malformed socket data:", data);

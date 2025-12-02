@@ -10,6 +10,7 @@ use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Validator;
+use App\Events\UserActivityEvent;
 
 class AuthController extends Controller
 {
@@ -125,15 +126,33 @@ class AuthController extends Controller
             'password' => 'required'
         ]);
 
-        // removed debug dump to allow normal login flow
         if (!Auth::attempt($credentials)) {
             return response()->json(['message' => 'Invalid credentials'], 401);
         }
 
-        $request->session()->regenerate();
-        $user = Auth::user()->load(['admin', 'instructor', 'learner']);
+        // 🛑 REMOVE: $request->session()->regenerate(); // This is for web/sessions, not API tokens
 
-        return response()->json(['message' => 'Logged in'], 200);
+        // 1. Get the authenticated user object
+        $user = Auth::user();
+        
+        // 2. CREATE AND RETURN THE SANCTUM TOKEN
+        // This is the CRITICAL step your previous code was missing.
+        $token = $user->createToken('auth_token')->plainTextToken; 
+        
+        // Load relationships for the user object being returned
+        $user->load(['admin', 'instructor', 'learner']);
+
+        return response()->json([
+            'message' => 'Logged in successfully.',
+            'user' => [
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+                'role' => $user->role,
+            ],
+            'token' => $token, // 💡 Send the token back!
+            'token_type' => 'Bearer',
+        ], 200);
     }
 
     public function user(Request $request)
@@ -143,21 +162,18 @@ class AuthController extends Controller
 
     public function logout(Request $request)
     {
-        \Log::info("LOGOUT START", [
-            "csrf_token" => $request->header("X-XSRF-TOKEN"),
-            "session_id" => $request->session()->getId(),
-        ]);
+        if ($request->user()) {
+            $request->user()->tokens()->delete(); 
+            return response()->json(['message' => 'Logged out']);
+        }
+    }
 
-        Auth::logout();
+    public function logoutSession(Request $request){
+        Auth::guard('web')->logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
-        \Log::info("LOGOUT END", [
-            "new_session_id" => $request->session()->getId(),
-            "new_csrf" => csrf_token(),
-        ]);
-
-        return response()->json(['message' => 'Logged out']);
+        return response()->noContent();
     }
 
 }

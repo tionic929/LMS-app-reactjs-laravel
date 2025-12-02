@@ -1,53 +1,31 @@
+// ../api/auth.ts
+
 import api from "./axios";
+// Remove any imports for React Hooks (useCallback, useNavigate)
 
-export const login = async (email: string, password: string, p0: any) => {
+export const login = async (email: string, password: string) => {
+  // 1. Get the CSRF cookie (required for Sanctum when using an SPA)
   await api.get("http://localhost:8000/sanctum/csrf-cookie");
-  await api.post("/login", {email, password});
-  // try {
-  //   await api.get("http://localhost:8000/sanctum/csrf-cookie");
-  //   // helpful debug during development: check browser devtools cookies/response
-  //   try {
-  //     // console.log('CSRF cookie set, document.cookie:', document.cookie);
-  //   } catch (e) {
-  //     // document may be undefined in some environments; ignore
-  //   }
-  // } catch (err) {
-  //   console.error("Failed to get CSRF cookie", err);
-  //   throw err;
-  // }
-
-  // try {
-  //   return await api.post("/login", { email, password });
-  // } catch (err: any) {
-  //   // surface backend error body to the console to aid debugging
-  //   if (err.response) console.error('login error response', err.response.status, err.response.data);
-  //   throw err;
-  // }
+  
+  // 2. Perform login (this request returns the token in the response data)
+  return await api.post("/login", {email, password});
 };
 
 export const fetchUser = async () => {
   return await api.get("/user");
 };
 
-export const logout = async () => {
-  // console.log("Before logout, cookies:", document.cookie);
-
+// 💡 NEW: API call to revoke the Sanctum token
+export const apiLogoutAndRevokeToken = async () => {
   return await api.post("/logout");
-  // try {
-  //   const response = await api.post("/logout");
-  //   console.log("Logout response:", response.data);
-  //   return response.data;
-  // } catch (err: any) {
-  //   console.error("Logout ERROR:", err);
-  //   if (err.response) {
-  //     console.error("Status:", err.response.status);
-  //     console.error("Data:", err.response.data);
-  //   }
-  //   throw err;
-  // }
 };
 
+// 💡 NEW: API call to destroy the session cookie
+export const apiLogoutAndClearSession = async () => {
+  return await api.post("/logout-session");
+};
 
+// Helper for role checking
 export const hasRole = (user: any, role: string) => {
   if (!user) return false;
   return user.role === role;

@@ -1,67 +1,108 @@
-// src/components/common/NotificationDisplay.tsx
+import React, { useState, useEffect, useCallback } from 'react';
+import { useNotification } from '../../contexts/NotificationContext'; 
 
-import React from 'react';
-import { useNotification } from '../../contexts/NotificationContext';
+// Mock Types and Hook for runnable code structure
+interface Notification {
+    id: number;
+    message: string;
+    type: 'success' | 'warning' | 'error' | 'info';
+}
 
-// Define basic styles for the toast based on the notification type
-const getToastStyle = (type: string) => {
+// Define basic Tailwind classes for the toast based on the notification type
+const getToastClasses = (type: string): string => {
     switch (type) {
         case 'success':
-            return { backgroundColor: '#4CAF50', color: 'white' };
+            return 'bg-green-600 text-white';
         case 'warning':
-            return { backgroundColor: '#ff9800', color: 'white' };
+            return 'bg-yellow-600 text-white';
         case 'error':
-            return { backgroundColor: '#f44336', color: 'white' };
+            return 'bg-red-600 text-white';
         case 'info':
         default:
-            return { backgroundColor: '#2196F3', color: 'white' };
+            return 'bg-blue-600 text-white';
     }
 };
+
+// Base classes applied to all notifications for consistent look
+const notificationBaseClasses = 'p-4 rounded-lg shadow-xl cursor-pointer font-bold text-sm transition-opacity';
+
+// --- ANIMATION WRAPPER COMPONENT ---
+
+interface AnimatedToastProps {
+    notification: Notification;
+    onDismiss: (id: number) => void;
+}
+
+const ANIMATION_DURATION_MS = 300; // Matches the CSS transition duration
+
+const AnimatedToast: React.FC<AnimatedToastProps> = ({ notification, onDismiss }) => {
+    const [isExiting, setIsExiting] = useState(false);
+    const { message, type, id } = notification;
+
+    const handleRemove = useCallback(() => {
+        // 1. Start the exit animation
+        setIsExiting(true);
+
+        // 2. Wait for the animation to finish, then call the context removal function
+        setTimeout(() => {
+            onDismiss(id);
+        }, ANIMATION_DURATION_MS);
+    }, [id, onDismiss]);
+
+    // Apply entrance animation class by default, and switch to exit animation class when dismissing
+    const toastClasses = `${notificationBaseClasses} ${getToastClasses(type)} toast-enter ${isExiting ? 'toast-exit' : ''}`;
+
+    return (
+        <div
+            key={id}
+            className={toastClasses}
+            onClick={handleRemove}
+        >
+            {message}
+            <span className="ml-3 opacity-80 font-normal">&times;</span>
+        </div>
+    );
+};
+
+// --- MAIN DISPLAY COMPONENT ---
 
 const NotificationDisplay: React.FC = () => {
     const { notifications, removeNotification } = useNotification();
 
-    // The primary container is fixed to stay in the top-right corner
-    const containerStyle: React.CSSProperties = {
-        position: 'fixed',
-        top: '20px',
-        right: '20px',
-        zIndex: 2000, // Very high z-index to ensure visibility
-        maxWidth: '350px',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '10px',
-    };
-
-    const notificationBaseStyle: React.CSSProperties = {
-        padding: '15px',
-        borderRadius: '5px',
-        boxShadow: '0 4px 8px rgba(0, 0, 0, 0.2)',
-        cursor: 'pointer',
-        transition: 'opacity 0.3s ease-in-out',
-        fontWeight: 'bold',
-        fontSize: '14px',
-    };
-
+    const containerClasses = 'fixed top-5 left-1/2 transform -translate-x-1/2 z-[2000] w-full max-w-sm flex flex-col space-y-3 px-3 box-border';
     return (
-        <div style={containerStyle}>
-            {notifications.map((notification) => (
-                <div
-                    key={notification.id}
-                    // Apply type-specific styles and base styles
-                    style={{
-                        ...notificationBaseStyle,
-                        ...getToastStyle(notification.type),
-                    }}
-                    // Click to dismiss immediately (in addition to the timeout)
-                    onClick={() => removeNotification(notification.id)}
-                >
-                    {/* Display the message content */}
-                    {notification.message}
-                    <span style={{ marginLeft: '10px', opacity: 0.8 }}>&times;</span>
-                </div>
-            ))}
-        </div>
+        <>
+            <style>
+                {`
+                    @keyframes slideIn {
+                        from { opacity: 0; transform: translateY(-30px); }
+                        to { opacity: 1; transform: translateY(0); }
+                    }
+
+                    @keyframes slideOut {
+                        from { opacity: 1; transform: translateY(0); }
+                        to { opacity: 0; transform: translateY(-30px); }
+                    }
+
+                    .toast-enter {
+                        animation: slideIn 0.3s forwards;
+                    }
+
+                    .toast-exit {
+                        animation: slideOut 0.3s forwards;
+                    }
+                `}
+            </style>
+            <div className={containerClasses}>
+                {notifications.map((notification) => (
+                    <AnimatedToast
+                        key={notification.id}
+                        notification={notification}
+                        onDismiss={removeNotification}
+                    />
+                ))}
+            </div>
+        </>
     );
 };
 
