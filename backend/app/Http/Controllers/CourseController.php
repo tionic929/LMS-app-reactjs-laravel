@@ -520,7 +520,7 @@ class CourseController extends Controller
     public function banUserFromComments(Course $course, User $user)
     {
         // Only admins can ban users
-        if (auth()->user()->role !== 'admin') {
+        if (auth()->user()->role !== 'admin' && auth()->id() !== $course->instructor_id) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
@@ -546,7 +546,7 @@ class CourseController extends Controller
     public function unbanUserFromComments(Course $course, User $user)
     {
         // Only admins can unban users
-        if (auth()->user()->role !== 'admin') {
+        if (auth()->user()->role !== 'admin' && auth()->id() !== $course->instructor_id) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
