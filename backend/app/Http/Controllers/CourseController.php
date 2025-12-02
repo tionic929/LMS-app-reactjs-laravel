@@ -8,6 +8,7 @@ use App\Models\CourseJoinRequest;
 use App\Models\CourseMaterial;
 use App\Models\CourseComment;
 use App\Models\CourseAnnouncement;
+use App\Models\User;
 use App\Http\Requests\StoreCourseRequest;
 use App\Http\Requests\UpdateCourseRequest;
 use Illuminate\Http\Request;
@@ -330,9 +331,21 @@ class CourseController extends Controller
             ->where('status', 'active')
             ->exists();
 
-            if (!$isInstructor && !$isAdmin && !$isEnrolled) {
-                return response()->json(['message' => 'You must be enrolled to this course to comment'], 403);
+        if (!$isInstructor && !$isAdmin && !$isEnrolled) {
+            return response()->json(['message' => 'You must be enrolled in this course to comment'], 403);
+        }
+
+        // Check if user is banned from commenting
+        if ($isEnrolled) {
+            $enrollment = $course->enrollments()
+                ->where('user_id', auth()->id())
+                ->where('status', 'active')
+                ->first();
+
+            if ($enrollment && $enrollment->comment_banned) {
+                return response()->json(['message' => 'You are banned from commenting in this course'], 403);
             }
+        }
 
         $validated = $request->validate([
             'content' => 'required|string',
@@ -344,6 +357,29 @@ class CourseController extends Controller
         ]);
 
         return response()->json($comment->load('user'), 201);
+    }
+
+    public function updateComment(Request $request, Course $course, CourseComment $comment)
+    {
+        if ($comment->course_id !== $course->id) {
+            return response()->json(['message' => 'Comment not found'], 400);
+        }
+
+        $canUpdate = auth()->id() === $comment->user_id;
+
+        if (!$canUpdate) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        $validated = $request->validate([
+            'content' => 'required|string|max:2000',
+        ]);
+
+        $comment->update([
+            'content' => $validated['content'],
+        ]);
+
+        return response()->json(['message' => 'Comment updated', 'comment' => $comment->load('user')]);
     }
 
     public function deleteComment(Course $course, CourseComment $comment)
@@ -476,5 +512,57 @@ class CourseController extends Controller
         $course->decrement('current_enrolled');
 
         return response()->json(['message' => 'Successfully left the course']);
+    }
+
+    /**
+     * Ban user from commenting in this course
+     */
+    public function banUserFromComments(Course $course, User $user)
+    {
+        // Only admins can ban users
+        if (auth()->user()->role !== 'admin') {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        // Check if user is enrolled in this course
+        $enrollment = CourseEnrollment::where('course_id', $course->id)
+            ->where('user_id', $user->id)
+            ->where('status', 'active')
+            ->first();
+
+        if (!$enrollment) {
+            return response()->json(['message' => 'User is not enrolled in this course'], 400);
+        }
+
+        // Add comment_banned flag to enrollment
+        $enrollment->update(['comment_banned' => true]);
+
+        return response()->json(['message' => 'User banned from commenting']);
+    }
+
+    /**
+     * Unban user from commenting in this course
+     */
+    public function unbanUserFromComments(Course $course, User $user)
+    {
+        // Only admins can unban users
+        if (auth()->user()->role !== 'admin') {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        // Check if user is enrolled in this course
+        $enrollment = CourseEnrollment::where('course_id', $course->id)
+            ->where('user_id', $user->id)
+            ->where('status', 'active')
+            ->first();
+
+        if (!$enrollment) {
+            return response()->json(['message' => 'User is not enrolled in this course'], 400);
+        }
+
+        // Remove comment_banned flag from enrollment
+        $enrollment->update(['comment_banned' => false]);
+
+        return response()->json(['message' => 'User unbanned from commenting']);
     }
 }

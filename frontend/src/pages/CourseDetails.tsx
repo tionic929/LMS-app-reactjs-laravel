@@ -13,8 +13,12 @@ import {
   addCourseMaterial,
   deleteCourseMaterial,
   addCourseComment,
+  updateCourseComment,
+  deleteCourseComment,
   addCourseAnnouncement,
   deleteCourseAnnouncement,
+  banUserFromComments,
+  unbanUserFromComments,
 } from "../api/courses";
 import { PiStudentFill, PiUsersThreeBold } from "react-icons/pi";
 import { RiDeleteBin6Line, RiCheckLine, RiMegaphoneLine } from "react-icons/ri";
@@ -33,6 +37,7 @@ import { FaRegFileAlt, FaRegCommentDots } from "react-icons/fa";
 import { FaLink } from "react-icons/fa6";
 import { VscRequestChanges } from "react-icons/vsc";
 import { BsSend } from "react-icons/bs";
+import AddMaterialModal from "../components/modals/courses/AddMaterialModal";
 
 interface Course {
   id: number;
@@ -58,6 +63,7 @@ const CourseDetails: React.FC = () => {
 
   const [course, setCourse] = useState<Course | null>(null);
   const [isInstructor, setIsInstructor] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [isEnrolled, setIsEnrolled] = useState(false);
   const [hasPendingRequest, setHasPendingRequest] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -69,11 +75,10 @@ const CourseDetails: React.FC = () => {
   >("learners");
 
   // Management modals state
+  const [editingCommentId, setEditingCommentId] = useState<number | null>(null);
+  const [editCommentText, setEditCommentText] = useState("");
   const [showEditModal, setShowEditModal] = useState(false);
   const [showAddMaterialModal, setShowAddMaterialModal] = useState(false);
-  const [materialType, setMaterialType] = useState<"file" | "video" | "link">(
-    "file"
-  );
   const [materialFilter, setMaterialFilter] = useState<
     "all" | "file" | "video" | "link"
   >("all");
@@ -94,13 +99,6 @@ const CourseDetails: React.FC = () => {
     content: "",
     privacy: "public",
     capacity: 50,
-  });
-
-  // Material form state
-  const [materialForm, setMaterialForm] = useState({
-    title: "",
-    url: "",
-    description: "",
   });
 
   // Data states
@@ -125,6 +123,7 @@ const CourseDetails: React.FC = () => {
 
       setCourse(data.course);
       setIsInstructor(data.is_instructor);
+      setIsAdmin(data.is_admin || false);
       setIsEnrolled(data.is_enrolled || false);
       setHasPendingRequest(data.has_pending_request || false);
 
@@ -246,27 +245,6 @@ const CourseDetails: React.FC = () => {
     }
   };
 
-  const handleAddMaterial = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!id) return;
-
-    try {
-      await addCourseMaterial(id, {
-        title: materialForm.title,
-        type: materialType,
-        url: materialForm.url,
-        description: materialForm.description,
-      });
-      await fetchCourseData();
-      setShowAddMaterialModal(false);
-      setMaterialForm({ title: "", url: "", description: "" });
-      alert("Material added successfully!");
-    } catch (err: any) {
-      console.error("Error adding material:", err);
-      alert(err.response?.data?.message || "Failed to add material");
-    }
-  };
-
   const handleDeleteMaterial = async (materialId: number) => {
     if (!id) return;
     if (!confirm("Are you sure you want to delete this material?")) return;
@@ -292,6 +270,39 @@ const CourseDetails: React.FC = () => {
     } catch (err: any) {
       console.error("Error adding comment:", err);
       alert(err.response?.data?.message || "Failed to post comment");
+    }
+  };
+
+  const handleUpdateCourseComment = async (
+    commentId: number,
+    updatedText: string
+  ) => {
+    if (!id || !updatedText.trim()) return;
+
+    try {
+      await updateCourseComment(id, commentId, updatedText);
+      await fetchCourseData();
+      alert("Comment updated!");
+    } catch (err: any) {
+      console.error("Error updating comment:", err);
+      alert(err.response?.data?.message || "Failed to update comment");
+    }
+  };
+
+  const handleDeleteCourseComment = async (commentId: number) => {
+    const confirmDelete = window.confirm(
+      "Are you sure you want to delete this comment?"
+    );
+
+    if (!confirmDelete) {
+      return;
+    }
+
+    try {
+      await deleteCourseComment(id!, commentId);
+      fetchCourseData();
+    } catch (error) {
+      console.error("Error deleting comment:", error);
     }
   };
 
@@ -323,6 +334,34 @@ const CourseDetails: React.FC = () => {
     }
   };
 
+  const handleBanUser = async (userId: number) => {
+    if (!id) return;
+    if (!confirm("Are you sure you want to ban this user from commenting?"))
+      return;
+
+    try {
+      await banUserFromComments(id, userId);
+      await fetchCourseData();
+      alert("User banned from commenting");
+    } catch (err: any) {
+      console.error("Error banning user:", err);
+      alert(err.response?.data?.message || "Failed to ban user");
+    }
+  };
+
+  const handleUnbanUser = async (userId: number) => {
+    if (!id) return;
+
+    try {
+      await unbanUserFromComments(id, userId);
+      await fetchCourseData();
+      alert("User unbanned from commenting");
+    } catch (err: any) {
+      console.error("Error unbanning user:", err);
+      alert(err.response?.data?.message || "Failed to unban user");
+    }
+  };
+
   if (loading) {
     return (
       <main className="flex-1 overflow-auto p-6">
@@ -341,7 +380,8 @@ const CourseDetails: React.FC = () => {
             {error || "Course Not Found"}
           </h1>
           <p className="text-gray-600 mb-6">
-            The course you're looking for doesn't exist or you don't have access to it.
+            The course you're looking for doesn't exist or you don't have access
+            to it.
           </p>
           <button
             onClick={() => navigate("/courses")}
@@ -385,7 +425,7 @@ const CourseDetails: React.FC = () => {
                 </div>
               </div>
             </div>
-            {isInstructor ? (
+            {isInstructor || isAdmin ? (
               <div className="flex gap-2">
                 <button
                   onClick={() => setShowEditModal(true)}
@@ -434,7 +474,9 @@ const CourseDetails: React.FC = () => {
                       className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-md text-sm font-medium inline-flex items-center gap-2"
                     >
                       <HiOutlinePlus className="h-5 w-5" />
-                      {course?.privacy === "private" ? "Request to Join" : "Join Course"}
+                      {course?.privacy === "private"
+                        ? "Request to Join"
+                        : "Join Course"}
                     </button>
                   )
                 ) : (
@@ -454,20 +496,22 @@ const CourseDetails: React.FC = () => {
         <div className="bg-white">
           <div className="border-b border-gray-200 px-6">
             <nav className="flex">
-              <button
-                onClick={() => setActiveTab("learners")}
-                className={`flex items-center gap-2 px-6 py-4 text-sm font-medium border-b-2 ${
-                  activeTab === "learners"
-                    ? "border-blue-500 text-blue-600"
-                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-                }`}
-              >
-                <PiUsersThreeBold className="h-4 w-4" />
-                Learners
-                <span className="bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full text-xs">
-                  {learners.length}
-                </span>
-              </button>
+              {(isInstructor || isAdmin || isEnrolled) && (
+                <button
+                  onClick={() => setActiveTab("learners")}
+                  className={`flex items-center gap-2 px-6 py-4 text-sm font-medium border-b-2 ${
+                    activeTab === "learners"
+                      ? "border-blue-500 text-blue-600"
+                      : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                  }`}
+                >
+                  <PiUsersThreeBold className="h-4 w-4" />
+                  Learners
+                  <span className="bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full text-xs">
+                    {learners.length}
+                  </span>
+                </button>
+              )}
               {isInstructor && (
                 <button
                   onClick={() => setActiveTab("requests")}
@@ -541,15 +585,19 @@ const CourseDetails: React.FC = () => {
                         <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">
                           Name
                         </th>
-                        <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">
-                          Email
-                        </th>
-                        <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">
-                          Joined
-                        </th>
-                        <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">
-                          Actions
-                        </th>
+                        {(isInstructor || isAdmin) && (
+                          <>
+                            <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">
+                              Email
+                            </th>
+                            <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">
+                              Joined
+                            </th>
+                            <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">
+                              Actions
+                            </th>
+                          </>
+                        )}
                       </tr>
                     </thead>
                     <tbody>
@@ -561,22 +609,68 @@ const CourseDetails: React.FC = () => {
                           <td className="py-4 px-4 text-sm text-gray-900">
                             {learner.name}
                           </td>
-                          <td className="py-4 px-4 text-sm text-gray-600 flex items-center gap-2">
-                            <MdOutlineEmail className="h-4 w-4 text-gray-400" />
-                            {learner.email}
-                          </td>
-                          <td className="py-4 px-4 text-sm text-gray-600">
-                            {learner.enrolled_at || new Date(learner.pivot?.created_at || learner.created_at).toLocaleDateString()}
-                          </td>
-                          <td className="py-4 px-4">
-                            <button
-                              onClick={() => handleRemoveLearner(learner.id)}
-                              className="flex items-center gap-1 px-3 py-1 bg-red-500 text-white text-sm rounded-md hover:bg-red-600 font-medium"
-                            >
-                              <LiaUserMinusSolid className="h-4 w-4" />
-                              Remove
-                            </button>
-                          </td>
+                          {(isInstructor || isAdmin) && (
+                            <>
+                              <td className="py-4 px-4 text-sm text-gray-600 flex items-center gap-2">
+                                <MdOutlineEmail className="h-4 w-4 text-gray-400" />
+                                {learner.email}
+                              </td>
+                              <td className="py-4 px-4 text-sm text-gray-600">
+                                {learner.enrolled_at ||
+                                  new Date(
+                                    learner.pivot?.created_at ||
+                                      learner.created_at
+                                  ).toLocaleDateString()}
+                              </td>
+                              <td className="py-4 px-4">
+                                <div className="flex flex-col gap-2">
+                                  {/* Remove learner button for instructors/admins */}
+                                  {(isInstructor || isAdmin) && (
+                                    <button
+                                      onClick={() =>
+                                        handleRemoveLearner(learner.id)
+                                      }
+                                      className="flex items-center gap-1 px-3 py-1 bg-red-500 text-white text-sm rounded-md hover:bg-red-600 font-medium"
+                                    >
+                                      <LiaUserMinusSolid className="h-4 w-4" />
+                                      Remove
+                                    </button>
+                                  )}
+
+                                  {/* Ban/Unban from comments - only for admins */}
+                                  {isAdmin &&
+                                    (learner.comment_banned ? (
+                                      <button
+                                        onClick={() =>
+                                          handleUnbanUser(learner.id)
+                                        }
+                                        className="flex items-center gap-1 px-3 py-1 bg-green-500 text-white text-sm rounded-md hover:bg-green-600 font-medium"
+                                      >
+                                        <RiCheckLine className="h-4 w-4" />
+                                        Unban Comments
+                                      </button>
+                                    ) : (
+                                      <button
+                                        onClick={() =>
+                                          handleBanUser(learner.id)
+                                        }
+                                        className="flex items-center gap-1 px-3 py-1 bg-orange-500 text-white text-sm rounded-md hover:bg-orange-600 font-medium"
+                                      >
+                                        <RiDeleteBin6Line className="h-4 w-4" />
+                                        Ban Comments
+                                      </button>
+                                    ))}
+
+                                  {/* Show banned status */}
+                                  {learner.comment_banned && (
+                                    <span className="px-2 py-1 bg-red-100 text-red-700 text-xs rounded-md font-medium">
+                                      Banned from comments
+                                    </span>
+                                  )}
+                                </div>
+                              </td>
+                            </>
+                          )}
                         </tr>
                       ))}
                     </tbody>
@@ -586,89 +680,108 @@ const CourseDetails: React.FC = () => {
             )}
 
             {/* Requests Tab */}
-            {activeTab === "requests" && isInstructor && (
-              <div>
-                <div className="space-y-3">
-                  {joinRequests.map((request) => (
-                    <div key={request.id} className="border rounded-lg p-4">
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <h3 className="font-medium">{request.user?.name || 'Unknown'}</h3>
-                          <p className="text-sm text-gray-600">
-                            {request.user?.email || ''}
-                          </p>
-                          <p className="text-xs text-gray-500">
-                            Requested on {new Date(request.created_at).toLocaleDateString()}
-                          </p>
-                        </div>
-                        <div className="flex gap-2">
-                          <button
-                            onClick={() => handleAcceptRequest(request.id)}
-                            className="px-3 py-1 bg-green-500 text-white text-sm rounded-md hover:bg-green-600 font-medium inline-flex items-center gap-1"
-                          >
-                            <RiCheckLine className="h-4 w-4" />
-                            Accept
-                          </button>
-                          <button
-                            onClick={() => handleRejectRequest(request.id)}
-                            className="px-3 py-1 bg-red-500 text-white text-sm rounded-md hover:bg-red-600 font-medium inline-flex items-center gap-1"
-                          >
-                            <LiaTimesSolid className="h-4 w-4" />
-                            Reject
-                          </button>
+            {activeTab === "requests" &&
+              (isInstructor || isAdmin) &&
+              course?.privacy === "private" && (
+                <div>
+                  <div className="space-y-3">
+                    {joinRequests.map((request) => (
+                      <div key={request.id} className="border rounded-lg p-4">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <h3 className="font-medium">
+                              {request.user?.name || "Unknown"}
+                            </h3>
+                            <p className="text-sm text-gray-600">
+                              {request.user?.email || ""}
+                            </p>
+                            <p className="text-xs text-gray-500">
+                              Requested on{" "}
+                              {new Date(
+                                request.created_at
+                              ).toLocaleDateString()}
+                            </p>
+                          </div>
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => handleAcceptRequest(request.id)}
+                              className="px-3 py-1 bg-green-500 text-white text-sm rounded-md hover:bg-green-600 font-medium inline-flex items-center gap-1"
+                            >
+                              <RiCheckLine className="h-4 w-4" />
+                              Accept
+                            </button>
+                            <button
+                              onClick={() => handleRejectRequest(request.id)}
+                              className="px-3 py-1 bg-red-500 text-white text-sm rounded-md hover:bg-red-600 font-medium inline-flex items-center gap-1"
+                            >
+                              <LiaTimesSolid className="h-4 w-4" />
+                              Reject
+                            </button>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
 
             {/* Materials Tab */}
             {activeTab === "materials" && (
               <div>
                 {/* Category Filter */}
-                <div className="flex gap-2 mb-4">
-                  <button
-                    onClick={() => setMaterialFilter("all")}
-                    className={`px-3 py-1 rounded-md text-sm ${
-                      materialFilter === "all"
-                        ? "bg-blue-500 text-white"
-                        : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-                    }`}
-                  >
-                    All
-                  </button>
-                  <button
-                    onClick={() => setMaterialFilter("file")}
-                    className={`px-3 py-1 rounded-md text-sm ${
-                      materialFilter === "file"
-                        ? "bg-blue-500 text-white"
-                        : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-                    }`}
-                  >
-                    Files
-                  </button>
-                  <button
-                    onClick={() => setMaterialFilter("video")}
-                    className={`px-3 py-1 rounded-md text-sm ${
-                      materialFilter === "video"
-                        ? "bg-blue-500 text-white"
-                        : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-                    }`}
-                  >
-                    Videos
-                  </button>
-                  <button
-                    onClick={() => setMaterialFilter("link")}
-                    className={`px-3 py-1 rounded-md text-sm ${
-                      materialFilter === "link"
-                        ? "bg-blue-500 text-white"
-                        : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-                    }`}
-                  >
-                    Links
-                  </button>
+                <div className="flex justify-between items-center mb-4">
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setMaterialFilter("all")}
+                      className={`px-3 py-1 rounded-md text-sm ${
+                        materialFilter === "all"
+                          ? "bg-blue-500 text-white"
+                          : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                      }`}
+                    >
+                      All
+                    </button>
+                    <button
+                      onClick={() => setMaterialFilter("file")}
+                      className={`px-3 py-1 rounded-md text-sm ${
+                        materialFilter === "file"
+                          ? "bg-blue-500 text-white"
+                          : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                      }`}
+                    >
+                      Files
+                    </button>
+                    <button
+                      onClick={() => setMaterialFilter("video")}
+                      className={`px-3 py-1 rounded-md text-sm ${
+                        materialFilter === "video"
+                          ? "bg-blue-500 text-white"
+                          : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                      }`}
+                    >
+                      Videos
+                    </button>
+                    <button
+                      onClick={() => setMaterialFilter("link")}
+                      className={`px-3 py-1 rounded-md text-sm ${
+                        materialFilter === "link"
+                          ? "bg-blue-500 text-white"
+                          : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                      }`}
+                    >
+                      Links
+                    </button>
+                  </div>
+                  {/* Add Material Button */}
+                  {isInstructor && (
+                    <button
+                      onClick={() => setShowAddMaterialModal(true)}
+                      className="mt-6 px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 inline-flex items-center gap-2"
+                    >
+                      <HiOutlinePlus className="h-5 w-5" />
+                      Add Material
+                    </button>
+                  )}
                 </div>
 
                 {/* Materials Grid */}
@@ -703,8 +816,13 @@ const CourseDetails: React.FC = () => {
                               <p className="text-xs text-gray-500 mt-1">
                                 {material.type === "file" &&
                                   material.file_type?.toUpperCase()}
-                                {material.type === "file" && material.file_type && " • "}
-                                Uploaded {new Date(material.created_at).toLocaleDateString()}
+                                {material.type === "file" &&
+                                  material.file_type &&
+                                  " • "}
+                                Uploaded{" "}
+                                {new Date(
+                                  material.created_at
+                                ).toLocaleDateString()}
                               </p>
                             </div>
                           </div>
@@ -719,23 +837,31 @@ const CourseDetails: React.FC = () => {
                           )}
                         </div>
 
-                        <button className="mt-3 w-full px-3 py-2 bg-blue-50 text-blue-600 rounded-md text-sm hover:bg-blue-100 font-medium">
+                        <button
+                          onClick={() => {
+                            if (material.url) {
+                              // For files, trigger download
+                              if (material.type === "file") {
+                                const link = document.createElement("a");
+                                link.href = `http://localhost:8000${material.url}`;
+                                link.download = material.title;
+                                link.target = "_blank";
+                                document.body.appendChild(link);
+                                link.click();
+                                document.body.removeChild(link);
+                              } else {
+                                // For videos and links, open in new tab
+                                window.open(material.url, "_blank");
+                              }
+                            }
+                          }}
+                          className="mt-3 w-full px-3 py-2 bg-blue-50 text-blue-600 rounded-md text-sm hover:bg-blue-100 font-medium"
+                        >
                           {material.type === "file" ? "Download" : "Open"}
                         </button>
                       </div>
                     ))}
                 </div>
-
-                {/* Add Material Button */}
-                {isInstructor && (
-                  <button
-                    onClick={() => setShowAddMaterialModal(true)}
-                    className="mt-6 px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 inline-flex items-center gap-2"
-                  >
-                    <HiOutlinePlus className="h-5 w-5" />
-                    Add Material
-                  </button>
-                )}
               </div>
             )}
 
@@ -743,37 +869,118 @@ const CourseDetails: React.FC = () => {
             {activeTab === "comments" && (
               <div>
                 <div className="space-y-6">
-                  {comments.map((comment) => (
-                    <div
-                      key={comment.id}
-                      className="border-b border-gray-200 pb-4"
-                    >
-                      <div className="flex justify-between items-start">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-2">
-                            <span
-                              className={`font-medium ${
-                                comment.user?.id === course.instructor_id
-                                  ? "text-blue-600"
-                                  : "text-gray-900"
-                              }`}
-                            >
-                              {comment.user?.name || 'Unknown User'}
-                            </span>
-                            {comment.user?.id === course.instructor_id && (
-                              <span className="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs rounded-full">
-                                Instructor
+                  {comments.map((comment) => {
+                    const isOwnComment = comment.user?.id === user?.id;
+
+                    return (
+                      <div
+                        key={comment.id}
+                        className={`pb-4 ${
+                          isOwnComment
+                            ? "bg-blue-50 -mx-4 px-4 py-3 rounded-lg"
+                            : "border-b border-gray-200"
+                        }`}
+                      >
+                        <div className="flex justify-between items-start">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-2">
+                              <span
+                                className={`font-medium ${
+                                  isInstructor
+                                    ? "text-blue-600"
+                                    : isOwnComment
+                                    ? "text-green-600"
+                                    : "text-gray-900"
+                                }`}
+                              >
+                                {comment.user?.name || "Unknown User"}
                               </span>
+
+                              {isOwnComment && (
+                                <span className="px-2 py-0.5 bg-green-100 text-green-700 text-xs rounded-full font-medium">
+                                  You
+                                </span>
+                              )}
+
+                              {isInstructor && (
+                                <span className="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs rounded-full">
+                                  Instructor
+                                </span>
+                              )}
+
+                              <span className="text-xs text-gray-500">
+                                {new Date(
+                                  comment.created_at
+                                ).toLocaleDateString()}
+                              </span>
+                            </div>
+                            {editingCommentId === comment.id ? (
+                              <div className="mt-2">
+                                <textarea
+                                  value={editCommentText}
+                                  onChange={(e) =>
+                                    setEditCommentText(e.target.value)
+                                  }
+                                  className="w-full px-3 py-2 border rounded-md text-black"
+                                  rows={3}
+                                />
+                                <div className="flex gap-2 mt-2">
+                                  <button
+                                    onClick={() =>
+                                      handleUpdateCourseComment(
+                                        comment.id,
+                                        editCommentText
+                                      )
+                                    }
+                                    className="px-3 py-1 bg-blue-500 text-white rounded-md"
+                                  >
+                                    Save
+                                  </button>
+                                  <button
+                                    onClick={() => setEditingCommentId(null)}
+                                    className="px-3 py-1 bg-gray-500 text-white rounded-md"
+                                  >
+                                    Cancel
+                                  </button>
+                                </div>
+                              </div>
+                            ) : (
+                              <p className="text-gray-700">{comment.content}</p>
                             )}
-                            <span className="text-xs text-gray-500">
-                              {new Date(comment.created_at).toLocaleDateString()}
-                            </span>
+                            {comment.user_id === user?.id ||
+                            isInstructor ||
+                            isAdmin ? (
+                              <div className="mt-2">
+                                {editingCommentId !== comment.id && (
+                                <>
+                                  <button
+                                    onClick={() => {
+                                      setEditingCommentId(comment.id);
+                                      setEditCommentText(comment.content);
+                                    }}
+                                    className="px-3 py-1 bg-gray-500 text-white text-sm rounded-md hover:bg-gray-600 font-medium inline-flex items-center gap-1"
+                                  >
+                                    <RiDeleteBin6Line className="h-4 w-4" />
+                                    Update
+                                  </button>
+                                  <button
+                                    onClick={() =>
+                                      handleDeleteCourseComment(comment.id)
+                                    }
+                                    className="px-3 py-1 bg-red-500 text-white text-sm rounded-md hover:bg-red-600 font-medium inline-flex items-center gap-1"
+                                  >
+                                    <RiDeleteBin6Line className="h-4 w-4" />
+                                    Delete
+                                  </button>
+                                </>
+                                )}
+                              </div>
+                            ) : null}
                           </div>
-                          <p className="text-gray-700">{comment.content}</p>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
 
                 {/* Add Comment Form */}
@@ -815,12 +1022,17 @@ const CourseDetails: React.FC = () => {
                             {announcement.content}
                           </p>
                           <p className="text-xs text-gray-500">
-                            Posted on {new Date(announcement.created_at).toLocaleDateString()}
+                            Posted on{" "}
+                            {new Date(
+                              announcement.created_at
+                            ).toLocaleDateString()}
                           </p>
                         </div>
                         {isInstructor && (
                           <button
-                            onClick={() => handleDeleteAnnouncement(announcement.id)}
+                            onClick={() =>
+                              handleDeleteAnnouncement(announcement.id)
+                            }
                             className="px-3 py-1 bg-red-500 text-white text-sm rounded-md hover:bg-red-600 font-medium ml-4 inline-flex items-center gap-1"
                           >
                             <RiDeleteBin6Line className="h-4 w-4" />
@@ -848,7 +1060,7 @@ const CourseDetails: React.FC = () => {
                         })
                       }
                       placeholder="Announcement Title"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md mb-3"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md mb-3 text-black"
                     />
                     <textarea
                       value={newAnnouncement.content}
@@ -859,7 +1071,7 @@ const CourseDetails: React.FC = () => {
                         })
                       }
                       placeholder="Write your announcement here..."
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md mb-3"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md mb-3 text-black"
                       rows={4}
                     />
                     <button
@@ -890,7 +1102,9 @@ const CourseDetails: React.FC = () => {
                 <input
                   type="text"
                   value={editForm.title}
-                  onChange={(e) => setEditForm({ ...editForm, title: e.target.value })}
+                  onChange={(e) =>
+                    setEditForm({ ...editForm, title: e.target.value })
+                  }
                   className="w-full px-3 py-2 border border-gray-300 rounded-md"
                   required
                 />
@@ -901,7 +1115,9 @@ const CourseDetails: React.FC = () => {
                 </label>
                 <textarea
                   value={editForm.content}
-                  onChange={(e) => setEditForm({ ...editForm, content: e.target.value })}
+                  onChange={(e) =>
+                    setEditForm({ ...editForm, content: e.target.value })
+                  }
                   className="w-full px-3 py-2 border border-gray-300 rounded-md"
                   rows={3}
                   required
@@ -913,7 +1129,12 @@ const CourseDetails: React.FC = () => {
                 </label>
                 <select
                   value={editForm.privacy}
-                  onChange={(e) => setEditForm({ ...editForm, privacy: e.target.value as 'public' | 'private' })}
+                  onChange={(e) =>
+                    setEditForm({
+                      ...editForm,
+                      privacy: e.target.value as "public" | "private",
+                    })
+                  }
                   className="w-full px-3 py-2 border border-gray-300 rounded-md"
                 >
                   <option value="public">Public</option>
@@ -927,7 +1148,12 @@ const CourseDetails: React.FC = () => {
                 <input
                   type="number"
                   value={editForm.capacity}
-                  onChange={(e) => setEditForm({ ...editForm, capacity: parseInt(e.target.value) })}
+                  onChange={(e) =>
+                    setEditForm({
+                      ...editForm,
+                      capacity: parseInt(e.target.value),
+                    })
+                  }
                   className="w-full px-3 py-2 border border-gray-300 rounded-md"
                 />
               </div>
@@ -955,125 +1181,11 @@ const CourseDetails: React.FC = () => {
 
       {/* Add Material Modal */}
       {showAddMaterialModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md">
-            <h2 className="text-xl font-bold mb-4">Add Course Material</h2>
-            <form onSubmit={handleAddMaterial}>
-              {/* Material Type Selection */}
-              <div className="mb-4">
-                <label className="block text-sm font-medium mb-2">
-                  Material Type
-                </label>
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setMaterialType("file")}
-                    className={`flex-1 px-3 py-2 rounded-md text-sm ${
-                      materialType === "file"
-                        ? "bg-blue-500 text-white"
-                        : "bg-gray-200 text-gray-700"
-                    }`}
-                  >
-                    File
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setMaterialType("video")}
-                    className={`flex-1 px-3 py-2 rounded-md text-sm ${
-                      materialType === "video"
-                        ? "bg-blue-500 text-white"
-                        : "bg-gray-200 text-gray-700"
-                    }`}
-                  >
-                    Video
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setMaterialType("link")}
-                    className={`flex-1 px-3 py-2 rounded-md text-sm ${
-                      materialType === "link"
-                        ? "bg-blue-500 text-white"
-                        : "bg-gray-200 text-gray-700"
-                    }`}
-                  >
-                    Link
-                  </button>
-                </div>
-              </div>
-
-              <div className="mb-4">
-                <label className="block text-sm font-medium mb-1">Title</label>
-                <input
-                  type="text"
-                  value={materialForm.title}
-                  onChange={(e) => setMaterialForm({ ...materialForm, title: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                  required
-                />
-              </div>
-
-              {materialType === "file" && (
-                <div className="mb-4">
-                  <label className="block text-sm font-medium mb-1">
-                    Upload File (Use URL for now)
-                  </label>
-                  <input
-                    type="text"
-                    value={materialForm.url}
-                    onChange={(e) => setMaterialForm({ ...materialForm, url: e.target.value })}
-                    placeholder="/files/document.pdf"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
-                    required
-                  />
-                </div>
-              )}
-
-              {(materialType === "video" || materialType === "link") && (
-                <div className="mb-4">
-                  <label className="block text-sm font-medium mb-1">URL</label>
-                  <input
-                    type="url"
-                    value={materialForm.url}
-                    onChange={(e) => setMaterialForm({ ...materialForm, url: e.target.value })}
-                    placeholder="https://..."
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                    required
-                  />
-                </div>
-              )}
-
-              <div className="mb-4">
-                <label className="block text-sm font-medium mb-1">
-                  Description (Optional)
-                </label>
-                <textarea
-                  value={materialForm.description}
-                  onChange={(e) => setMaterialForm({ ...materialForm, description: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                  rows={3}
-                />
-              </div>
-
-              <div className="flex justify-end gap-2">
-                <button
-                  type="button"
-                  onClick={() => setShowAddMaterialModal(false)}
-                  className="px-4 py-2 bg-red-500 text-white hover:bg-red-600 rounded-md inline-flex items-center gap-2"
-                >
-                  <LiaTimesSolid className="h-4 w-4" />
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 inline-flex items-center gap-2"
-                >
-                  <RiCheckLine className="h-4 w-4" />
-                  Upload
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
+        <AddMaterialModal
+          courseId={id!}
+          onClose={() => setShowAddMaterialModal(false)}
+          onSuccess={fetchCourseData}
+        />
       )}
     </main>
   );

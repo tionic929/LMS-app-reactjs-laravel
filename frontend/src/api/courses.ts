@@ -76,17 +76,14 @@ export const rejectJoinRequest = async (
 };
 
 // Material management
-export const addCourseMaterial = async (
-  courseId: string | number,
-  data: {
-    title: string;
-    type: "file" | "video" | "link";
-    file_type?: string;
-    url: string;
-    description?: string;
-  }
-) => {
-  return api.post(`/courses/${courseId}/materials`, data);
+// Find the existing addCourseMaterial function and replace it with:
+export const addCourseMaterial = (courseId: string, data: FormData | any) => {
+  const config =
+    data instanceof FormData
+      ? { headers: { "Content-Type": "multipart/form-data" } }
+      : {};
+
+  return api.post(`/courses/${courseId}/materials`, data, config);
 };
 
 export const deleteCourseMaterial = async (
@@ -102,6 +99,21 @@ export const addCourseComment = async (
   content: string
 ) => {
   return api.post(`/courses/${courseId}/comments`, { content });
+};
+
+export const updateCourseComment = async (
+  courseId: string | number,
+  commentId: string | number,
+  content: string
+) => {
+  return api.put(`/courses/${courseId}/comments/${commentId}`, { content });
+};
+
+export const deleteCourseComment = async (
+  courseId: string | number,
+  commentId: string | number
+) => {
+  return api.delete(`/courses/${courseId}/comments/${commentId}`);
 };
 
 // Announcement management
@@ -120,4 +132,19 @@ export const deleteCourseAnnouncement = async (
   announcementId: string | number
 ) => {
   return api.delete(`/courses/${courseId}/announcements/${announcementId}`);
+};
+
+// User moderation
+export const banUserFromComments = async (
+  courseId: string | number,
+  userId: string | number
+) => {
+  return api.post(`/courses/${courseId}/ban-user/${userId}`);
+};
+
+export const unbanUserFromComments = async (
+  courseId: string | number,
+  userId: string | number
+) => {
+  return api.post(`/courses/${courseId}/unban-user/${userId}`);
 };

@@ -53,7 +53,7 @@ class Course extends Model
     {
         return $this->belongsToMany(User::class, 'course_enrollments')
             ->wherePivot('status', 'active')
-            ->withPivot('status', 'created_at')
+            ->withPivot('status', 'created_at', 'comment_banned')
             ->withTimestamps();
     }
 

@@ -14,6 +14,11 @@ class CourseEnrollment extends Model
         'course_id',
         'user_id',
         'status',
+        'comment_banned',
+    ];
+
+    protected $casts = [
+        'comment_banned' => 'boolean',
     ];
 
     public function course(): BelongsTo

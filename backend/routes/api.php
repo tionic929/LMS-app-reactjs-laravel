@@ -26,7 +26,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/courses/{course}/comments', [CourseController::class, 'addComment']);
     Route::post('/courses/{course}/announcements', [CourseController::class, 'addAnnouncement']);
     Route::delete('/courses/{course}/announcements/{announcementId}', [CourseController::class, 'deleteAnnouncement']);
+    Route::put('/courses/{course}/comments/{comment}', [CourseController::class, 'updateComment']);
     Route::delete('/courses/{course}/comments/{comment}', [CourseController::class, 'deleteComment']);
+    Route::post('/courses/{course}/ban-user/{user}', [CourseController::class, 'banUserFromComments']);
+    Route::post('/courses/{course}/unban-user/{user}', [CourseController::class, 'unbanUserFromComments']);
 });
 
 // for learners and instructors
