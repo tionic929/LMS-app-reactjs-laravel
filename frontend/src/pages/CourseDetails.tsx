@@ -624,7 +624,7 @@ const CourseDetails: React.FC = () => {
                                   ).toLocaleDateString()}
                               </td>
                               <td className="py-4 px-4">
-                                <div className="flex flex-col gap-2">
+                                <div className="flex gap-2">
                                   {/* Remove learner button for instructors/admins */}
                                   {(isInstructor || isAdmin) && (
                                     <button
@@ -639,8 +639,9 @@ const CourseDetails: React.FC = () => {
                                   )}
 
                                   {/* Ban/Unban from comments - only for admins */}
-                                  {isAdmin &&
+                                  {(isAdmin || isInstructor) &&
                                     (learner.pivot?.comment_banned ? (
+                                      
                                       <button
                                         onClick={() =>
                                           handleUnbanUser(learner.id)
