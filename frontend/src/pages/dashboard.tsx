@@ -1,11 +1,18 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { getDashboardAnalytics, type DashboardAnalytics } from '../api/analytics';
 import { FaUsers, FaChalkboardTeacher, FaUserGraduate, FaBell } from 'react-icons/fa'; // Icons for the cards
 import LineChartUsers from '../components/charts/LineChartUsers';
 import '../App.css'; // Assuming your CSS is here
 
 // Helper component for the Metric Cards
-const MetricCard = ({ title, count, icon: Icon, color }) => (
+type MetricCardProps = {
+    title: string;
+    count: number;
+    icon: React.ComponentType<{ className?: string }>;
+    color?: string;
+};
+
+const MetricCard = ({ title, count, icon: Icon, color = '' }: MetricCardProps) => (
     <div className={`card flex p-4 w-full h-[15vh] bg-gray-100/40 border-2 border-blue-900/70 rounded-2xl hover:bg-blue-700/70 hover:text-white hover:bg-gradient-to-r from-blue-700/70 to-blue-900 hover:shadow-lg hover:shadow-gray-700/50 cursor-pointer transition-all duration-200 group flex-row items-center justify-between min-w-[200px] ${color}`}>
         <div className="container items-start justify-center">
             <p className="text-lg text-gray-500 font-medium group-hover:text-white capitalize transition-colors duration-200">{title}</p>

@@ -183,10 +183,21 @@ class CourseController extends Controller
             ->where('user_id', $userId)
             ->first();
 
-        if ($enrollment) {
-            $enrollment->update(['status' => 'removed']);
+        // If the learner is currently counted as enrolled (active status) adjust counters
+        if ($enrollment && $enrollment->status === 'active') {
             $course->decrement('current_enrolled');
         }
+
+        // Delete enrollment record so user can re-enroll later (unique constraint requires removal)
+        if ($enrollment) {
+            $enrollment->delete();
+        }
+
+        // Also remove any accepted join request so learner can submit a new request in future
+        CourseJoinRequest::where('course_id', $course->id)
+            ->where('user_id', $userId)
+            ->where('status', 'accepted')
+            ->delete();
 
         return response()->json(['message' => 'Learner removed successfully']);
     }
@@ -227,13 +238,26 @@ class CourseController extends Controller
 
         $request->update(['status' => 'accepted']);
 
-        CourseEnrollment::create([
-            'course_id' => $course->id,
-            'user_id' => $request->user_id,
-            'status' => 'active',
-        ]);
+        // Reuse existing enrollment row if it exists with status 'removed'
+        $existingEnrollment = CourseEnrollment::where('course_id', $course->id)
+            ->where('user_id', $request->user_id)
+            ->first();
 
-        $course->increment('current_enrolled');
+        if ($existingEnrollment) {
+            if ($existingEnrollment->status === 'active') {
+                return response()->json(['message' => 'Already enrolled'], 400);
+            }
+            // Reactivate removed enrollment
+            $existingEnrollment->update(['status' => 'active']);
+            $course->increment('current_enrolled');
+        } else {
+            CourseEnrollment::create([
+                'course_id' => $course->id,
+                'user_id' => $request->user_id,
+                'status' => 'active',
+            ]);
+            $course->increment('current_enrolled');
+        }
 
         return response()->json(['message' => 'Request accepted']);
     }
@@ -410,12 +434,12 @@ class CourseController extends Controller
     {
         $user = auth()->user();
 
-        // Check if already enrolled
+        // Check any existing enrollment (could be removed)
         $existingEnrollment = CourseEnrollment::where('course_id', $course->id)
             ->where('user_id', $user->id)
             ->first();
 
-        if ($existingEnrollment) {
+        if ($existingEnrollment && $existingEnrollment->status === 'active') {
             return response()->json(['message' => 'Already enrolled'], 400);
         }
 
@@ -426,15 +450,17 @@ class CourseController extends Controller
 
         if ($course->privacy === 'public') {
             // Directly enroll for public courses
-            CourseEnrollment::create([
-                'course_id' => $course->id,
-                'user_id' => $user->id,
-                'status' => 'active',
-                'enrolled_at' => now(),
-            ]);
-
+            if ($existingEnrollment) {
+                // Reactivate removed enrollment
+                $existingEnrollment->update(['status' => 'active']);
+            } else {
+                CourseEnrollment::create([
+                    'course_id' => $course->id,
+                    'user_id' => $user->id,
+                    'status' => 'active',
+                ]);
+            }
             $course->increment('current_enrolled');
-
             return response()->json(['message' => 'Successfully enrolled']);
         } else {
             // Create join request for private courses
@@ -447,12 +473,17 @@ class CourseController extends Controller
                 return response()->json(['message' => 'Join request already pending'], 400);
             }
 
+            // If a previous accepted request exists (user was removed later), delete it to allow a fresh pending request
+            CourseJoinRequest::where('course_id', $course->id)
+                ->where('user_id', $user->id)
+                ->where('status', 'accepted')
+                ->delete();
+
             CourseJoinRequest::create([
                 'course_id' => $course->id,
                 'user_id' => $user->id,
                 'status' => 'pending',
             ]);
-
             return response()->json(['message' => 'Join request submitted']);
         }
     }
