@@ -53,6 +53,7 @@ const EditCourseModal: React.FC<EditCourseModalProps> = ({
               Course Name
             </label>
             <input
+            
               type="text"
               value={editForm.title}
               onChange={(e) => setEditForm({ ...editForm, title: e.target.value })}

@@ -17,6 +17,11 @@ import RegisterInstructor from "./pages/auth/registerInstructor";
 
 import './App.css'
 
+// --- NEW IMPORTS FOR REAL-TIME NOTIFICATIONS ---
+import useSocketNotifications from "./hooks/useSocketNotifications";
+import GlobalNotificationContainer from "./components/GlobalNotificationContainer";
+// ------------------------------------------------
+
 // --- 1. RBAC Guard Component ---
 // This component checks the user's role against the allowed list.
 interface RoleGuardProps {
@@ -40,6 +45,12 @@ const App: React.FC = () => {
     const { user, loading } = useAuth();
     const [isCollapsed, setIsCollapsed] = useState(false);
 
+    // --- HOOK CALL: Start Socket.IO Connection ---
+    // Calling the hook here ensures the connection is established and maintained
+    // for the lifetime of the App component (once user is authenticated).
+    useSocketNotifications();
+    // --------------------------------------------
+
     // Define widths for easy calculation
     const expandedWidth = 'w-64'; // 256px
     const collapsedWidth = 'w-[70px]'; // 80px
@@ -54,6 +65,13 @@ const App: React.FC = () => {
 
     return (
         <div className="h-screen flex relative bg-gray-100"> 
+            
+            {/* --- NOTIFICATION CONTAINER (Fixed in Viewport) --- */}
+            {/* The container is placed here so it renders outside the main layout flow
+                and is always visible on top of all content. */}
+            <GlobalNotificationContainer />
+            {/* -------------------------------------------------- */}
+            
             {/* Sidebar is only rendered if user is authenticated */}
             {user && (
                 <Sidebar 
@@ -104,14 +122,21 @@ const App: React.FC = () => {
                                 element={<RoleGuard allowedRoles={['admin', 'instructor', 'learner']}><Courses /></RoleGuard>} 
                             />
 
-                            {/* Fallback for authenticated users if they hit an unauthorized route */}
-                            <Route path="/courses/:id" element={<CourseDetails />} />
-                <Route path="*" element={<Navigate to="/" replace />} />
+                            {/* Course Details: All Roles */}
+                            <Route 
+                                path="/courses/:id" 
+                                element={<RoleGuard allowedRoles={['admin', 'instructor', 'learner']}><CourseDetails /></RoleGuard>} 
+                            />
+                            
+                            <Route path="/account/update" element={<AccountUpdate />} />
+                            
+                            {/* Fallback for authenticated users if they hit an unknown route */}
+                            <Route path="*" element={<Navigate to="/" replace />} />
 
-                          <Route path="/account/update" element={<AccountUpdate />} />
-              </Route>
+                        </Route>
                         
                         {/* Fallback for unauthenticated users */}
+                        {/* Note: This is usually redundant because of the ProtectedRoute, but good for completeness */}
                         <Route path="*" element={<Navigate to="/login" replace />} />
 
                     </Routes>

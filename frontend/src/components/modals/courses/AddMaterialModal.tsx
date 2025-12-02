@@ -93,6 +93,7 @@ const AddMaterialModal: React.FC<AddMaterialModalProps> = ({
           <div className="mb-4">
             <label className="block text-sm font-medium mb-1">Title</label>
             <input
+            title="material"
               type="text"
               value={materialForm.title}
               onChange={(e) =>
@@ -142,6 +143,7 @@ const AddMaterialModal: React.FC<AddMaterialModalProps> = ({
               Description (Optional)
             </label>
             <textarea
+            title="description"
               value={materialForm.description}
               onChange={(e) =>
                 setMaterialForm({ ...materialForm, description: e.target.value })

@@ -32,6 +32,7 @@ Route::middleware('auth:sanctum')->group(function () {
 Route::get('announcements', [AnnouncementController::class, 'index']);
 Route::get('announcements/{announcement}', [AnnouncementController::class, 'show']);
 
+
 // for admins
 Route::middleware(['auth:sanctum', 'role:admin'])->group(function () {
     Route::post('announcements', [AnnouncementController::class, 'store']);
@@ -39,7 +40,6 @@ Route::middleware(['auth:sanctum', 'role:admin'])->group(function () {
     Route::delete('announcements/{announcement}', [AnnouncementController::class, 'destroy']);
 });
 
-Route::resource('notifications', NotificationsController::class);
 Route::resource('discussions', DiscussionsController::class);
 
 //route get users/analytics should be above route:resource users with except: 'create' 'edit' 'index'
