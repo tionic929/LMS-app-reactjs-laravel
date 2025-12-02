@@ -282,6 +282,7 @@ const CourseDetails: React.FC = () => {
     try {
       await updateCourseComment(id, commentId, updatedText);
       await fetchCourseData();
+      setEditingCommentId(null);
       alert("Comment updated!");
     } catch (err: any) {
       console.error("Error updating comment:", err);
