@@ -6,7 +6,6 @@ import { FaHome, FaUsers, FaUserCircle, FaBook } from "react-icons/fa";
 import { FaArrowRightFromBracket } from "react-icons/fa6";
 import { BsMegaphoneFill } from "react-icons/bs";
 import { Link, useLocation } from "react-router-dom";
-import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { MdMenu } from 'react-icons/md';
 
@@ -39,7 +38,7 @@ const Sidebar: React.FC<SidebarProps> = ({
         const userButtonRef = useRef<HTMLButtonElement | null>(null);
         const [panelPos, setPanelPos] = useState<{ left: number; bottom: number }>({ left: 0, bottom: 0 });
   
-    const location = useLocation();
+    
     
     const handleLogout = async () => {
       try {
@@ -196,19 +195,6 @@ const Sidebar: React.FC<SidebarProps> = ({
                             <p className="text-sm font-medium text-white truncate">{user?.name ?? 'User'}</p>
                             <p className="text-xs text-gray-500 truncate">{user?.role ? user.role.charAt(0).toUpperCase() + user.role.slice(1) : 'Guest'}</p>
                         </div>
-                    </div>
-
-                    {/* Logout Button */}
-                    <button 
-                        onClick={handleLogout} 
-                        className="flex items-center w-full px-3 py-2 text-left rounded-lg text-red-400 hover:bg-gray-700 hover:text-red-300 transition-colors"
-                    >
-                        <div className="flex-shrink-0">
-                            <FaArrowRightFromBracket className="w-5 h-5" />
-                        </div>
-                        <span className={`ml-3 font-medium whitespace-nowrap ${textTransition} ${textClass}`}>
-                            Logout
-                        </span>
                     </button>
                     {/* Modal rendered via portal, positioned beside the sidebar footer */}
                 </div>
