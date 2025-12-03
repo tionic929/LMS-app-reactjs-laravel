@@ -30,6 +30,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/courses/{course}/comments/{comment}', [CourseController::class, 'deleteComment']);
     Route::post('/courses/{course}/ban-user/{user}', [CourseController::class, 'banUserFromComments']);
     Route::post('/courses/{course}/unban-user/{user}', [CourseController::class, 'unbanUserFromComments']);
+    Route::post('/courses/{course}/comments/{comment}/vote', [CourseController::class, 'voteComment']);
+    Route::delete('/courses/{course}/comments/{comment}/vote', [CourseController::class, 'removeVoteFromComment']);
+    Route::get('/courses/{course}/comments/{comment}/votes', [CourseController::class, 'getCommentVotes']);
 });
 
 // for learners and instructors

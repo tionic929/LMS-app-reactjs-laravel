@@ -120,6 +120,28 @@ export const deleteCourseComment = async (
   return api.delete(`/courses/${courseId}/comments/${commentId}`);
 };
 
+export const voteCourseComment = async (
+  courseId: string | number,
+  commentId: string | number,
+    voteType: 'up' | 'down'
+) => {
+  return api.post(`/courses/${courseId}/comments/${commentId}/vote`, { vote_type: voteType });
+};
+
+export const removeVoteFromCourseComment = async (
+  courseId: string | number,
+  commentId: string | number
+) => {
+  return api.delete(`/courses/${courseId}/comments/${commentId}/vote`);
+};
+
+export const getCourseCommentVote = async (
+  courseId: string | number,
+  commentId: string | number
+) => {
+  return api.get(`/courses/${courseId}/comments/${commentId}/votes`);
+};
+
 // Announcement management
 export const addCourseAnnouncement = async (
   courseId: string | number,

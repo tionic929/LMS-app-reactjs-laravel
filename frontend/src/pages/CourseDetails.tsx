@@ -38,6 +38,12 @@ import { VscRequestChanges } from "react-icons/vsc";
 import { BsSend } from "react-icons/bs";
 import AddMaterialModal from "../components/modals/courses/AddMaterialModal";
 import {formatDistanceToNow} from 'date-fns';
+import {
+  voteCourseComment,
+  removeVoteFromCourseComment,
+  getCourseCommentVote,
+} from "../api/courses";
+import { BiUpvote, BiSolidUpvote, BiDownvote, BiSolidDownvote } from "react-icons/bi";
 
 interface Comment {
   id: number;
@@ -50,6 +56,11 @@ interface Comment {
     name: string;
   };
   replies?: Comment[];
+  votes?: {
+    upvotes: number;
+    downvotes: number;
+    user_vote?: 'up' | 'down' | null;
+  };
 }
 
 interface CommentItemProps {
@@ -63,6 +74,9 @@ interface CommentItemProps {
   onReply: (parentId: number, content: string) => void;
   onEdit: (commentId: number, content: string) => void;
   onDelete: (commentId: number) => void;
+  onRefresh: () => void;
+  setComments: React.Dispatch<React.SetStateAction<any[]>>;
+  updateCommentVote: (comments: Comment[], commentId: number, voteData: any) => Comment[];
   editingCommentId: number | null;
   editCommentText: string;
   setEditingCommentId: (id: number | null) => void;
@@ -80,6 +94,9 @@ const CommentItem: React.FC<CommentItemProps> = ({
   onReply,
   onEdit,
   onDelete,
+  onRefresh,
+  setComments,
+  updateCommentVote,
   editingCommentId,
   editCommentText,
   setEditingCommentId,
@@ -128,6 +145,34 @@ const CommentItem: React.FC<CommentItemProps> = ({
       setReplyContent("");
     }
     setShowReplyForm(true);
+  };
+
+  const handleVote = async (voteType: 'up' | 'down') => {
+    try {
+      let voteData;
+      if (comment.votes?.user_vote === voteType) {
+        // Remove vote
+        await removeVoteFromCourseComment(courseId, comment.id);
+        voteData = {
+          upvotes: Math.max(0, (comment.votes?.upvotes || 0) - (voteType === 'up' ? 1 : 0)),
+          downvotes: Math.max(0, (comment.votes?.downvotes || 0) - (voteType === 'down' ? 1 : 0)),
+          user_vote: null
+        };
+      } else {
+        // Add or change vote
+        await voteCourseComment(courseId, comment.id, voteType);
+        const wasOppositeVote = comment.votes?.user_vote === (voteType === 'up' ? 'down' : 'up');
+        voteData = {
+          upvotes: (comment.votes?.upvotes || 0) + (voteType === 'up' ? 1 : (wasOppositeVote ? 0 : 0)) - (voteType === 'down' && wasOppositeVote ? 1 : 0),
+          downvotes: (comment.votes?.downvotes || 0) + (voteType === 'down' ? 1 : (wasOppositeVote ? 0 : 0)) - (voteType === 'up' && wasOppositeVote ? 1 : 0),
+          user_vote: voteType
+        };
+      }
+      setComments(prevComments => updateCommentVote(prevComments, comment.id, voteData));
+    } catch (error) {
+      console.error("Error voting on comment:", error);
+      // Optionally revert the optimistic update on error
+    }
   };
 
   return (
@@ -200,6 +245,26 @@ const CommentItem: React.FC<CommentItemProps> = ({
             
             {/* Action buttons */}
             <div className="mt-2 flex items-center gap-2">
+              {/*Voting Buttons */}
+              <div className="flex items-center gap-2 mr-4">
+                <button 
+                  onClick={() => handleVote('up')}
+                  className={`flex items-center gap-1 ${
+                    comment.votes?.user_vote === 'up' ? 'text-green-600' : 'text-gray-500'
+                  }`}
+                >
+                  {comment.votes?.user_vote === 'up' ? <BiSolidUpvote /> : <BiUpvote />} {comment.votes?.upvotes || 0}
+                </button>
+                
+                <button 
+                  onClick={() => handleVote('down')}
+                  className={`flex items-center gap-1 ${
+                    comment.votes?.user_vote === 'down' ? 'text-red-600' : 'text-gray-500'
+                  }`}
+                >
+                  {comment.votes?.user_vote === 'down' ? <BiSolidDownvote /> : <BiDownvote />} {comment.votes?.downvotes || 0}
+                </button>
+              </div>
               <button 
                 onClick={() => initializeReplyForm()}
                 className="text-blue-500 text-sm hover:text-blue-700"
@@ -270,6 +335,9 @@ const CommentItem: React.FC<CommentItemProps> = ({
               onReply={onReply}
               onEdit={onEdit}
               onDelete={onDelete}
+              onRefresh={onRefresh}
+              setComments={setComments}
+              updateCommentVote={updateCommentVote}
               editingCommentId={editingCommentId}
               editCommentText={editCommentText}
               setEditingCommentId={setEditingCommentId}
@@ -392,6 +460,84 @@ const CourseDetails: React.FC = () => {
     }
   };
 
+  // Helper functions for asynchronous updates
+  const updateCommentVote = (comments: Comment[], commentId: number, voteData: any): Comment[] => {
+    return comments.map(comment => {
+      if (comment.id === commentId) {
+        return {
+          ...comment,
+          votes: {
+            ...comment.votes,
+            ...voteData
+          }
+        };
+      }
+      if (comment.replies) {
+        return {
+          ...comment,
+          replies: updateCommentVote(comment.replies, commentId, voteData)
+        };
+      }
+      return comment;
+    });
+  };
+
+  const addCommentToList = (comments: Comment[], newComment: Comment): Comment[] => {
+    if (newComment.parent_comment_id) {
+      // It's a reply, find the parent and add to its replies
+      return comments.map(comment => {
+        if (comment.id === newComment.parent_comment_id) {
+          return {
+            ...comment,
+            replies: [...(comment.replies || []), newComment]
+          };
+        }
+        if (comment.replies) {
+          return {
+            ...comment,
+            replies: addCommentToList(comment.replies, newComment)
+          };
+        }
+        return comment;
+      });
+    } else {
+      // It's a top-level comment
+      return [...comments, newComment];
+    }
+  };
+
+  const updateCommentInList = (comments: Comment[], commentId: number, updatedContent: string): Comment[] => {
+    return comments.map(comment => {
+      if (comment.id === commentId) {
+        return {
+          ...comment,
+          content: updatedContent
+        };
+      }
+      if (comment.replies) {
+        return {
+          ...comment,
+          replies: updateCommentInList(comment.replies, commentId, updatedContent)
+        };
+      }
+      return comment;
+    });
+  };
+
+  const removeCommentFromList = (comments: Comment[], commentId: number): Comment[] => {
+    return comments
+      .filter(comment => comment.id !== commentId)
+      .map(comment => {
+        if (comment.replies) {
+          return {
+            ...comment,
+            replies: removeCommentFromList(comment.replies, commentId)
+          };
+        }
+        return comment;
+      });
+  };
+
   const handleUpdateCourse = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!id) return;
@@ -505,13 +651,36 @@ const CourseDetails: React.FC = () => {
   const handleAddComment = async () => {
     if (!id || !newComment.trim()) return;
 
+    const tempComment = {
+      id: Date.now(), // Temporary ID
+      content: newComment,
+      created_at: new Date().toISOString(),
+      user_id: user?.id || 0,
+      parent_comment_id: null,
+      user: user ? { id: user.id, name: user.name } : undefined,
+      replies: [],
+      votes: {
+        upvotes: 0,
+        downvotes: 0,
+        user_vote: null
+      }
+    };
+
+    // Optimistic update
+    setComments(prev => [...prev, tempComment]);
+    setNewComment("");
+
     try {
-      await addCourseComment(id, newComment);
-      await fetchCourseData();
-      setNewComment("");
-      alert("Comment posted!");
+      const response = await addCourseComment(id, newComment);
+      // Update with real data from server
+      if (response.data?.comment) {
+        setComments(prev => prev.map(c => c.id === tempComment.id ? response.data.comment : c));
+      }
     } catch (err: any) {
       console.error("Error adding comment:", err);
+      // Revert optimistic update
+      setComments(prev => prev.filter(c => c.id !== tempComment.id));
+      setNewComment(newComment); // Restore the text
       alert(err.response?.data?.message || "Failed to post comment");
     }
   };
@@ -519,12 +688,38 @@ const CourseDetails: React.FC = () => {
   const handleAddReply = async (parentCommentId: number, content: string) => {
     if (!id || !content.trim()) return;
 
+    const tempReply = {
+      id: Date.now(), // Temporary ID
+      content: content,
+      created_at: new Date().toISOString(),
+      user_id: user?.id || 0,
+      parent_comment_id: parentCommentId,
+      user: user ? { id: user.id, name: user.name } : undefined,
+      replies: [],
+      votes: {
+        upvotes: 0,
+        downvotes: 0,
+        user_vote: null
+      }
+    };
+
+    // Optimistic update
+    setComments(prev => addCommentToList(prev, tempReply));
+
     try {
-      await addCourseComment(id, content, parentCommentId);
-      await fetchCourseData();
-      alert("Reply posted!");
+      const response = await addCourseComment(id, content, parentCommentId);
+      // Update with real data from server
+      if (response.data?.comment) {
+        setComments(prev => {
+          // Remove temp reply and add real one
+          const withoutTemp = removeCommentFromList(prev, tempReply.id);
+          return addCommentToList(withoutTemp, response.data.comment);
+        });
+      }
     } catch (err: any) {
       console.error("Error adding reply:", err);
+      // Revert optimistic update
+      setComments(prev => removeCommentFromList(prev, tempReply.id));
       alert(err.response?.data?.message || "Failed to post reply");
     }
   };
@@ -535,13 +730,22 @@ const CourseDetails: React.FC = () => {
   ) => {
     if (!id || !updatedText.trim()) return;
 
+    // Store original text for potential rollback
+    const originalText = editCommentText;
+
+    // Optimistic update
+    setComments(prev => updateCommentInList(prev, commentId, updatedText));
+    setEditingCommentId(null);
+    setEditCommentText("");
+
     try {
       await updateCourseComment(id, commentId, updatedText);
-      await fetchCourseData();
-      setEditingCommentId(null);
-      alert("Comment updated!");
     } catch (err: any) {
       console.error("Error updating comment:", err);
+      // Revert optimistic update
+      setComments(prev => updateCommentInList(prev, commentId, originalText));
+      setEditingCommentId(commentId);
+      setEditCommentText(originalText);
       alert(err.response?.data?.message || "Failed to update comment");
     }
   };
@@ -555,11 +759,16 @@ const CourseDetails: React.FC = () => {
       return;
     }
 
+    // Store the comment for potential rollback (simplified - just proceed with delete)
+    // Optimistic update
+    setComments(prev => removeCommentFromList(prev, commentId));
+
     try {
       await deleteCourseComment(id!, commentId);
-      fetchCourseData();
     } catch (error) {
       console.error("Error deleting comment:", error);
+      // For delete, we can't easily rollback, so just refetch on error
+      fetchCourseData();
     }
   };
 
@@ -1139,10 +1348,14 @@ const CourseDetails: React.FC = () => {
                       onReply={handleAddReply}
                       onEdit={handleUpdateCourseComment}
                       onDelete={handleDeleteCourseComment}
+                      onRefresh={fetchCourseData}
+                      setComments={setComments}
+                      updateCommentVote={updateCommentVote}
                       editingCommentId={editingCommentId}
                       editCommentText={editCommentText}
                       setEditingCommentId={setEditingCommentId}
                       setEditCommentText={setEditCommentText}
+                      
                     />
                   ))}
                 </div>
@@ -1356,3 +1569,4 @@ const CourseDetails: React.FC = () => {
 };
 
 export default CourseDetails;
+

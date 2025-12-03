@@ -8,6 +8,7 @@ use App\Models\CourseJoinRequest;
 use App\Models\CourseMaterial;
 use App\Models\CourseComment;
 use App\Models\CourseAnnouncement;
+use App\Models\CommentVote;
 use App\Models\User;
 use App\Http\Requests\StoreCourseRequest;
 use App\Http\Requests\UpdateCourseRequest;
@@ -114,6 +115,9 @@ class CourseController extends Controller
         if (!$isInstructor && !$isAdmin && !$isEnrolled) {
             $course->unsetRelation('joinRequests');
         }
+
+        // Add vote data to comments
+        $this->addVoteDataToComments($course->comments);
 
         return response()->json([
             'course' => $course,
@@ -589,5 +593,151 @@ class CourseController extends Controller
         $enrollment->update(['comment_banned' => false]);
 
         return response()->json(['message' => 'User unbanned from commenting']);
+    }
+
+    /**
+     * Add vote data to comments recursively
+     */
+    private function addVoteDataToComments($comments)
+    {
+        foreach ($comments as $comment) {
+            $this->addVoteDataToComment($comment);
+            if ($comment->replies) {
+                $this->addVoteDataToComments($comment->replies);
+            }
+        }
+    }
+
+    /**
+     * Add vote data to a single comment
+     */
+    private function addVoteDataToComment($comment)
+    {
+        $upvotes = CommentVote::where('comment_id', $comment->id)
+            ->where('vote', 1)
+            ->count();
+
+        $downvotes = CommentVote::where('comment_id', $comment->id)
+            ->where('vote', -1)
+            ->count();
+
+        $userVote = null;
+        if (auth()->check()) {
+            $vote = CommentVote::where('comment_id', $comment->id)
+                ->where('user_id', auth()->id())
+                ->first();
+            if ($vote) {
+                $userVote = $vote->vote === 1 ? 'up' : 'down';
+            }
+        }
+
+        $comment->votes = [
+            'upvotes' => $upvotes,
+            'downvotes' => $downvotes,
+            'user_vote' => $userVote,
+        ];
+    }
+
+    /**
+     * Vote on a comment
+     */
+    public function voteComment(Request $request, Course $course, CourseComment $comment)
+    {
+        if ($comment->course_id !== $course->id) {
+            return response()->json(['message' => 'Comment not found'], 400);
+        }
+
+        // Check if user is enrolled in the course
+        $isEnrolled = $course->enrollments()
+            ->where('user_id', auth()->id())
+            ->where('status', 'active')
+            ->exists();
+
+        $isInstructor = auth()->check() && $course->instructor_id === auth()->id();
+        $isAdmin = auth()->check() && auth()->user()->role === 'admin';
+
+        if (!$isInstructor && !$isAdmin && !$isEnrolled) {
+            return response()->json(['message' => 'You must be enrolled in this course to vote'], 403);
+        }
+
+        $validated = $request->validate([
+            'vote_type' => 'required|in:up,down',
+        ]);
+
+        $voteValue = $request->vote_type === 'up' ? 1 : -1;
+
+        // Check if user already voted on this comment
+        $existingVote = CommentVote::where('comment_id', $comment->id)
+            ->where('user_id', auth()->id())
+            ->first();
+
+        if ($existingVote) {
+            if ($existingVote->vote === $voteValue) {
+                // Same vote - remove it (toggle off)
+                $existingVote->delete();
+            } else {
+                // Different vote - update it
+                $existingVote->update(['vote' => $voteValue]);
+            }
+        } else {
+            // New vote
+            CommentVote::create([
+                'comment_id' => $comment->id,
+                'user_id' => auth()->id(),
+                'vote' => $voteValue,
+            ]);
+        }
+
+        return response()->json(['message' => 'Vote recorded']);
+    }
+
+    /**
+     * Remove vote from a comment
+     */
+    public function removeVoteFromComment(Course $course, CourseComment $comment)
+    {
+        if ($comment->course_id !== $course->id) {
+            return response()->json(['message' => 'Comment not found'], 400);
+        }
+
+        CommentVote::where('comment_id', $comment->id)
+            ->where('user_id', auth()->id())
+            ->delete();
+
+        return response()->json(['message' => 'Vote removed']);
+    }
+
+    /**
+     * Get vote information for a comment
+     */
+    public function getCommentVote(Course $course, CourseComment $comment)
+    {
+        if ($comment->course_id !== $course->id) {
+            return response()->json(['message' => 'Comment not found'], 400);
+        }
+
+        $upvotes = CommentVote::where('comment_id', $comment->id)
+            ->where('vote', 1)
+            ->count();
+
+        $downvotes = CommentVote::where('comment_id', $comment->id)
+            ->where('vote', -1)
+            ->count();
+
+        $userVote = null;
+        if (auth()->check()) {
+            $vote = CommentVote::where('comment_id', $comment->id)
+                ->where('user_id', auth()->id())
+                ->first();
+            if ($vote) {
+                $userVote = $vote->vote === 1 ? 'up' : 'down';
+            }
+        }
+
+        return response()->json([
+            'upvotes' => $upvotes,
+            'downvotes' => $downvotes,
+            'user_vote' => $userVote,
+        ]);
     }
 }
