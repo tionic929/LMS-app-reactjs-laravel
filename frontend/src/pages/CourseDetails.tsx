@@ -85,6 +85,7 @@ interface CommentItemProps {
   setEditCommentText: (text: string) => void;
   visibleReplies?: Record<number, number>;
   onLoadMoreReplies?: (commentId: number) => void;
+  depth?: number;
 }
 
 const CommentItem: React.FC<CommentItemProps> = ({
@@ -108,11 +109,26 @@ const CommentItem: React.FC<CommentItemProps> = ({
   setEditCommentText,
   visibleReplies = {},
   onLoadMoreReplies,
+  depth = 0,
 }) => {
   const [showReplyForm, setShowReplyForm] = useState(false);
   const [replyContent, setReplyContent] = useState("");
 
   const isOwnComment = comment.user?.id === user?.id;
+
+  // Flatten all nested replies into a single array for display
+  const flattenReplies = (replies: Comment[]): Comment[] => {
+    let flattened: Comment[] = [];
+    replies.forEach(reply => {
+      flattened.push(reply);
+      if (reply.replies && reply.replies.length > 0) {
+        flattened = flattened.concat(flattenReplies(reply.replies));
+      }
+    });
+    return flattened;
+  };
+
+  const allReplies = comment.replies ? flattenReplies(comment.replies) : [];
 
   // Find the parent comment user for context in replies to replies
   const getReplyContext = () => {
@@ -183,7 +199,7 @@ const CommentItem: React.FC<CommentItemProps> = ({
   };
 
   return (
-    <div className={`mt-4 ${isReply && !isNestedReply ? 'ml-8' : ''} ${!isReply && 'border-b border-gray-200'}`}>
+    <div className={`mt-4 ${isReply && !isNestedReply ? 'ml-10' : ''} ${!isReply && 'border-b border-gray-200'}`}>
       <div className={`pb-4 ${isOwnComment ? "bg-blue-50 -mx-4 px-4 py-3 rounded-lg" : ""}`}>
         <div className="flex justify-between items-start">
           <div className="flex-1">
@@ -326,8 +342,116 @@ const CommentItem: React.FC<CommentItemProps> = ({
         </div>
       </div>
       
-      {/* Render replies */}
-      {comment.replies && comment.replies.length > 0 && (
+      {/* Render replies - flatten all nested replies to same level */}
+      {allReplies.length > 0 && depth === 0 && (
+        <div className="mt-4">
+          {allReplies.slice(0, visibleReplies[comment.id] || 1).map((reply) => (
+            <div key={reply.id} className="mt-4 ml-10 border-b border-gray-100 pb-4">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="font-medium text-gray-900">
+                  {reply.user?.name || "Unknown User"}
+                </span>
+                {reply.user?.id === user?.id && (
+                  <span className="px-2 py-0.5 bg-green-100 text-green-700 text-xs rounded-full font-medium">
+                    You
+                  </span>
+                )}
+                <span className="text-xs text-gray-500">
+                  {formatDistanceToNow(new Date(reply.created_at), { addSuffix: true })}
+                </span>
+              </div>
+              <p className="text-gray-700">{reply.content}</p>
+              
+              {/* Action buttons for flattened replies */}
+              <div className="mt-2 flex items-center gap-2">
+                <div className="flex items-center gap-2 mr-4">
+                  <button 
+                    onClick={async () => {
+                      try {
+                        let voteData;
+                        if (reply.votes?.user_vote === 'up') {
+                          await removeVoteFromCourseComment(courseId, reply.id);
+                          voteData = {
+                            upvotes: Math.max(0, (reply.votes?.upvotes || 0) - 1),
+                            downvotes: reply.votes?.downvotes || 0,
+                            user_vote: null
+                          };
+                        } else {
+                          await voteCourseComment(courseId, reply.id, 'up');
+                          const wasOppositeVote = reply.votes?.user_vote === 'down';
+                          voteData = {
+                            upvotes: (reply.votes?.upvotes || 0) + 1,
+                            downvotes: (reply.votes?.downvotes || 0) - (wasOppositeVote ? 1 : 0),
+                            user_vote: 'up'
+                          };
+                        }
+                        setComments(prevComments => updateCommentVote(prevComments, reply.id, voteData));
+                      } catch (error) {
+                        console.error("Error voting:", error);
+                      }
+                    }}
+                    className={`flex items-center gap-1 ${
+                      reply.votes?.user_vote === 'up' ? 'text-green-600' : 'text-gray-500'
+                    }`}
+                  >
+                    {reply.votes?.user_vote === 'up' ? <BiSolidUpvote /> : <BiUpvote />} {reply.votes?.upvotes || 0}
+                  </button>
+                  <button 
+                    onClick={async () => {
+                      try {
+                        let voteData;
+                        if (reply.votes?.user_vote === 'down') {
+                          await removeVoteFromCourseComment(courseId, reply.id);
+                          voteData = {
+                            upvotes: reply.votes?.upvotes || 0,
+                            downvotes: Math.max(0, (reply.votes?.downvotes || 0) - 1),
+                            user_vote: null
+                          };
+                        } else {
+                          await voteCourseComment(courseId, reply.id, 'down');
+                          const wasOppositeVote = reply.votes?.user_vote === 'up';
+                          voteData = {
+                            upvotes: (reply.votes?.upvotes || 0) - (wasOppositeVote ? 1 : 0),
+                            downvotes: (reply.votes?.downvotes || 0) + 1,
+                            user_vote: 'down'
+                          };
+                        }
+                        setComments(prevComments => updateCommentVote(prevComments, reply.id, voteData));
+                      } catch (error) {
+                        console.error("Error voting:", error);
+                      }
+                    }}
+                    className={`flex items-center gap-1 ${
+                      reply.votes?.user_vote === 'down' ? 'text-red-600' : 'text-gray-500'
+                    }`}
+                  >
+                    {reply.votes?.user_vote === 'down' ? <BiSolidDownvote /> : <BiDownvote />} {reply.votes?.downvotes || 0}
+                  </button>
+                </div>
+                <button 
+                  onClick={() => onReply(comment.id, '')}
+                  className="text-blue-500 text-sm hover:text-blue-700"
+                >
+                  Reply
+                </button>
+              </div>
+            </div>
+          ))}
+          {allReplies.length > (visibleReplies[comment.id] || 1) && (
+            <div className="mt-2 ml-10">
+              <button
+                onClick={() => onLoadMoreReplies?.(comment.id)}
+                className="text-blue-500 text-sm hover:text-blue-700 font-medium"
+              >
+                Load more replies
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+      
+      {/* Keep nested rendering for depth > 0 (shouldn't happen with flattening, but keep as fallback) */}
+      {comment.replies && comment.replies.length > 0 && depth > 0 && (
         <div className="mt-4">
           {comment.replies.slice(0, visibleReplies[comment.id] || 1).map((reply) => (
             <CommentItem 
@@ -352,21 +476,16 @@ const CommentItem: React.FC<CommentItemProps> = ({
               setEditCommentText={setEditCommentText}
               visibleReplies={visibleReplies}
               onLoadMoreReplies={onLoadMoreReplies}
+              depth={depth + 1}
             />
           ))}
           {comment.replies && comment.replies.length > (visibleReplies[comment.id] || 1) && (
-            <div className={`mt-2 ${isReply && !isNestedReply ? 'ml-8' : ''}`}>
+            <div className={`mt-2 ${isReply && !isNestedReply ? 'ml-10' : ''}`}>
               <button
-                onClick={() => {
-                  console.log('Comment ID:', comment.id);
-                  console.log('Total replies:', comment.replies?.length);
-                  console.log('Visible replies:', visibleReplies[comment.id] || 1);
-                  console.log('Remaining:', (comment.replies?.length || 0) - (visibleReplies[comment.id] || 1));
-                  onLoadMoreReplies?.(comment.id);
-                }}
+                onClick={() => onLoadMoreReplies?.(comment.id)}
                 className="text-blue-500 text-sm hover:text-blue-700 font-medium"
               >
-                Load more replies ({(comment.replies?.length || 0) - (visibleReplies[comment.id] || 1)} remaining)
+                Load more replies
               </button>
             </div>
           )}
@@ -463,16 +582,10 @@ const CourseDetails: React.FC = () => {
   };
 
   const handleLoadMoreReplies = (commentId: number) => {
-    console.log('Loading more replies for comment:', commentId);
-    console.log('Current visible replies:', visibleReplies[commentId] || 1);
-    setVisibleReplies(prev => {
-      const newCount = (prev[commentId] || 1) + 3;
-      console.log('New visible count will be:', newCount);
-      return {
-        ...prev,
-        [commentId]: newCount
-      };
-    });
+    setVisibleReplies(prev => ({
+      ...prev,
+      [commentId]: (prev[commentId] || 1) + 3
+    }));
   };
 
   useEffect(() => {
@@ -1535,6 +1648,7 @@ const CourseDetails: React.FC = () => {
                       setEditCommentText={setEditCommentText}
                       visibleReplies={visibleReplies}
                       onLoadMoreReplies={handleLoadMoreReplies}
+                      depth={0}
                     />
                   ))}
                 </div>
@@ -1546,7 +1660,7 @@ const CourseDetails: React.FC = () => {
                       onClick={handleLoadMoreComments}
                       className="px-6 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 font-medium"
                     >
-                      Load More Comments ({comments.length - visibleComments} remaining)
+                      Load More Comments
                     </button>
                   </div>
                 )}
