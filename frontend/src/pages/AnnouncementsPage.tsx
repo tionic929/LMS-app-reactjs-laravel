@@ -72,19 +72,6 @@ const AnnouncementsPage: React.FC = () => {
     }
   };
 
-  const getTypeDotClass = (type: string) => {
-    switch (type) {
-      case "news":
-        return "bg-indigo-500";
-      case "general":
-        return "bg-gray-500";
-      case "event":
-        return "bg-emerald-500";
-      default:
-        return "bg-gray-400";
-    }
-  };
-
   const TypeIcon: React.FC<{ type: string }> = ({ type }) => {
     const common = "w-5 h-5";
     switch (type) {
