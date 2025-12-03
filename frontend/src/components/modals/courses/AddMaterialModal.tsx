@@ -8,13 +8,13 @@ type MaterialType = "file" | "video" | "link";
 interface AddMaterialModalProps {
   courseId: string;
   onClose: () => void;
-  onSuccess: () => void;
+  onMaterialAdded?: (material: any) => void;
 }
 
 const AddMaterialModal: React.FC<AddMaterialModalProps> = ({
   courseId,
   onClose,
-  onSuccess,
+  onMaterialAdded,
 }) => {
   const [materialType, setMaterialType] = useState<MaterialType>("file");
   const [materialForm, setMaterialForm] = useState({
@@ -35,6 +35,26 @@ const AddMaterialModal: React.FC<AddMaterialModalProps> = ({
     e.preventDefault();
     setUploading(true);
 
+    // Create optimistic material object
+    const optimisticMaterial = {
+      id: Date.now(), // Temporary ID
+      title: materialForm.title,
+      type: materialType,
+      description: materialForm.description,
+      url: materialType === "file" ? null : materialForm.url,
+      created_at: new Date().toISOString(),
+    };
+
+    // Optimistic update - add to UI immediately
+    if (onMaterialAdded) {
+      onMaterialAdded(optimisticMaterial);
+    }
+
+    // Close modal and reset form immediately
+    onClose();
+    setMaterialForm({ title: "", url: "", description: "" });
+    setSelectedFile(null);
+
     try {
       const formData = new FormData();
       formData.append("title", materialForm.title);
@@ -47,14 +67,16 @@ const AddMaterialModal: React.FC<AddMaterialModalProps> = ({
         formData.append("url", materialForm.url);
       }
 
-      await addCourseMaterial(courseId, formData);
-      onSuccess();
-      onClose();
-      setMaterialForm({ title: "", url: "", description: "" });
-      setSelectedFile(null);
-      alert("Material added successfully!");
+      const response = await addCourseMaterial(courseId, formData);
+
+      // Update with real data from server if available
+      if (response.data?.material && onMaterialAdded) {
+        // Replace optimistic material with real one
+        onMaterialAdded(response.data.material);
+      }
     } catch (err: any) {
       console.error("Error adding material:", err);
+      // On error, we could remove the optimistic material, but for now just log
       alert(err.response?.data?.message || "Failed to add material");
     } finally {
       setUploading(false);

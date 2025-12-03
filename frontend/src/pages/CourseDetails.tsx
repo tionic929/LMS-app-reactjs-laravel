@@ -11,6 +11,7 @@ import {
   acceptJoinRequest,
   rejectJoinRequest,
   deleteCourseMaterial,
+  updateCourseMaterial,
   addCourseComment,
   updateCourseComment,
   deleteCourseComment,
@@ -71,6 +72,7 @@ interface CommentItemProps {
   isInstructor: boolean;
   isAdmin: boolean;
   isReply?: boolean;
+  isNestedReply?: boolean;
   onReply: (parentId: number, content: string) => void;
   onEdit: (commentId: number, content: string) => void;
   onDelete: (commentId: number) => void;
@@ -81,6 +83,8 @@ interface CommentItemProps {
   editCommentText: string;
   setEditingCommentId: (id: number | null) => void;
   setEditCommentText: (text: string) => void;
+  visibleReplies?: Record<number, number>;
+  onLoadMoreReplies?: (commentId: number) => void;
 }
 
 const CommentItem: React.FC<CommentItemProps> = ({
@@ -91,6 +95,7 @@ const CommentItem: React.FC<CommentItemProps> = ({
   isInstructor,
   isAdmin,
   isReply = false,
+  isNestedReply = false,
   onReply,
   onEdit,
   onDelete,
@@ -101,6 +106,8 @@ const CommentItem: React.FC<CommentItemProps> = ({
   editCommentText,
   setEditingCommentId,
   setEditCommentText,
+  visibleReplies = {},
+  onLoadMoreReplies,
 }) => {
   const [showReplyForm, setShowReplyForm] = useState(false);
   const [replyContent, setReplyContent] = useState("");
@@ -176,7 +183,7 @@ const CommentItem: React.FC<CommentItemProps> = ({
   };
 
   return (
-    <div className={`${isReply ? 'ml-8 mt-4' : 'pb-4'} ${!isReply && 'border-b border-gray-200'}`}>
+    <div className={`mt-4 ${isReply && !isNestedReply ? 'ml-8' : ''} ${!isReply && 'border-b border-gray-200'}`}>
       <div className={`pb-4 ${isOwnComment ? "bg-blue-50 -mx-4 px-4 py-3 rounded-lg" : ""}`}>
         <div className="flex justify-between items-start">
           <div className="flex-1">
@@ -322,7 +329,7 @@ const CommentItem: React.FC<CommentItemProps> = ({
       {/* Render replies */}
       {comment.replies && comment.replies.length > 0 && (
         <div className="mt-4">
-          {comment.replies.map((reply) => (
+          {comment.replies.slice(0, visibleReplies[comment.id] || 1).map((reply) => (
             <CommentItem 
               key={reply.id} 
               comment={reply} 
@@ -332,6 +339,7 @@ const CommentItem: React.FC<CommentItemProps> = ({
               isInstructor={isInstructor}
               isAdmin={isAdmin}
               isReply={true}
+              isNestedReply={isReply}
               onReply={onReply}
               onEdit={onEdit}
               onDelete={onDelete}
@@ -342,8 +350,26 @@ const CommentItem: React.FC<CommentItemProps> = ({
               editCommentText={editCommentText}
               setEditingCommentId={setEditingCommentId}
               setEditCommentText={setEditCommentText}
+              visibleReplies={visibleReplies}
+              onLoadMoreReplies={onLoadMoreReplies}
             />
           ))}
+          {comment.replies && comment.replies.length > (visibleReplies[comment.id] || 1) && (
+            <div className={`mt-2 ${isReply && !isNestedReply ? 'ml-8' : ''}`}>
+              <button
+                onClick={() => {
+                  console.log('Comment ID:', comment.id);
+                  console.log('Total replies:', comment.replies?.length);
+                  console.log('Visible replies:', visibleReplies[comment.id] || 1);
+                  console.log('Remaining:', (comment.replies?.length || 0) - (visibleReplies[comment.id] || 1));
+                  onLoadMoreReplies?.(comment.id);
+                }}
+                className="text-blue-500 text-sm hover:text-blue-700 font-medium"
+              >
+                Load more replies ({(comment.replies?.length || 0) - (visibleReplies[comment.id] || 1)} remaining)
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -390,6 +416,13 @@ const CourseDetails: React.FC = () => {
   const [editCommentText, setEditCommentText] = useState("");
   const [showEditModal, setShowEditModal] = useState(false);
   const [showAddMaterialModal, setShowAddMaterialModal] = useState(false);
+  const [showEditMaterialModal, setShowEditMaterialModal] = useState(false);
+  const [editingMaterialId, setEditingMaterialId] = useState<number | null>(null);
+  const [editMaterialForm, setEditMaterialForm] = useState({
+    title: "",
+    description: "",
+    url: "",
+  });
   const [materialFilter, setMaterialFilter] = useState<
     "all" | "file" | "video" | "link"
   >("all");
@@ -419,6 +452,29 @@ const CourseDetails: React.FC = () => {
   const [comments, setComments] = useState<any[]>([]);
   const [announcements, setAnnouncements] = useState<any[]>([]);
 
+  // Pagination states
+  const [visibleComments, setVisibleComments] = useState(10);
+  const [visibleReplies, setVisibleReplies] = useState<{ [commentId: number]: number }>({});
+  const COMMENTS_PER_LOAD = 10;
+
+  // Pagination handlers
+  const handleLoadMoreComments = () => {
+    setVisibleComments(prev => prev + COMMENTS_PER_LOAD);
+  };
+
+  const handleLoadMoreReplies = (commentId: number) => {
+    console.log('Loading more replies for comment:', commentId);
+    console.log('Current visible replies:', visibleReplies[commentId] || 1);
+    setVisibleReplies(prev => {
+      const newCount = (prev[commentId] || 1) + 3;
+      console.log('New visible count will be:', newCount);
+      return {
+        ...prev,
+        [commentId]: newCount
+      };
+    });
+  };
+
   useEffect(() => {
     fetchCourseData();
   }, [id]);
@@ -444,6 +500,10 @@ const CourseDetails: React.FC = () => {
       setMaterials(data.course.materials || []);
       setComments(data.course.comments || []);
       setAnnouncements(data.course.announcements || []);
+
+      // Reset pagination when data is refreshed
+      setVisibleComments(10);
+      setVisibleReplies({});
 
       // Initialize edit form
       setEditForm({
@@ -536,6 +596,81 @@ const CourseDetails: React.FC = () => {
         }
         return comment;
       });
+  };
+
+  // Helper function for optimistic material updates
+  const addMaterialOptimistically = (materials: any[], newMaterial: any): any[] => {
+    // Check if this is replacing an optimistic material (same title and temp ID)
+    const existingIndex = materials.findIndex(m => m.id === newMaterial.id);
+    if (existingIndex >= 0) {
+      // Replace the optimistic material with real data
+      const updatedMaterials = [...materials];
+      updatedMaterials[existingIndex] = newMaterial;
+      return updatedMaterials;
+    } else {
+      // Add new material
+      return [...materials, newMaterial];
+    }
+  };
+
+  const updateMaterialInList = (materials: any[], materialId: number, updatedMaterial: any): any[] => {
+    return materials.map(material => 
+      material.id === materialId ? { ...material, ...updatedMaterial } : material
+    );
+  };
+
+  const handleMaterialAdded = (material: any) => {
+    setMaterials(prev => addMaterialOptimistically(prev, material));
+  };
+
+  const handleEditMaterial = (materialId: number) => {
+    // Prevent editing materials with temporary IDs (timestamps)
+    if (materialId > 1000000000000) { // Timestamp IDs are > 1 trillion
+      alert("Please wait for the material to finish uploading before editing.");
+      return;
+    }
+
+    const material = materials.find(m => m.id === materialId);
+    if (material) {
+      setEditingMaterialId(materialId);
+      setEditMaterialForm({
+        title: material.title,
+        description: material.description || "",
+        url: material.url || "",
+      });
+      setShowEditMaterialModal(true);
+    }
+  };
+
+  const handleUpdateMaterial = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!id || !editingMaterialId) return;
+
+    // Store original material for potential rollback
+    const originalMaterial = materials.find(m => m.id === editingMaterialId);
+
+    // Optimistic update
+    setMaterials(prev => updateMaterialInList(prev, editingMaterialId, editMaterialForm));
+    setShowEditMaterialModal(false);
+    setEditingMaterialId(null);
+    setEditMaterialForm({
+      title: "",
+      description: "",
+      url: "",
+    });
+
+    try {
+      await updateCourseMaterial(id, editingMaterialId, editMaterialForm);
+    } catch (err: any) {
+      console.error("Error updating material:", err);
+      // Revert optimistic update
+      if (originalMaterial) {
+        setMaterials(prev => updateMaterialInList(prev, editingMaterialId, originalMaterial));
+      }
+      setShowEditMaterialModal(true);
+      setEditingMaterialId(editingMaterialId);
+      alert(err.response?.data?.message || "Failed to update material");
+    }
   };
 
   const handleUpdateCourse = async (e: React.FormEvent) => {
@@ -636,14 +771,29 @@ const CourseDetails: React.FC = () => {
 
   const handleDeleteMaterial = async (materialId: number) => {
     if (!id) return;
+
+    // Prevent deleting materials with temporary IDs (timestamps)
+    if (materialId > 1000000000000) { // Timestamp IDs are > 1 trillion
+      alert("Please wait for the material to finish uploading before deleting.");
+      return;
+    }
+
     if (!confirm("Are you sure you want to delete this material?")) return;
+
+    // Store the material for potential rollback
+    const materialToDelete = materials.find(m => m.id === materialId);
+
+    // Optimistic update
+    setMaterials(prev => prev.filter(m => m.id !== materialId));
 
     try {
       await deleteCourseMaterial(id, materialId);
-      await fetchCourseData();
-      alert("Material deleted");
     } catch (err: any) {
       console.error("Error deleting material:", err);
+      // Revert optimistic update
+      if (materialToDelete) {
+        setMaterials(prev => [...prev, materialToDelete]);
+      }
       alert(err.response?.data?.message || "Failed to delete material");
     }
   };
@@ -669,6 +819,9 @@ const CourseDetails: React.FC = () => {
     // Optimistic update
     setComments(prev => [...prev, tempComment]);
     setNewComment("");
+
+    // Ensure the new comment is visible
+    setVisibleComments(prev => Math.max(prev, comments.length + 1));
 
     try {
       const response = await addCourseComment(id, newComment);
@@ -705,6 +858,12 @@ const CourseDetails: React.FC = () => {
 
     // Optimistic update
     setComments(prev => addCommentToList(prev, tempReply));
+    
+    // Update visibleReplies to show the new reply
+    setVisibleReplies(prev => ({
+      ...prev,
+      [parentCommentId]: (prev[parentCommentId] || 1) + 1
+    }));
 
     try {
       const response = await addCourseComment(id, content, parentCommentId);
@@ -1277,9 +1436,16 @@ const CourseDetails: React.FC = () => {
                             )}
 
                             <div>
-                              <h4 className="font-medium text-gray-900">
-                                {material.title}
-                              </h4>
+                              <div className="flex items-center gap-2">
+                                <h4 className="font-medium text-gray-900">
+                                  {material.title}
+                                </h4>
+                                {material.id > 1000000000000 && (
+                                  <span className="px-2 py-0.5 bg-yellow-100 text-yellow-800 text-xs rounded-full">
+                                    Uploading...
+                                  </span>
+                                )}
+                              </div>
                               <p className="text-xs text-gray-500 mt-1">
                                 {material.type === "file" &&
                                   material.file_type?.toUpperCase()}
@@ -1295,12 +1461,22 @@ const CourseDetails: React.FC = () => {
                           </div>
 
                           {isInstructor && (
-                            <button
-                              onClick={() => handleDeleteMaterial(material.id)}
-                              className="text-red-500 hover:text-red-700"
-                            >
-                              <RiDeleteBin6Line className="h-5 w-5" />
-                            </button>
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => handleEditMaterial(material.id)}
+                                className="text-blue-500 hover:text-blue-700"
+                                title="Edit material"
+                              >
+                                <LiaEditSolid className="h-5 w-5" />
+                              </button>
+                              <button
+                                onClick={() => handleDeleteMaterial(material.id)}
+                                className="text-red-500 hover:text-red-700"
+                                title="Delete material"
+                              >
+                                <RiDeleteBin6Line className="h-5 w-5" />
+                              </button>
+                            </div>
                           )}
                         </div>
 
@@ -1336,7 +1512,7 @@ const CourseDetails: React.FC = () => {
             {activeTab === "comments" && (
               <div>
                 <div className="space-y-6">
-                  {comments.map((comment) => (
+                  {comments.slice(0, visibleComments).map((comment) => (
                     <CommentItem 
                       key={comment.id} 
                       comment={comment} 
@@ -1345,6 +1521,8 @@ const CourseDetails: React.FC = () => {
                       user={user}
                       isInstructor={isInstructor}
                       isAdmin={isAdmin}
+                      isReply={false}
+                      isNestedReply={false}
                       onReply={handleAddReply}
                       onEdit={handleUpdateCourseComment}
                       onDelete={handleDeleteCourseComment}
@@ -1355,10 +1533,23 @@ const CourseDetails: React.FC = () => {
                       editCommentText={editCommentText}
                       setEditingCommentId={setEditingCommentId}
                       setEditCommentText={setEditCommentText}
-                      
+                      visibleReplies={visibleReplies}
+                      onLoadMoreReplies={handleLoadMoreReplies}
                     />
                   ))}
                 </div>
+
+                {/* Load More Comments Button */}
+                {comments.length > visibleComments && (
+                  <div className="mt-6 text-center">
+                    <button
+                      onClick={handleLoadMoreComments}
+                      className="px-6 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 font-medium"
+                    >
+                      Load More Comments ({comments.length - visibleComments} remaining)
+                    </button>
+                  </div>
+                )}
 
                 {/* Add Comment Form */}
                 <div className="mt-6 border-t pt-6">
@@ -1561,8 +1752,87 @@ const CourseDetails: React.FC = () => {
         <AddMaterialModal
           courseId={id!}
           onClose={() => setShowAddMaterialModal(false)}
-          onSuccess={fetchCourseData}
+          onMaterialAdded={handleMaterialAdded}
         />
+      )}
+
+      {/* Edit Material Modal */}
+      {showEditMaterialModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md">
+            <h2 className="text-xl font-bold mb-4">Edit Material</h2>
+            <form onSubmit={handleUpdateMaterial}>
+              <div className="mb-4">
+                <label className="block text-sm font-medium mb-1">
+                  Title
+                </label>
+                <input
+                  type="text"
+                  value={editMaterialForm.title}
+                  onChange={(e) =>
+                    setEditMaterialForm({ ...editMaterialForm, title: e.target.value })
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-black"
+                  required
+                />
+              </div>
+              <div className="mb-4">
+                <label className="block text-sm font-medium mb-1">
+                  Description (Optional)
+                </label>
+                <textarea
+                  value={editMaterialForm.description}
+                  onChange={(e) =>
+                    setEditMaterialForm({ ...editMaterialForm, description: e.target.value })
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-black"
+                  rows={3}
+                />
+              </div>
+              {materials.find(m => m.id === editingMaterialId)?.type !== "file" && (
+                <div className="mb-4">
+                  <label className="block text-sm font-medium mb-1">
+                    URL
+                  </label>
+                  <input
+                    type="url"
+                    value={editMaterialForm.url}
+                    onChange={(e) =>
+                      setEditMaterialForm({ ...editMaterialForm, url: e.target.value })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-black"
+                    required
+                  />
+                </div>
+              )}
+              <div className="flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowEditMaterialModal(false);
+                    setEditingMaterialId(null);
+                    setEditMaterialForm({
+                      title: "",
+                      description: "",
+                      url: "",
+                    });
+                  }}
+                  className="px-4 py-2 bg-gray-500 text-white hover:bg-gray-600 rounded-md inline-flex items-center gap-2"
+                >
+                  <LiaTimesSolid className="h-4 w-4" />
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 inline-flex items-center gap-2"
+                >
+                  <RiCheckLine className="h-4 w-4" />
+                  Update Material
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
     </main>
   );
