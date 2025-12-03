@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useAuth } from "../contexts/AuthContext";
-import { Navigate } from "react-router-dom";
 import { MdDelete } from "react-icons/md";
 import { IoMdInformationCircle, IoMdWarning, IoMdCloseCircle, IoMdConstruct } from "react-icons/io";
 import { IoIosAddCircle } from "react-icons/io";
@@ -188,7 +187,7 @@ const AnnouncementsPage: React.FC = () => {
         <h1 className="text-3xl font-bold text-gray-900">
           Announcements
         </h1>
-        {user.role === "admin" && (
+        {user?.role === "admin" && (
           <button
             onClick={() => setIsAddOpen(true)}
             className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow hover:bg-indigo-700"
@@ -298,7 +297,7 @@ const AnnouncementsPage: React.FC = () => {
                           <span className="text-xs text-gray-500">Posted on {announcement.date}</span>
                         )}
                       </div>
-                      {user.role === 'admin' && (
+                      {user?.role === 'admin' && (
                         <div className='flex-1 align-right flex justify-end gap-4'>
                           <button
                             onClick={(e) => { e.stopPropagation(); openEdit(announcement); }}
