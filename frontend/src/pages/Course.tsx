@@ -3,8 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { getCourses, createCourse } from "../api/courses";
 import { HiOutlineBookOpen, HiOutlinePlus } from "react-icons/hi";
-import { RiCheckLine } from "react-icons/ri";
-import { LiaTimesSolid } from "react-icons/lia";
+import AddCourseModal from "../components/modals/AddCourseModal";
+import type { AddCourseForm } from "../components/modals/AddCourseModal";
 import { PiUsersThreeBold } from "react-icons/pi";
 import { MdLockOutline, MdOutlinePublic, MdArrowBack } from "react-icons/md";
 
@@ -29,10 +29,10 @@ const Course: React.FC = () => {
   const { user } = useAuth();
 
   // Form state
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<AddCourseForm>({
     title: "",
     content: "",
-    privacy: "public" as "public" | "private",
+    privacy: "public",
     capacity: 50,
   });
 
@@ -123,95 +123,13 @@ const Course: React.FC = () => {
           </div>
         </div>
         {/* Add New Course Modal */}
-        {showModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-6 w-full max-w-md">
-              <h2 className="text-xl font-bold mb-4">Add New Course</h2>
-              <form onSubmit={handleCreateCourse}>
-                <div className="mb-4">
-                  <label className="block text-sm font-medium mb-1">
-                    Title
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.title}
-                    onChange={(e) =>
-                      setFormData({ ...formData, title: e.target.value })
-                    }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                    required
-                  />
-                </div>
-                <div className="mb-4">
-                  <label className="block text-sm font-medium mb-1">
-                    Description
-                  </label>
-                  <textarea
-                    value={formData.content}
-                    onChange={(e) =>
-                      setFormData({ ...formData, content: e.target.value })
-                    }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                    rows={3}
-                    required
-                  />
-                </div>
-                <div className="mb-4">
-                  <label className="block text-sm font-medium mb-1">
-                    Privacy
-                  </label>
-                  <select
-                    value={formData.privacy}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        privacy: e.target.value as "public" | "private",
-                      })
-                    }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                  >
-                    <option value="public">Public</option>
-                    <option value="private">Private</option>
-                  </select>
-                </div>
-                <div className="mb-4">
-                  <label className="block text-sm font-medium mb-1">
-                    Capacity
-                  </label>
-                  <input
-                    type="number"
-                    value={formData.capacity}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        capacity: parseInt(e.target.value),
-                      })
-                    }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                    min={1}
-                  />
-                </div>
-                <div className="flex justify-end gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setShowModal(false)}
-                    className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 inline-flex items-center gap-2"
-                  >
-                    <LiaTimesSolid className="w-5 h-5" />
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 inline-flex items-center gap-2"
-                  >
-                    <RiCheckLine className="w-5 h-5" />
-                    Add Course
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        )}
+        <AddCourseModal
+          open={showModal}
+          form={formData}
+          onChange={(next) => setFormData(next)}
+          onClose={() => setShowModal(false)}
+          onSubmit={handleCreateCourse}
+        />
 
         {loading ? (
           <div className="text-center py-12">

@@ -1,3 +1,4 @@
+import EditCourseModal from "../components/modals/EditCourseModal";
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
@@ -182,13 +183,16 @@ const CommentItem: React.FC<CommentItemProps> = ({
                 <div className="flex gap-2 mt-2">
                   <button
                     onClick={() => onEdit(comment.id, editCommentText)}
-                    className="px-3 py-1 bg-blue-500 text-white rounded-md"
+                    className="px-3 py-1 bg-blue-500 text-white text-sm rounded-md hover:bg-blue-600"
                   >
                     Save
                   </button>
                   <button
-                    onClick={() => setEditingCommentId(null)}
-                    className="px-3 py-1 bg-gray-500 text-white rounded-md"
+                    onClick={() => {
+                      setEditingCommentId(null);
+                      setEditCommentText("");
+                    }}
+                    className="px-3 py-1 bg-gray-200 text-gray-700 text-sm rounded-md hover:bg-gray-300"
                   >
                     Cancel
                   </button>
@@ -197,8 +201,7 @@ const CommentItem: React.FC<CommentItemProps> = ({
             ) : (
               <p className="text-gray-700">{comment.content}</p>
             )}
-            
-            {/* Action buttons */}
+
             <div className="mt-2 flex items-center gap-2">
               <button 
                 onClick={() => initializeReplyForm()}
@@ -206,7 +209,6 @@ const CommentItem: React.FC<CommentItemProps> = ({
               >
                 Reply
               </button>
-              
               {comment.user_id === user?.id && editingCommentId !== comment.id && (
                 <>
                   <button
@@ -214,23 +216,20 @@ const CommentItem: React.FC<CommentItemProps> = ({
                       setEditingCommentId(comment.id);
                       setEditCommentText(comment.content);
                     }}
-                    className="px-3 py-1 bg-gray-500 text-white text-sm rounded-md hover:bg-gray-600 font-medium inline-flex items-center gap-1"
+                    className="text-gray-600 text-sm hover:text-gray-800"
                   >
-                    <RiDeleteBin6Line className="h-4 w-4" />
                     Edit
                   </button>
                   <button
                     onClick={() => onDelete(comment.id)}
-                    className="px-3 py-1 bg-red-500 text-white text-sm rounded-md hover:bg-red-600 font-medium inline-flex items-center gap-1"
+                    className="text-red-500 text-sm hover:text-red-700"
                   >
-                    <RiDeleteBin6Line className="h-4 w-4" />
                     Delete
                   </button>
                 </>
               )}
             </div>
-            
-            {/* Reply form */}
+
             {showReplyForm && (
               <div className="mt-3">
                 <textarea
@@ -241,10 +240,19 @@ const CommentItem: React.FC<CommentItemProps> = ({
                   rows={2}
                 />
                 <div className="flex gap-2 mt-2">
-                  <button onClick={handleReplySubmit} className="px-3 py-1 bg-blue-500 text-white rounded-md">
-                    Reply
+                  <button
+                    onClick={handleReplySubmit}
+                    className="px-3 py-1 bg-blue-500 text-white text-sm rounded-md hover:bg-blue-600"
+                  >
+                    Post Reply
                   </button>
-                  <button onClick={() => setShowReplyForm(false)} className="px-3 py-1 bg-gray-500 text-white rounded-md">
+                  <button
+                    onClick={() => {
+                      setShowReplyForm(false);
+                      setReplyContent("");
+                    }}
+                    className="px-3 py-1 bg-gray-200 text-gray-700 text-sm rounded-md hover:bg-gray-300"
+                  >
                     Cancel
                   </button>
                 </div>
@@ -253,8 +261,6 @@ const CommentItem: React.FC<CommentItemProps> = ({
           </div>
         </div>
       </div>
-      
-      {/* Render replies */}
       {comment.replies && comment.replies.length > 0 && (
         <div className="mt-4">
           {comment.replies.map((reply) => (
@@ -1254,94 +1260,13 @@ const CourseDetails: React.FC = () => {
       </div>
 
       {/* Edit Course Modal */}
-      {showEditModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md">
-            <h2 className="text-xl font-bold mb-4">Edit Course</h2>
-            <form onSubmit={handleUpdateCourse}>
-              <div className="mb-4">
-                <label className="block text-sm font-medium mb-1">
-                  Course Name
-                </label>
-                <input
-                  type="text"
-                  value={editForm.title}
-                  onChange={(e) =>
-                    setEditForm({ ...editForm, title: e.target.value })
-                  }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                  required
-                />
-              </div>
-              <div className="mb-4">
-                <label className="block text-sm font-medium mb-1">
-                  Description
-                </label>
-                <textarea
-                  value={editForm.content}
-                  onChange={(e) =>
-                    setEditForm({ ...editForm, content: e.target.value })
-                  }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                  rows={3}
-                  required
-                />
-              </div>
-              <div className="mb-4">
-                <label className="block text-sm font-medium mb-1">
-                  Privacy
-                </label>
-                <select
-                  value={editForm.privacy}
-                  onChange={(e) =>
-                    setEditForm({
-                      ...editForm,
-                      privacy: e.target.value as "public" | "private",
-                    })
-                  }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                >
-                  <option value="public">Public</option>
-                  <option value="private">Private</option>
-                </select>
-              </div>
-              <div className="mb-4">
-                <label className="block text-sm font-medium mb-1">
-                  Learners Limit
-                </label>
-                <input
-                  type="number"
-                  value={editForm.capacity}
-                  onChange={(e) =>
-                    setEditForm({
-                      ...editForm,
-                      capacity: parseInt(e.target.value),
-                    })
-                  }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                />
-              </div>
-              <div className="flex justify-end gap-2">
-                <button
-                  type="button"
-                  onClick={() => setShowEditModal(false)}
-                  className="px-4 py-2 bg-red-500 text-white hover:bg-red-600 rounded-md inline-flex items-center gap-2"
-                >
-                  <LiaTimesSolid className="h-4 w-4" />
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 inline-flex items-center gap-2"
-                >
-                  <RiCheckLine className="h-4 w-4" />
-                  Update Course
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      <EditCourseModal
+        open={showEditModal}
+        form={editForm}
+        onChange={(next) => setEditForm(next)}
+        onClose={() => setShowEditModal(false)}
+        onSubmit={handleUpdateCourse}
+      />
 
       {/* Add Material Modal */}
       {showAddMaterialModal && (
