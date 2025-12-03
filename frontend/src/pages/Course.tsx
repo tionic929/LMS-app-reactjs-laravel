@@ -109,8 +109,8 @@ const Course: React.FC = () => {
                 key={filter.value}
                 onClick={() => setPrivacyFilter(filter.value)}
                 className={`px-4 py-2 rounded-full text-xs font-semibold transition-colors border ${privacyFilter === filter.value
-                    ? "bg-indigo-600 text-white border-indigo-600 shadow"
-                    : "bg-white/70 text-gray-700 border-indigo-100 hover:bg-white"
+                  ? "bg-indigo-600 text-white border-indigo-600 shadow"
+                  : "bg-white/70 text-gray-700 border-indigo-100 hover:bg-white"
                   }`}
               >
                 {filter.label}
@@ -136,126 +136,125 @@ const Course: React.FC = () => {
           )}
         </div>
       </div>
-        {/* Add New Course Modal (standardized) */}
-        <AddCourseModal show={showModal} onClose={() => setShowModal(false)} onSubmit={handleAddCourse} />
+      {/* Add New Course Modal (standardized) */}
+      <AddCourseModal show={showModal} onClose={() => setShowModal(false)} onSubmit={handleAddCourse} />
 
-        {loading ? (
-          <div className="text-center py-12 text-gray-500 text-lg">
-            <p className="text-gray-600">Loading courses...</p>
-          </div>
-        ) : error ? (
-          <div className="text-center py-12">
-            <p className="text-red-600">{error}</p>
-            <button
-              onClick={fetchCourses}
-              className="mt-4 text-blue-700 hover:text-blue-800 text-sm font-medium"
-            >
-              Try again
-            </button>
-          </div>
-        ) : (
-          <>
-            <div className="mb-4">
-              <p className="text-sm text-gray-600">
-                Showing {filteredCourses.length} of {courses.length} courses
-                {privacyFilter !== "all" && ` (${privacyFilter})`}
-                {query && ` (search: "${query}")`}
-              </p>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredCourses.length === 0 ? (
-            // Empty state when no results
-            <div className="col-span-full text-center py-12 bg-white rounded-xl shadow-lg border border-gray-100">
-              <div className="text-gray-400 mb-4">
-                <MdArrowBack className="mx-auto h-12 w-12" />
-              </div>
-              <h3 className="text-lg font-medium text-gray-900 mb-2">
-                No courses found
-              </h3>
-              <p className="text-gray-500">
-                {query
-                  ? `No courses match "${query}"`
-                  : `No ${
-                      privacyFilter !== "all" ? privacyFilter : ""
-                    } courses available`}
-              </p>
-              {(query || privacyFilter !== "all") && (
-                <button
-                  onClick={() => {
-                    setQuery("");
-                    setPrivacyFilter("all");
-                  }}
-                  className="mt-4 text-blue-700 hover:text-blue-800 text-sm font-medium"
-                >
-                  Clear filters
-                </button>
-              )}
-            </div>
-          ) : (
-            // Render filtered courses
-            filteredCourses.map((course) => {
-              const styles = {
-                headerColor: "bg-blue-700/70",
-                borderColor: "border-blue-900/70",
-                badgeColor: "bg-blue-800/70",
-                badgeTextColor: "text-white",
-              };
-
-              return (
-                <div
-                  key={course.id}
-                  className={`cursor-pointer group rounded-xl bg-white border shadow-sm transition hover:shadow-md ${styles.borderColor}`}
-                  onClick={() => navigate(`/courses/${course.id}`)}
-                >
-                  {/* Main card content */}
-                  <div className="p-5">
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="min-w-0">
-                        <h2 className="text-base font-semibold text-gray-900 truncate">{course.title}</h2>
-                        <p className="mt-2 text-sm text-gray-700 line-clamp-3 whitespace-pre-wrap break-words">
-                          {course.content}
-                        </p>
-                      </div>
-                      <div className="shrink-0">
-                        <HiOutlineBookOpen className="h-8 w-8 text-indigo-600" />
-                      </div>
-                    </div>
-                    <div className="mt-3 flex items-center gap-2">
-                      <span className={`px-2 py-1 rounded-full text-xs font-semibold ${styles.badgeColor} ${styles.badgeTextColor} inline-flex items-center gap-1`}>
-                        {course.privacy === "public" ? (
-                          <>
-                            <MdOutlinePublic className="h-3 w-3" /> Public
-                          </>
-                        ) : (
-                          <>
-                            <MdLockOutline className="h-3 w-3" /> Private
-                          </>
-                        )}
-                      </span>
-                    </div>
-                  </div>
-                  <footer className="px-5 py-3 border-t bg-gray-50/60 flex items-center justify-between gap-2">
-                    <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div
-                        className="bg-indigo-600 h-2 rounded-full"
-                        style={{ width: `${(course.current_enrolled / course.capacity) * 100}%` }}
-                      />
-                    </div>
-                    <div className="text-sm text-gray-500 shrink-0 flex items-center gap-2">
-                      <span>by {course.instructor_name}</span>
-                      <span className="flex items-center gap-1">
-                        <PiUsersThreeBold className="h-4 w-4" />
-                        {course.current_enrolled} / {course.capacity}
-                      </span>
-                    </div>
-                  </footer>
-                </div>
-              );
-            })
-          )}
+      {loading ? (
+        <div className="text-center py-12 text-gray-500 text-lg">
+          <p className="text-gray-600">Loading courses...</p>
         </div>
-          </>
-        )}
+      ) : error ? (
+        <div className="text-center py-12">
+          <p className="text-red-600">{error}</p>
+          <button
+            onClick={fetchCourses}
+            className="mt-4 text-blue-700 hover:text-blue-800 text-sm font-medium"
+          >
+            Try again
+          </button>
+        </div>
+      ) : (
+        <>
+          <div className="mb-4">
+            <p className="text-sm text-gray-600">
+              Showing {filteredCourses.length} of {courses.length} courses
+              {privacyFilter !== "all" && ` (${privacyFilter})`}
+              {query && ` (search: "${query}")`}
+            </p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredCourses.length === 0 ? (
+              // Empty state when no results
+              <div className="col-span-full text-center py-12 bg-white rounded-xl shadow-lg border border-gray-100">
+                <div className="text-gray-400 mb-4">
+                  <MdArrowBack className="mx-auto h-12 w-12" />
+                </div>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">
+                  No courses found
+                </h3>
+                <p className="text-gray-500">
+                  {query
+                    ? `No courses match "${query}"`
+                    : `No ${privacyFilter !== "all" ? privacyFilter : ""
+                    } courses available`}
+                </p>
+                {(query || privacyFilter !== "all") && (
+                  <button
+                    onClick={() => {
+                      setQuery("");
+                      setPrivacyFilter("all");
+                    }}
+                    className="mt-4 text-blue-700 hover:text-blue-800 text-sm font-medium"
+                  >
+                    Clear filters
+                  </button>
+                )}
+              </div>
+            ) : (
+              // Render filtered courses
+              filteredCourses.map((course) => {
+                const styles = {
+                  headerColor: "bg-blue-700/70",
+                  borderColor: "border-blue-900/70",
+                  badgeColor: "bg-blue-800/70",
+                  badgeTextColor: "text-white",
+                };
+
+                return (
+                  <div
+                    key={course.id}
+                    className={`cursor-pointer group rounded-xl bg-white border shadow-sm transition hover:shadow-md ${styles.borderColor}`}
+                    onClick={() => navigate(`/courses/${course.id}`)}
+                  >
+                    {/* Main card content */}
+                    <div className="p-5">
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="min-w-0">
+                          <h2 className="text-base font-semibold text-gray-900 truncate">{course.title}</h2>
+                          <p className="mt-2 text-sm text-gray-700 line-clamp-3 whitespace-pre-wrap break-words">
+                            {course.content}
+                          </p>
+                        </div>
+                        <div className="shrink-0">
+                          <HiOutlineBookOpen className="h-8 w-8 text-indigo-600" />
+                        </div>
+                      </div>
+                      <div className="mt-3 flex items-center gap-2">
+                        <span className={`px-2 py-1 rounded-full text-xs font-semibold ${styles.badgeColor} ${styles.badgeTextColor} inline-flex items-center gap-1`}>
+                          {course.privacy === "public" ? (
+                            <>
+                              <MdOutlinePublic className="h-3 w-3" /> Public
+                            </>
+                          ) : (
+                            <>
+                              <MdLockOutline className="h-3 w-3" /> Private
+                            </>
+                          )}
+                        </span>
+                      </div>
+                    </div>
+                    <footer className="px-5 py-3 border-t bg-gray-50/60 flex items-center justify-between gap-2">
+                      <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div
+                          className="bg-indigo-600 h-2 rounded-full"
+                          style={{ width: `${(course.current_enrolled / course.capacity) * 100}%` }}
+                        />
+                      </div>
+                      <div className="text-sm text-gray-500 shrink-0 flex items-center gap-2">
+                        <span>by {course.instructor_name}</span>
+                        <span className="flex items-center gap-1">
+                          <PiUsersThreeBold className="h-4 w-4" />
+                          {course.current_enrolled} / {course.capacity}
+                        </span>
+                      </div>
+                    </footer>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </>
+      )}
     </main>
   );
 };
