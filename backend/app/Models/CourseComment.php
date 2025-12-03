@@ -14,6 +14,7 @@ class CourseComment extends Model
         'course_id',
         'user_id',
         'content',
+        'parent_comment_id',
     ];
 
     public function course(): BelongsTo
@@ -24,5 +25,15 @@ class CourseComment extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function replies()
+    {
+        return $this->hasMany(CourseComment::class, 'parent_comment_id')->with(['user', 'replies']);
+    }
+
+    public function parent()
+    {
+        return $this->belongsTo(CourseComment::class, 'parent_comment_id');
     }
 }

@@ -10,7 +10,6 @@ import {
   removeLearner,
   acceptJoinRequest,
   rejectJoinRequest,
-  addCourseMaterial,
   deleteCourseMaterial,
   addCourseComment,
   updateCourseComment,
@@ -38,6 +37,250 @@ import { FaLink } from "react-icons/fa6";
 import { VscRequestChanges } from "react-icons/vsc";
 import { BsSend } from "react-icons/bs";
 import AddMaterialModal from "../components/modals/courses/AddMaterialModal";
+import {formatDistanceToNow} from 'date-fns';
+
+interface Comment {
+  id: number;
+  content: string;
+  created_at: string;
+  user_id: number;
+  parent_comment_id?: number;
+  user?: {
+    id: number;
+    name: string;
+  };
+  replies?: Comment[];
+}
+
+interface CommentItemProps {
+  comment: Comment;
+  courseId: string;
+  course: Course;
+  user: any;
+  isInstructor: boolean;
+  isAdmin: boolean;
+  isReply?: boolean;
+  onReply: (parentId: number, content: string) => void;
+  onEdit: (commentId: number, content: string) => void;
+  onDelete: (commentId: number) => void;
+  editingCommentId: number | null;
+  editCommentText: string;
+  setEditingCommentId: (id: number | null) => void;
+  setEditCommentText: (text: string) => void;
+}
+
+const CommentItem: React.FC<CommentItemProps> = ({
+  comment,
+  courseId,
+  course,
+  user,
+  isInstructor,
+  isAdmin,
+  isReply = false,
+  onReply,
+  onEdit,
+  onDelete,
+  editingCommentId,
+  editCommentText,
+  setEditingCommentId,
+  setEditCommentText,
+}) => {
+  const [showReplyForm, setShowReplyForm] = useState(false);
+  const [replyContent, setReplyContent] = useState("");
+
+  const isOwnComment = comment.user?.id === user?.id;
+
+  // Find the parent comment user for context in replies to replies
+  const getReplyContext = () => {
+    if (!isReply || !comment.parent_comment_id) return null;
+    
+    // Find the parent comment in the course comments
+    const findParentComment = (comments: Comment[]): Comment | null => {
+      for (const c of comments) {
+        if (c.id === comment.parent_comment_id) return c;
+        if (c.replies) {
+          const found = findParentComment(c.replies);
+          if (found) return found;
+        }
+      }
+      return null;
+    };
+    
+    const parentComment = findParentComment(course.comments || []);
+    return parentComment?.user?.name || null;
+  };
+
+  const replyContext = getReplyContext();
+
+  const handleReplySubmit = () => {
+    if (replyContent.trim()) {
+      onReply(comment.id, replyContent);
+      setReplyContent("");
+      setShowReplyForm(false);
+    }
+  };
+
+  // Initialize reply content with @mention for replies to replies
+  const initializeReplyForm = () => {
+    if (isReply && comment.user?.name) {
+      setReplyContent(`@${comment.user.name} `);
+    } else {
+      setReplyContent("");
+    }
+    setShowReplyForm(true);
+  };
+
+  return (
+    <div className={`${isReply ? 'ml-8 mt-4' : 'pb-4'} ${!isReply && 'border-b border-gray-200'}`}>
+      <div className={`pb-4 ${isOwnComment ? "bg-blue-50 -mx-4 px-4 py-3 rounded-lg" : ""}`}>
+        <div className="flex justify-between items-start">
+          <div className="flex-1">
+            <div className="flex items-center gap-2 mb-2">
+              <span
+                className={`font-medium ${
+                  isInstructor
+                    ? "text-blue-600"
+                    : isOwnComment
+                    ? "text-green-600"
+                    : "text-gray-900"
+                }`}
+              >
+                {comment.user?.name || "Unknown User"}
+              </span>
+
+              {isOwnComment && (
+                <span className="px-2 py-0.5 bg-green-100 text-green-700 text-xs rounded-full font-medium">
+                  You
+                </span>
+              )}
+
+              {comment.user?.id === course?.instructor_id && (
+                <span className="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs rounded-full">
+                  Instructor
+                </span>
+              )}
+
+              {replyContext && (
+                <span className="text-xs text-gray-600 italic">
+                  replying to @{replyContext}
+                </span>
+              )}
+
+              <span className="text-xs text-gray-500">
+                {formatDistanceToNow(new Date(comment.created_at), { addSuffix: true })}
+              </span>
+            </div>
+            
+            {editingCommentId === comment.id ? (
+              <div className="mt-2">
+                <textarea
+                  value={editCommentText}
+                  onChange={(e) => setEditCommentText(e.target.value)}
+                  className="w-full px-3 py-2 border rounded-md text-black"
+                  rows={3}
+                />
+                <div className="flex gap-2 mt-2">
+                  <button
+                    onClick={() => onEdit(comment.id, editCommentText)}
+                    className="px-3 py-1 bg-blue-500 text-white rounded-md"
+                  >
+                    Save
+                  </button>
+                  <button
+                    onClick={() => setEditingCommentId(null)}
+                    className="px-3 py-1 bg-gray-500 text-white rounded-md"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <p className="text-gray-700">{comment.content}</p>
+            )}
+            
+            {/* Action buttons */}
+            <div className="mt-2 flex items-center gap-2">
+              <button 
+                onClick={() => initializeReplyForm()}
+                className="text-blue-500 text-sm hover:text-blue-700"
+              >
+                Reply
+              </button>
+              
+              {comment.user_id === user?.id && editingCommentId !== comment.id && (
+                <>
+                  <button
+                    onClick={() => {
+                      setEditingCommentId(comment.id);
+                      setEditCommentText(comment.content);
+                    }}
+                    className="px-3 py-1 bg-gray-500 text-white text-sm rounded-md hover:bg-gray-600 font-medium inline-flex items-center gap-1"
+                  >
+                    <RiDeleteBin6Line className="h-4 w-4" />
+                    Edit
+                  </button>
+                  <button
+                    onClick={() => onDelete(comment.id)}
+                    className="px-3 py-1 bg-red-500 text-white text-sm rounded-md hover:bg-red-600 font-medium inline-flex items-center gap-1"
+                  >
+                    <RiDeleteBin6Line className="h-4 w-4" />
+                    Delete
+                  </button>
+                </>
+              )}
+            </div>
+            
+            {/* Reply form */}
+            {showReplyForm && (
+              <div className="mt-3">
+                <textarea
+                  value={replyContent}
+                  onChange={(e) => setReplyContent(e.target.value)}
+                  placeholder={isReply ? `Reply to @${comment.user?.name}...` : "Write a reply..."}
+                  className="w-full px-3 py-2 border rounded-md text-black"
+                  rows={2}
+                />
+                <div className="flex gap-2 mt-2">
+                  <button onClick={handleReplySubmit} className="px-3 py-1 bg-blue-500 text-white rounded-md">
+                    Reply
+                  </button>
+                  <button onClick={() => setShowReplyForm(false)} className="px-3 py-1 bg-gray-500 text-white rounded-md">
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+      
+      {/* Render replies */}
+      {comment.replies && comment.replies.length > 0 && (
+        <div className="mt-4">
+          {comment.replies.map((reply) => (
+            <CommentItem 
+              key={reply.id} 
+              comment={reply} 
+              courseId={courseId}
+              course={course}
+              user={user}
+              isInstructor={isInstructor}
+              isAdmin={isAdmin}
+              isReply={true}
+              onReply={onReply}
+              onEdit={onEdit}
+              onDelete={onDelete}
+              editingCommentId={editingCommentId}
+              editCommentText={editCommentText}
+              setEditingCommentId={setEditingCommentId}
+              setEditCommentText={setEditCommentText}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
 
 interface Course {
   id: number;
@@ -270,6 +513,19 @@ const CourseDetails: React.FC = () => {
     } catch (err: any) {
       console.error("Error adding comment:", err);
       alert(err.response?.data?.message || "Failed to post comment");
+    }
+  };
+
+  const handleAddReply = async (parentCommentId: number, content: string) => {
+    if (!id || !content.trim()) return;
+
+    try {
+      await addCourseComment(id, content, parentCommentId);
+      await fetchCourseData();
+      alert("Reply posted!");
+    } catch (err: any) {
+      console.error("Error adding reply:", err);
+      alert(err.response?.data?.message || "Failed to post reply");
     }
   };
 
@@ -871,116 +1127,24 @@ const CourseDetails: React.FC = () => {
             {activeTab === "comments" && (
               <div>
                 <div className="space-y-6">
-                  {comments.map((comment) => {
-                    const isOwnComment = comment.user?.id === user?.id;
-
-                    return (
-                      <div
-                        key={comment.id}
-                        className={`pb-4 ${
-                          isOwnComment
-                            ? "bg-blue-50 -mx-4 px-4 py-3 rounded-lg"
-                            : "border-b border-gray-200"
-                        }`}
-                      >
-                        <div className="flex justify-between items-start">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-2">
-                              <span
-                                className={`font-medium ${
-                                  isInstructor
-                                    ? "text-blue-600"
-                                    : isOwnComment
-                                    ? "text-green-600"
-                                    : "text-gray-900"
-                                }`}
-                              >
-                                {comment.user?.name || "Unknown User"}
-                              </span>
-
-                              {isOwnComment && (
-                                <span className="px-2 py-0.5 bg-green-100 text-green-700 text-xs rounded-full font-medium">
-                                  You
-                                </span>
-                              )}
-
-                              {comment.user?.id === course?.instructor_id && (
-                                <span className="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs rounded-full">
-                                  Instructor
-                                </span>
-                              )}
-
-                              <span className="text-xs text-gray-500">
-                                {new Date(
-                                  comment.created_at
-                                ).toLocaleDateString()}
-                              </span>
-                            </div>
-                            {editingCommentId === comment.id ? (
-                              <div className="mt-2">
-                                <textarea
-                                  value={editCommentText}
-                                  onChange={(e) =>
-                                    setEditCommentText(e.target.value)
-                                  }
-                                  className="w-full px-3 py-2 border rounded-md text-black"
-                                  rows={3}
-                                />
-                                <div className="flex gap-2 mt-2">
-                                  <button
-                                    onClick={() =>
-                                      handleUpdateCourseComment(
-                                        comment.id,
-                                        editCommentText
-                                      )
-                                    }
-                                    className="px-3 py-1 bg-blue-500 text-white rounded-md"
-                                  >
-                                    Save
-                                  </button>
-                                  <button
-                                    onClick={() => setEditingCommentId(null)}
-                                    className="px-3 py-1 bg-gray-500 text-white rounded-md"
-                                  >
-                                    Cancel
-                                  </button>
-                                </div>
-                              </div>
-                            ) : (
-                              <p className="text-gray-700">{comment.content}</p>
-                            )}
-                            {comment.user_id === user?.id ? (
-                              <div className="mt-2">
-                                {editingCommentId !== comment.id && (
-                                <>
-                                  <button
-                                    onClick={() => {
-                                      setEditingCommentId(comment.id);
-                                      setEditCommentText(comment.content);
-                                    }}
-                                    className="px-3 py-1 bg-gray-500 text-white text-sm rounded-md hover:bg-gray-600 font-medium inline-flex items-center gap-1"
-                                  >
-                                    <RiDeleteBin6Line className="h-4 w-4" />
-                                    Update
-                                  </button>
-                                  <button
-                                    onClick={() =>
-                                      handleDeleteCourseComment(comment.id)
-                                    }
-                                    className="px-3 py-1 bg-red-500 text-white text-sm rounded-md hover:bg-red-600 font-medium inline-flex items-center gap-1"
-                                  >
-                                    <RiDeleteBin6Line className="h-4 w-4" />
-                                    Delete
-                                  </button>
-                                </>
-                                )}
-                              </div>
-                            ) : null}
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
+                  {comments.map((comment) => (
+                    <CommentItem 
+                      key={comment.id} 
+                      comment={comment} 
+                      courseId={id!} 
+                      course={course!}
+                      user={user}
+                      isInstructor={isInstructor}
+                      isAdmin={isAdmin}
+                      onReply={handleAddReply}
+                      onEdit={handleUpdateCourseComment}
+                      onDelete={handleDeleteCourseComment}
+                      editingCommentId={editingCommentId}
+                      editCommentText={editCommentText}
+                      setEditingCommentId={setEditingCommentId}
+                      setEditCommentText={setEditCommentText}
+                    />
+                  ))}
                 </div>
 
                 {/* Add Comment Form */}

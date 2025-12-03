@@ -61,7 +61,11 @@ class CourseController extends Controller
             'activeLearners',
             'joinRequests.user',
             'materials',
-            'comments.user',
+            'comments' => function ($query) {
+                $query->whereNull('parent_comment_id')
+                      ->with(['user', 'replies'])
+                      ->orderBy('created_at', 'desc');
+            },
             'announcements'
         ]);
 
@@ -349,11 +353,20 @@ class CourseController extends Controller
 
         $validated = $request->validate([
             'content' => 'required|string',
+            'parent_comment_id' => 'nullable|exists:course_comments,id',
         ]);
+
+        if ($request->has('parent_comment_id')) {
+            $parentComment = CourseComment::findorFail($request->parent_comment_id);
+            if ($parentComment->course_id !== $course->id) {
+                return response()->json(['message' => 'Invalid parent comment'], 400);
+            }
+        }
 
         $comment = $course->comments()->create([
             'user_id' => auth()->id(),
             'content' => $validated['content'],
+            'parent_comment_id' => $validated['parent_comment_id'] ?? null,
         ]);
 
         return response()->json($comment->load('user'), 201);
@@ -452,7 +465,19 @@ class CourseController extends Controller
             ->first();
 
         if ($existingEnrollment) {
-            return response()->json(['message' => 'Already enrolled'], 400);
+            if ($existingEnrollment->status === 'active') {
+                return response()->json(['message' => 'Already enrolled'], 400);
+            } elseif ($existingEnrollment->status === 'removed') {
+                // Allow re-enrollment for removed users
+                $existingEnrollment->update([
+                    'status' => 'active',
+                    'enrolled_at' => now(),
+                ]);
+                $course->increment('current_enrolled');
+                return response()->json(['message' => 'Successfully re-enrolled']);
+            } else {
+                return response()->json(['message' => 'Enrollment request pending or in another status'], 400);
+            }
         }
 
         // Check if course is full

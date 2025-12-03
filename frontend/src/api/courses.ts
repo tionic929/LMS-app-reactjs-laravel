@@ -96,9 +96,13 @@ export const deleteCourseMaterial = async (
 // Comment management
 export const addCourseComment = async (
   courseId: string | number,
-  content: string
+  content: string,
+  parentCommentId?: number
 ) => {
-  return api.post(`/courses/${courseId}/comments`, { content });
+  return api.post(`/courses/${courseId}/comments`, { 
+    content,
+    parent_comment_id: parentCommentId 
+  });
 };
 
 export const updateCourseComment = async (
