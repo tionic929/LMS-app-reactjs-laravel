@@ -5,8 +5,12 @@ export interface Announcement {
   title: string;
   content: string;
   type: string;
+  audience?: 'learners' | 'instructors' | 'all';
   date?: string;
   created_at?: string;
+  event_date?: string;
+  event_time?: string;
+  location?: string;
 }
 
 // Fetch CSRF cookie before mutating requests (Laravel Sanctum)
@@ -34,6 +38,10 @@ function normalize(raw: any): Announcement[] {
     title: a.title,
     content: a.content,
     type: a.type ?? "info",
+    audience: a.audience ?? undefined,
+    event_date: a.event_date ?? undefined,
+    event_time: a.event_time ?? undefined,
+    location: a.location ?? undefined,
     date: a.date ?? (a.created_at ? new Date(a.created_at).toLocaleDateString() : undefined),
     created_at: a.created_at,
   }));
@@ -44,13 +52,13 @@ export async function listAnnouncements(): Promise<Announcement[]> {
   return normalize(res.data);
 }
 
-export async function createAnnouncement(payload: { title: string; content: string; type: string }): Promise<Announcement | null> {
+export async function createAnnouncement(payload: { title: string; content: string; type: string; audience: 'learners' | 'instructors' | 'all'; event_date?: string; event_time?: string; location?: string }): Promise<Announcement | null> {
   await ensureCsrf();
   const res = await api.post("/announcements", payload);
   return normalize(res.data)[0] ?? null;
 }
 
-export async function updateAnnouncement(id: number, payload: { title: string; content: string; type: string }): Promise<Announcement | null> {
+export async function updateAnnouncement(id: number, payload: { title: string; content: string; type: string; audience?: 'learners' | 'instructors' | 'all'; event_date?: string; event_time?: string; location?: string }): Promise<Announcement | null> {
   await ensureCsrf();
   const res = await api.put(`/announcements/${id}`, payload);
   return normalize(res.data)[0] ?? null;

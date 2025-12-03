@@ -13,7 +13,11 @@ class Announcement extends Model
         'title',
         'content',
         'type',
+        'audience',
         'created_by',
+        'event_date',
+        'event_time',
+        'location',
     ];
 
     public function creator()

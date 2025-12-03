@@ -14,7 +14,20 @@ class AnnouncementController extends Controller
      */
     public function index()
     {
-        return Announcement::orderBy('id', 'desc')->get();
+        $user = request()->user();
+
+        $query = Announcement::query();
+
+        if ($user) {
+            if ($user->isRole('learner')) {
+                $query->whereIn('audience', ['learners', 'all']);
+            } elseif ($user->isRole('instructor')) {
+                $query->whereIn('audience', ['instructors', 'all']);
+            }
+            // admins see all
+        }
+
+        return $query->orderBy('id', 'desc')->get();
     }
 
     /**
@@ -38,8 +51,21 @@ class AnnouncementController extends Controller
         $data = $request->validate([
             'title' => 'required|string|max:255',
             'content' => 'required|string',
-            'type' => 'required|string|in:info,warning,success,error,maintenance',
+            'type' => 'required|string|in:news,event,general',
+            'audience' => 'required|string|in:learners,instructors,all',
+            'event_date' => 'nullable|date',
+            'event_time' => 'nullable|string|max:32',
+            'location' => 'nullable|string|max:255',
         ]);
+
+        if ($data['type'] === 'event') {
+            $eventValidation = $request->validate([
+                'event_date' => 'required|date',
+                'event_time' => 'required|string|max:32',
+                'location' => 'required|string|max:255',
+            ]);
+            $data = array_merge($data, $eventValidation);
+        }
 
         $user = $request->user();
 
@@ -70,8 +96,20 @@ class AnnouncementController extends Controller
         $data = $request->validate([
             'title' => 'sometimes|required|string|max:255',
             'content' => 'sometimes|required|string',
-            'type' => 'sometimes|required|string|in:info,warning,success,error,maintenance',
+            'type' => 'sometimes|required|string|in:news,event,general',
+            'audience' => 'sometimes|required|string|in:learners,instructors,all',
+            'event_date' => 'sometimes|nullable|date',
+            'event_time' => 'sometimes|nullable|string|max:32',
+            'location' => 'sometimes|nullable|string|max:255',
         ]);
+
+        if (($data['type'] ?? $announcement->type) === 'event') {
+            $request->validate([
+                'event_date' => 'required|date',
+                'event_time' => 'required|string|max:32',
+                'location' => 'required|string|max:255',
+            ]);
+        }
 
         $user = $request->user();
 

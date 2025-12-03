@@ -1,6 +1,7 @@
 import React from "react";
 import Modal from "./Modal";
-import { IoMdInformationCircle, IoMdWarning, IoMdCloseCircle, IoMdConstruct } from "react-icons/io";
+import { IoMdInformationCircle, IoMdCalendar } from "react-icons/io";
+import { MdCampaign } from "react-icons/md";
 
 export interface AnnouncementEntity {
   id: number;
@@ -8,6 +9,10 @@ export interface AnnouncementEntity {
   content: string;
   type: string;
   date?: string;
+  audience?: 'learners' | 'instructors' | 'all';
+  event_date?: string;
+  event_time?: string;
+  location?: string;
 }
 
 interface ViewAnnouncementModalProps {
@@ -22,14 +27,11 @@ const ViewAnnouncementModal: React.FC<ViewAnnouncementModalProps> = ({ show, ann
 
   const typeStyles = (type: string) => {
     switch (type) {
-      case "info":
-        return { circle: "bg-blue-100 text-blue-700", icon: <IoMdInformationCircle className="w-4 h-4" /> };
-      case "warning":
-        return { circle: "bg-yellow-100 text-yellow-700", icon: <IoMdWarning className="w-4 h-4" /> };
-      case "error":
-        return { circle: "bg-red-100 text-red-700", icon: <IoMdCloseCircle className="w-4 h-4" /> };
-      case "maintenance":
-        return { circle: "bg-purple-100 text-purple-700", icon: <IoMdConstruct className="w-4 h-4" /> };
+      case "news":
+        return { circle: "bg-indigo-100 text-indigo-700", icon: <MdCampaign className="w-4 h-4" /> };
+      case "event":
+        return { circle: "bg-emerald-100 text-emerald-700", icon: <IoMdCalendar className="w-4 h-4" /> };
+      case "general":
       default:
         return { circle: "bg-gray-100 text-gray-700", icon: <IoMdInformationCircle className="w-4 h-4" /> };
     }
@@ -51,10 +53,34 @@ const ViewAnnouncementModal: React.FC<ViewAnnouncementModalProps> = ({ show, ann
           <p className="whitespace-pre-wrap break-words text-gray-700">{announcement.content}</p>
         </div>
 
+        {announcement.type === 'event' && (announcement.event_date || announcement.event_time || announcement.location) && (
+          <div className="mt-4 rounded-md border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">
+            <div className="font-medium mb-1">Event Details</div>
+            {announcement.event_date && (
+              <div>
+                <span className="font-medium">Date:</span> {announcement.event_date}
+              </div>
+            )}
+            {announcement.event_time && (
+              <div>
+                <span className="font-medium">Time:</span> {announcement.event_time}
+              </div>
+            )}
+            {announcement.location && (
+              <div>
+                <span className="font-medium">Location:</span> {announcement.location}
+              </div>
+            )}
+          </div>
+        )}
+
         <div className="mt-6 flex justify-between gap-2">
           <div className="mt-2 flex items-center gap-2">
             {announcement.date && (
               <span className="text-xs text-gray-500">Posted on {announcement.date}</span>
+            )}
+            {announcement.audience && (
+              <span className="text-xs text-gray-600">Audience: {announcement.audience === 'all' ? 'All' : announcement.audience === 'learners' ? 'Learners' : 'Instructors'}</span>
             )}
           </div>
           <button onClick={onClose} className="px-4 py-2 rounded-md bg-gray-100 hover:bg-gray-200 text-sm">

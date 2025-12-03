@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useAuth } from "../contexts/AuthContext";
-import { MdDelete } from "react-icons/md";
-import { IoMdInformationCircle, IoMdWarning, IoMdCloseCircle, IoMdConstruct } from "react-icons/io";
+import { MdDelete, MdCampaign } from "react-icons/md";
+import { IoMdInformationCircle, IoMdCalendar } from "react-icons/io";
 import { IoIosAddCircle } from "react-icons/io";
 import { ImFilesEmpty } from "react-icons/im";
 import { FaEdit } from "react-icons/fa";
@@ -25,6 +25,7 @@ const AnnouncementsPage: React.FC = () => {
   // }
   const [query, setQuery] = useState("");
   const [activeFilter, setActiveFilter] = useState("all");
+  const [audienceFilter, setAudienceFilter] = useState<'all' | 'learners' | 'instructors'>('all');
 
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [loading, setLoading] = useState(false);
@@ -38,7 +39,8 @@ const AnnouncementsPage: React.FC = () => {
   const [editId, setEditId] = useState<number | null>(null);
   const [editTitle, setEditTitle] = useState("");
   const [editContent, setEditContent] = useState("");
-  const [editType, setEditType] = useState("info");
+  const [editType, setEditType] = useState("general");
+  const [editAudience, setEditAudience] = useState<'learners' | 'instructors' | 'all'>('all');
 
   // View modal
   const [isViewOpen, setIsViewOpen] = useState(false);
@@ -46,14 +48,12 @@ const AnnouncementsPage: React.FC = () => {
 
   const getTypeBadgeClass = (type: string) => {
     switch (type) {
-      case "info":
-        return "bg-blue-100 text-blue-800";
-      case "warning":
-        return "bg-yellow-100 text-yellow-800";
-      case "error":
-        return "bg-red-100 text-red-800";
-      case "maintenance":
-        return "bg-purple-100 text-purple-800";
+      case "news":
+        return "bg-indigo-100 text-indigo-800";
+      case "general":
+        return "bg-gray-100 text-gray-800";
+      case "event":
+        return "bg-emerald-100 text-emerald-800";
       default:
         return "bg-gray-100 text-gray-700";
     }
@@ -61,14 +61,12 @@ const AnnouncementsPage: React.FC = () => {
 
   const getTypeAccentBar = (type: string) => {
     switch (type) {
-      case "info":
-        return "border-l-4 border-blue-500";
-      case "warning":
-        return "border-l-4 border-yellow-500";
-      case "error":
-        return "border-l-4 border-red-500";
-      case "maintenance":
-        return "border-l-4 border-purple-500";
+      case "news":
+        return "border-l-4 border-indigo-500";
+      case "general":
+        return "border-l-4 border-gray-400";
+      case "event":
+        return "border-l-4 border-emerald-500";
       default:
         return "border-l-4 border-gray-400";
     }
@@ -76,14 +74,12 @@ const AnnouncementsPage: React.FC = () => {
 
   const getTypeDotClass = (type: string) => {
     switch (type) {
-      case "info":
-        return "bg-blue-500";
-      case "warning":
-        return "bg-yellow-500";
-      case "error":
-        return "bg-red-500";
-      case "maintenance":
-        return "bg-purple-500";
+      case "news":
+        return "bg-indigo-500";
+      case "general":
+        return "bg-gray-500";
+      case "event":
+        return "bg-emerald-500";
       default:
         return "bg-gray-400";
     }
@@ -92,18 +88,107 @@ const AnnouncementsPage: React.FC = () => {
   const TypeIcon: React.FC<{ type: string }> = ({ type }) => {
     const common = "w-5 h-5";
     switch (type) {
-      case "info":
-        return <IoMdInformationCircle className={`${common} text-blue-600`} />;
-      case "warning":
-        return <IoMdWarning className={`${common} text-yellow-600`} />;
-      case "error":
-        return <IoMdCloseCircle className={`${common} text-red-600`} />;
-      case "maintenance":
-        return <IoMdConstruct className={`${common} text-purple-600`} />;
+      case "news":
+        return <MdCampaign className={`${common} text-indigo-600`} />;
+      case "event":
+        return <IoMdCalendar className={`${common} text-emerald-600`} />;
+      case "general":
       default:
-        return <IoMdInformationCircle className={`${common} text-gray-500`} />;
+        return <IoMdInformationCircle className={`${common} text-gray-600`} />;
     }
   };
+
+  // Card renderer extracted for reuse in each column
+  const renderCard = (announcement: Announcement) => (
+    <article
+      onClick={() => openView(announcement)}
+      className={`cursor-pointer group rounded-xl bg-white border shadow-sm transition hover:shadow-md ${getTypeAccentBar(announcement.type)}`}
+    >
+      <div className="p-5">
+        {/* Card header */}
+        <div className="flex items-start justify-between gap-4">
+          <div className="min-w-0">
+            <h3 className="text-lg font-semibold text-gray-900">
+              {announcement.title}
+            </h3>
+            <div className="mt-1">
+              <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${getTypeBadgeClass(announcement.type)}`}>
+                <TypeIcon type={announcement.type} />
+                {announcement.type === 'event' ? 'Upcoming Event' : announcement.type === 'news' ? 'News' : 'General'}
+              </span>
+            </div>
+          </div>
+        </div>
+        {/* Card body */}
+        <div className="mt-3 text-sm text-gray-700 whitespace-pre-wrap break-words">
+          {announcement.content}
+        </div>
+        {announcement.type === 'event' && ((announcement as any).event_date || (announcement as any).event_time || (announcement as any).location) && (
+          <div className="mt-4 rounded-md border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">
+            <div className="font-medium mb-2">Event Details</div>
+            {(announcement as any).event_date && (
+              <div className="flex items-center gap-2">
+                <IoMdCalendar className="w-4 h-4" />
+                <span className="font-medium">Date:</span> {(announcement as any).event_date}
+              </div>
+            )}
+            {(announcement as any).event_time && (
+              <div className="flex items-center gap-2">
+                {/* clock icon */}
+                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 8v5l3 1" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="2"/></svg>
+                <span className="font-medium">Time:</span> {(announcement as any).event_time}
+              </div>
+            )}
+            {(announcement as any).location && (
+              <div className="flex items-center gap-2">
+                {/* map-pin icon */}
+                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 21s7-7.333 7-12a7 7 0 10-14 0c0 4.667 7 12 7 12z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><circle cx="12" cy="9" r="2.5" stroke="currentColor" strokeWidth="2"/></svg>
+                <span className="font-medium">Location:</span> {(announcement as any).location}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+      {/* Card footer */}
+      <footer className="px-5 py-3 border-t bg-gray-50/60 flex items-center justify-between gap-2">
+        <div className="mt-2 flex items-center gap-2 flex-wrap">
+          {announcement.date && (
+            <span className="text-xs text-gray-500">Posted on {announcement.date}</span>
+          )}
+          {(announcement as any).audience && (
+            <span className="text-xs text-gray-500">Audience: {(announcement as any).audience === 'all' ? 'All' : (announcement as any).audience === 'learners' ? 'Learners' : 'Instructors'}</span>
+          )}
+          {announcement.type === 'event' && ((announcement as any).event_date || (announcement as any).event_time || (announcement as any).location) && (
+            <span className="text-xs text-emerald-700">
+              {(announcement as any).event_date ? `Date: ${(announcement as any).event_date}` : ''}
+              {((announcement as any).event_date && (announcement as any).event_time) ? ' • ' : ''}
+              {(announcement as any).event_time ? `Time: ${(announcement as any).event_time}` : ''}
+              {(((announcement as any).event_date || (announcement as any).event_time) && (announcement as any).location) ? ' • ' : ''}
+              {(announcement as any).location ? `Location: ${(announcement as any).location}` : ''}
+            </span>
+          )}
+        </div>
+        {user?.role === 'admin' && (
+          <div className='flex-1 align-right flex justify-end gap-4'>
+            <button
+              onClick={(e) => { e.stopPropagation(); openEdit(announcement); }}
+              className="text-indigo-600 hover:text-indigo-700 text-sm font-medium inline-flex items-center gap-1"
+              title="Edit announcement"
+            >
+              <FaEdit className="w-4 h-4" /> Edit
+            </button>
+            <button
+              onClick={(e) => { e.stopPropagation(); void deleteAnnouncement(announcement.id, announcement.title); }}
+              className="text-red-600 hover:text-red-700 text-sm font-medium inline-flex items-center gap-1"
+              title="Delete announcement"
+            >
+              <MdDelete className="w-4 h-4" /> Delete
+            </button>
+          </div>
+        )}
+      </footer>
+    </article>
+  );
 
   const fetchAnnouncements = async () => {
     setLoading(true);
@@ -118,7 +203,10 @@ const AnnouncementsPage: React.FC = () => {
     }
   };
 
-  const handleUpdateAnnouncement = async (id: number, payload: { title: string; content: string; type: string }) => {
+  const handleUpdateAnnouncement = async (
+    id: number,
+    payload: { title: string; content: string; type: string; audience?: 'learners' | 'instructors' | 'all'; event_date?: string; event_time?: string; location?: string }
+  ) => {
     const updated = await updateAnnouncement(id, payload);
     if (updated) setAnnouncements((prev) => prev.map((p) => (p.id === id ? updated : p)));
     else await fetchAnnouncements();
@@ -135,7 +223,7 @@ const AnnouncementsPage: React.FC = () => {
     }
   };
 
-  const handleCreateAnnouncement = async (payload: { title: string; content: string; type: string }) => {
+  const handleCreateAnnouncement = async (payload: { title: string; content: string; type: string; audience: 'learners' | 'instructors' | 'all'; event_date?: string; event_time?: string; location?: string }) => {
     const created = await createAnnouncement(payload);
     if (created) setAnnouncements((prev) => [created, ...prev]);
     else await fetchAnnouncements();
@@ -151,7 +239,8 @@ const AnnouncementsPage: React.FC = () => {
     setEditId(a.id);
     setEditTitle(a.title);
     setEditContent(a.content);
-    setEditType(a.type ?? "info");
+    setEditType(a.type ?? "general");
+    setEditAudience((a as any).audience ?? 'all');
     setIsEditOpen(true);
   };
 
@@ -162,10 +251,15 @@ const AnnouncementsPage: React.FC = () => {
 
   const filterOptions = [
     { label: "All", value: "all" },
-    { label: "Info", value: "info" },
-    { label: "Warning", value: "warning" },
-    { label: "Error", value: "error" },
-    { label: "Maintenance", value: "maintenance" },
+    { label: "General", value: "general" },
+    { label: "News", value: "news" },
+    { label: "Upcoming Event", value: "event" },
+  ];
+
+  const audienceOptions = [
+    { label: "All audiences", value: 'all' },
+    { label: "Learners", value: 'learners' },
+    { label: "Instructors", value: 'instructors' },
   ];
 
   const filteredAnnouncements = useMemo(() => {
@@ -173,29 +267,43 @@ const AnnouncementsPage: React.FC = () => {
     return announcements.filter((a) => {
       const typeOk = activeFilter === "all" || a.type === activeFilter;
       if (!typeOk) return false;
+      // role visibility
+      const audience = (a as any).audience as 'learners' | 'instructors' | 'all' | undefined;
+      if (user?.role === 'learner' && audience && audience !== 'learners' && audience !== 'all') return false;
+      if (user?.role === 'instructor' && audience && audience !== 'instructors' && audience !== 'all') return false;
+      // admin audience filter
+      if (user?.role === 'admin' && audienceFilter !== 'all' && audience && audience !== audienceFilter) return false;
       if (!q) return true;
       return (
         (a.title ?? "").toLowerCase().includes(q) ||
         (a.content ?? "").toLowerCase().includes(q)
       );
     });
-  }, [announcements, activeFilter, query]);
+  }, [announcements, activeFilter, query, user?.role, audienceFilter]);
+
+  // Split into columns by type
+  const newsAnnouncements = filteredAnnouncements.filter((a) => a.type === 'news');
+  const eventAnnouncements = filteredAnnouncements.filter((a) => a.type === 'event');
+  const generalAnnouncements = filteredAnnouncements.filter((a) => a.type === 'general');
 
   return (
     <main className="max-w-7xl mx-auto p-6">
-      <div className="flex items-center justify-between mb-4">
-        <h1 className="text-3xl font-bold text-gray-900">
-          Announcements
-        </h1>
-        {user?.role === "admin" && (
-          <button
-            onClick={() => setIsAddOpen(true)}
-            className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow hover:bg-indigo-700"
-          >
-            <IoIosAddCircle className="w-5 h-5" /> New Announcement
-          </button>
-        )}
-      </div>
+      <header className="mb-6">
+        <div className="flex items-start justify-between gap-4">
+          <div className="min-w-0">
+            <h1 className="text-3xl font-bold text-gray-900">Announcements</h1>
+            <p className="mt-1 text-sm text-gray-600">Latest updates, news, and upcoming events for learners and instructors.</p>
+          </div>
+          {user?.role === "admin" && (
+            <button
+              onClick={() => setIsAddOpen(true)}
+              className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-indigo-700"
+            >
+              <IoIosAddCircle className="w-5 h-5" /> New Announcement
+            </button>
+          )}
+        </div>
+      </header>
 
       {/* Explorer Bar */}
       <div className="rounded-2xl p-6 border border-transparent bg-gradient-to-r from-indigo-50 to-purple-50 shadow-sm">
@@ -225,6 +333,22 @@ const AnnouncementsPage: React.FC = () => {
               </button>
             ))}
           </div>
+          {user?.role === 'admin' && (
+            <div className="flex items-center gap-2 overflow-x-auto">
+              {audienceOptions.map((f) => (
+                <button
+                  key={f.value}
+                  onClick={() => setAudienceFilter(f.value as any)}
+                  className={`px-4 py-2 rounded-full text-xs font-semibold transition-colors border ${audienceFilter === f.value
+                      ? "bg-purple-600 text-white border-purple-600 shadow"
+                      : "bg-white/70 text-gray-700 border-indigo-100 hover:bg-white"
+                    }`}
+                >
+                  {f.label}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         <div className="mt-4">
@@ -242,12 +366,13 @@ const AnnouncementsPage: React.FC = () => {
               Showing {filteredAnnouncements.length} of {announcements.length} announcements
               {activeFilter !== "all" && ` (filtered by ${activeFilter})`}
               {query && ` (search: "${query}")`}
+              {user?.role === 'admin' && audienceFilter !== 'all' && ` (audience: ${audienceFilter})`}
             </p>
           )}
         </div>
       </div>
 
-      {/* Timeline List Design */}
+      {/* Grid by Type */}
       <div className="pt-6">
         {filteredAnnouncements.length === 0 ? (
           <div className="rounded-xl p-10 text-center text-gray-500 border border-dashed border-gray-300 bg-white/60">
@@ -266,60 +391,54 @@ const AnnouncementsPage: React.FC = () => {
             )}
           </div>
         ) : (
-          <div className="relative">
-            <div className="absolute left-4 top-0 bottom-0 w-px bg-gradient-to-b from-indigo-200 via-gray-200 to-transparent" aria-hidden="true" />
-            <ul className="space-y-5">
-              {filteredAnnouncements.map((announcement: Announcement) => (
-                <li key={announcement.id} className="relative pl-12">
-                  <span className={`absolute left-3 top-3 w-3 h-3 rounded-full ring-4 ring-white ${getTypeDotClass(announcement.type)}`} />
-                  <article
-                    onClick={() => openView(announcement)}
-                    className={`cursor-pointer group rounded-xl bg-white border shadow-sm transition hover:shadow-md ${getTypeAccentBar(announcement.type)}`}
-                  >
-                    <div className="p-5">
-                      <div className="flex items-start justify-between gap-4">
-                        <div className="min-w-0">
-                          <h3 className="text-base font-semibold text-gray-900 truncate">
-                            {announcement.title}
-                          </h3>
-                        </div>
-                        <div className="shrink-0">
-                          <TypeIcon type={announcement.type} />
-                        </div>
-                      </div>
-                      <p className="mt-3 text-sm text-gray-700 line-clamp-3 whitespace-pre-wrap break-words">
-                        {announcement.content}
-                      </p>
-                    </div>
-                    <footer className="px-5 py-3 border-t bg-gray-50/60 flex items-center justify-between gap-2">
-                      <div className="mt-2 flex items-center gap-2 flex-wrap">
-                        {announcement.date && (
-                          <span className="text-xs text-gray-500">Posted on {announcement.date}</span>
-                        )}
-                      </div>
-                      {user?.role === 'admin' && (
-                        <div className='flex-1 align-right flex justify-end gap-4'>
-                          <button
-                            onClick={(e) => { e.stopPropagation(); openEdit(announcement); }}
-                            className="text-indigo-600 hover:text-indigo-700 text-sm font-medium inline-flex items-center gap-1"
-                            title="Edit announcement"
-                          >
-                            <FaEdit className="w-4 h-4" /> Edit
-                          </button>
-                          <button
-                            onClick={(e) => { e.stopPropagation(); void deleteAnnouncement(announcement.id, announcement.title); }}
-                            className="text-red-600 hover:text-red-700 text-sm font-medium inline-flex items-center gap-1"
-                            title="Delete announcement"
-                          >
-                            <MdDelete className="w-4 h-4" /> Delete
-                          </button>
-                        </div>
-                      )}
-                    </footer>
-                  </article>
-                </li>
-              ))}
-            </ul>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* News Column */}
+            <section>
+              <h2 className="text-lg font-semibold text-indigo-800 mb-3 inline-flex items-center gap-2"><MdCampaign className="w-5 h-5" /> News</h2>
+              {newsAnnouncements.length === 0 ? (
+                <p className="text-sm text-gray-500">No news announcements.</p>
+              ) : (
+                <ul className="space-y-4">
+                  {newsAnnouncements.map((announcement) => (
+                    <li key={announcement.id}>
+                      {renderCard(announcement)}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
+
+            {/* Upcoming Events Column */}
+            <section>
+              <h2 className="text-lg font-semibold text-emerald-800 mb-3 inline-flex items-center gap-2"><IoMdCalendar className="w-5 h-5" /> Upcoming Events</h2>
+              {eventAnnouncements.length === 0 ? (
+                <p className="text-sm text-gray-500">No upcoming events.</p>
+              ) : (
+                <ul className="space-y-4">
+                  {eventAnnouncements.map((announcement) => (
+                    <li key={announcement.id}>
+                      {renderCard(announcement)}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
+
+            {/* General Column */}
+            <section>
+              <h2 className="text-lg font-semibold text-gray-800 mb-3 inline-flex items-center gap-2"><IoMdInformationCircle className="w-5 h-5" /> General</h2>
+              {generalAnnouncements.length === 0 ? (
+                <p className="text-sm text-gray-500">No general announcements.</p>
+              ) : (
+                <ul className="space-y-4">
+                  {generalAnnouncements.map((announcement) => (
+                    <li key={announcement.id}>
+                      {renderCard(announcement)}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
           </div>
         )}
       </div>
@@ -335,7 +454,7 @@ const AnnouncementsPage: React.FC = () => {
       <EditAnnouncementModal
         show={isEditOpen}
         onClose={() => setIsEditOpen(false)}
-        announcement={editId ? { id: editId, title: editTitle, content: editContent, type: editType } : null}
+        announcement={editId ? { id: editId, title: editTitle, content: editContent, type: editType, audience: editAudience } : null}
         onSubmit={handleUpdateAnnouncement}
       />
 
