@@ -30,3 +30,8 @@ export const hasRole = (user: any, role: string) => {
   if (!user) return false;
   return user.role === role;
 };
+
+export const isInstructorApproved = (user: any) => {
+  if (!user) return false;
+  return user.role !== "instructor" || user.is_confirmed; // true if not instructor or approved
+};

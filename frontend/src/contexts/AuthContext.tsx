@@ -111,19 +111,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         try {
             // 1. Revoke the API token (Logs out on other devices/browsers)
             await apiLogoutAndRevokeToken();
-            
             // 2. Destroy the session cookie (Crucial for preventing refresh login)
             await apiLogoutAndClearSession();
         } catch (error) {
             console.error("Server-side logout failed:", error);
         }
         
-        // 3. CRITICAL CLIENT-SIDE CLEANUP
         setUser(null);
         delete api.defaults.headers.common['Authorization']; 
         localStorage.removeItem('token'); 
         
-        // 4. Redirect
         navigate("/login");
     }, [navigate]); 
 

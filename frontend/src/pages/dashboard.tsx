@@ -1,11 +1,18 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { getDashboardAnalytics, type DashboardAnalytics } from '../api/analytics';
 import { FaUsers, FaChalkboardTeacher, FaUserGraduate, FaBell } from 'react-icons/fa'; // Icons for the cards
 import LineChartUsers from '../components/charts/LineChartUsers';
+import { fetchUser, isInstructorApproved } from "../api/auth";
 import '../App.css'; // Assuming your CSS is here
 
 // Helper component for the Metric Cards
-const MetricCard = ({ title, count, icon: Icon, color }) => (
+const MetricCard = ({ title, count, icon: Icon, color } : {
+    title: any;
+    count: any;
+    icon: any;
+    color: any;
+}) => (
     <div className={`card flex p-4 w-full h-[15vh] bg-gray-100/40 border-2 border-blue-900/70 rounded-2xl hover:bg-blue-700/70 hover:text-white hover:bg-gradient-to-r from-blue-700/70 to-blue-900 hover:shadow-lg hover:shadow-gray-700/50 cursor-pointer transition-all duration-200 group flex-row items-center justify-between min-w-[200px] ${color}`}>
         <div className="container items-start justify-center">
             <p className="text-lg text-gray-500 font-medium group-hover:text-white capitalize transition-colors duration-200">{title}</p>
@@ -20,6 +27,7 @@ const MetricCard = ({ title, count, icon: Icon, color }) => (
 const Dashboard = () => {
     const [analytics, setAnalytics] = useState<DashboardAnalytics | null>(null);
     const [loading, setLoading] = useState(true);
+    const navigate = useNavigate();
 
     useEffect(() => {
         const fetchAnalytics = async () => {
@@ -29,7 +37,21 @@ const Dashboard = () => {
             setLoading(false);
         };
         fetchAnalytics();
-    }, []);
+            const checkInstructorApproval = async () => {
+        try {
+            const { data: user } = await fetchUser();
+
+            if (!isInstructorApproved(user)) {
+            toast.warning("Your instructor application is pending approval.");
+            navigate("/"); // or any safe page for learners
+            }
+        } catch (err) {
+            console.error("Error fetching user:", err);
+        }
+        };
+
+        checkInstructorApproval();
+    }, [navigate]);
 
     const cardCounters = analytics ? [
         { title: 'Total Users', count: analytics.totalUsers, icon: FaUsers, color: 'hover:bg-indigo-700/70' },

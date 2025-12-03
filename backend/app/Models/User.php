@@ -33,14 +33,19 @@ class User extends Authenticatable
         return $this->hasOne(Admin::class);
     }
 
+    public function application()
+    {
+        return $this->hasOne(InstructorApplication::class);
+    }
+
     public function instructor()
     {
-        return $this->hasOne(Instructor::class);
+        return $this->hasOne(InstructorProfile::class);
     }
 
     public function learner()
     {
-        return $this->hasOne(Learner::class);
+        return $this->hasOne(Learner::class);   
     }
 
     public function isRole($role)

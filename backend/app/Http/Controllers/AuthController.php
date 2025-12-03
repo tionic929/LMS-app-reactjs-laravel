@@ -11,6 +11,9 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Validator;
 use App\Events\UserActivityEvent;
+use Illuminate\Support\Facades\Log;
+use App\Models\InstructorApplication;
+use App\Models\InstructorProfile;
 
 class AuthController extends Controller
 {
@@ -81,7 +84,7 @@ class AuthController extends Controller
                 if($credentials['role'] == 'learner'){
                     Learner::create(array_merge($profileData));
                 } elseif($credentials['role'] == 'instructor'){
-                    Instructor::create(array_merge($profileData, [
+                    InstructorApplication::create(array_merge($profileData, [
                         'status' => 'pending',
                     ]));
                 }
@@ -130,10 +133,19 @@ class AuthController extends Controller
             return response()->json(['message' => 'Invalid credentials'], 401);
         }
 
-        // 🛑 REMOVE: $request->session()->regenerate(); // This is for web/sessions, not API tokens
-
-        // 1. Get the authenticated user object
         $user = Auth::user();
+
+        // ❌ Block pre-instructors if application is not approved
+        if ($user->role === 'instructor') {
+            $application = InstructorApplication::where('user_id', $user->id)->first();
+            
+            if (!$application || $application->status !== 'approved') {
+                Auth::logout(); // optional: revoke session if using web guard
+                return response()->json([
+                    'message' => 'Your instructor application is still pending approval.'
+                ], 403);
+            }
+        }
         
         // 2. CREATE AND RETURN THE SANCTUM TOKEN
         // This is the CRITICAL step your previous code was missing.

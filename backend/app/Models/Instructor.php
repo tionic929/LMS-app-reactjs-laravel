@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class Instructor extends Model
 {
+    protected $table = "instructor_applications";
+    
     protected $fillable = [
         'user_id',
         // 'department',

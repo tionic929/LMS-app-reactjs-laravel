@@ -9,18 +9,18 @@ use App\Http\Controllers\TestNotifyController;
 use App\Http\Controllers\DiscussionsController;
 use App\Http\Controllers\AnnouncementController;
 use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\InstructorApplicationController;
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/notifications/{id}/read', [NotificationController::class, 'markAsRead']);
 });
 
+Route::post('/reset-password', [AuthController::class, 'resetPassword']);
 Route::get('/notifications', [NotificationController::class, 'index']);
 Route::get('/test-notification', [NotificationController::class, 'test']);
 
-// Course routes
 Route::resource('courses', CourseController::class);
 
-// for admin roles
 Route::middleware('auth:sanctum' , 'log.activity')->group(function () {
     Route::post('/courses/{course}/enroll', [CourseController::class, 'enroll']);
     Route::post('/courses/{course}/leave', [CourseController::class, 'leave']);
@@ -36,12 +36,9 @@ Route::middleware('auth:sanctum' , 'log.activity')->group(function () {
     Route::delete('/courses/{course}/announcements/{announcementId}', [CourseController::class, 'deleteAnnouncement']);
 });
 
-// for learners and instructors
+
 Route::get('announcements', [AnnouncementController::class, 'index']);
 Route::get('announcements/{announcement}', [AnnouncementController::class, 'show']);
-
-
-// for admins
 Route::middleware(['auth:sanctum', 'role:admin', 'log.activity'])->group(function () {
     Route::post('announcements', [AnnouncementController::class, 'store']);
     Route::put('announcements/{announcement}', [AnnouncementController::class, 'update']);
@@ -50,7 +47,6 @@ Route::middleware(['auth:sanctum', 'role:admin', 'log.activity'])->group(functio
 
 Route::resource('discussions', DiscussionsController::class);
 
-
 // 1. PUBLIC ROUTES (No authentication middleware required)
 // These routes should be accessible to everyone.
 Route::post('/login', [AuthController::class, 'login'])->name('login');
@@ -58,7 +54,6 @@ Route::post('/register', [AuthController::class, 'register']);
 Route::post('/registerInstructor', [AuthController::class, 'registerInstructor']);
 
 Route::middleware(['auth:sanctum'])->group(function () {
-    
     // THESE ROUTES WILL WORK because the client is now sending the token
     Route::get('/users/analytics', [UsersController::class, 'getUsersAnalytics']);
     Route::get('/users', [UsersController::class, 'getPaginatedUsers']);
@@ -84,3 +79,11 @@ Route::get('announcements/admin', [AnnouncementController::class, 'adminIndex'])
 // Announcements resource (admin checks for write actions are inside controller methods)
 Route::resource('announcements', AnnouncementController::class);
 
+Route::get('/instructor-applications', [InstructorApplicationController::class, 'index']);
+Route::middleware(['auth:sanctum'])->group(function () {
+
+    Route::get('/instructor-applications/{id}', [InstructorApplicationController::class, 'show']);
+
+    Route::post('/instructor-applications/{id}/approve', [InstructorApplicationController::class, 'approve']);
+    Route::post('/instructor-applications/{id}/reject', [InstructorApplicationController::class, 'reject']);
+});
