@@ -109,7 +109,7 @@ const Sidebar: React.FC<SidebarProps> = ({
 
     // RBAC Navigation
     const allNavItems: NavItem[] = [
-        { to: "/", icon: FaHome, label: "Dashboard", roles: ["admin", "instructor", "learner"] },
+        { to: "/dashboard", icon: FaHome, label: "Dashboard", roles: ["admin", "instructor", "learner"] },
         { to: "/users", icon: FaUsers, label: "User Management", roles: ["admin"] },
         { to: "/instructor-applications", icon: FaPersonChalkboard, label: "Instructor Applications", roles: ["admin"] },
         { to: "/announcements", icon: BsMegaphoneFill, label: "Announcements", roles: ["admin", "instructor", "learner"] },

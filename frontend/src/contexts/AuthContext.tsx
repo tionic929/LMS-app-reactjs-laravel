@@ -103,7 +103,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         // Fetch user data with the new token attached
         const res = await fetchUser();
         setUser(res.data);
-        navigate("/");
+        navigate("/dashboard");
     }, [navigate, setUser]); 
 
     // 💡 THE FIXED LOGOUT FUNCTION

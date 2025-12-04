@@ -21,6 +21,7 @@ import { ToastContainer } from "react-toastify";
 import 'react-toastify/dist/ReactToastify.css';
 import SocketInitializer from "./components/SocketInitializer";
 import Home from "./pages/Home";
+import NotificationDisplay from "./components/notification/NotificationDisplay";
 
 const RoleGuard = ({ children, allowedRoles }: { children: React.ReactNode; allowedRoles: ('admin' | 'instructor' | 'learner')[] }) => {
   const { user } = useAuth();
@@ -45,6 +46,7 @@ const App: React.FC = () => {
 
   return (
     <div className="h-screen flex relative bg-gray-100">
+      <NotificationDisplay />
       <SocketInitializer />
       <ToastContainer position="top-right" />
 
@@ -71,7 +73,7 @@ const App: React.FC = () => {
             <Route path="/pending" element={user ? <Navigate to="/" replace /> : <PendingApproval />} />
 
             <Route element={<ProtectedRoute />}>
-              <Route path="/" element={<RoleGuard allowedRoles={['admin','instructor','learner']}><Dashboard /></RoleGuard>} />
+              <Route path="/dashboard" element={<RoleGuard allowedRoles={['admin','instructor','learner']}><Dashboard /></RoleGuard>} />
               <Route path="/users" element={<RoleGuard allowedRoles={['admin']}><UsersIndex /></RoleGuard>} />
               <Route path="/instructor-applications" element={<RoleGuard allowedRoles={['admin']}><InstructorApplications /></RoleGuard>} />
               <Route path="/announcements" element={<RoleGuard allowedRoles={['admin','instructor','learner']}><Announcements /></RoleGuard>} />

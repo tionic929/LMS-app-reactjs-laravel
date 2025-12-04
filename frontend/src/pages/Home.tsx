@@ -112,18 +112,17 @@ const Home = () => {
             Access thousands of courses from top experts anytime, anywhere. Your professional development starts now.
           </p>
           
-          {/* Primary Call to Action */}
-          <button className="flex items-center justify-center mx-auto px-10 py-4 text-lg font-bold text-white bg-indigo-500 rounded-xl shadow-2xl hover:bg-indigo-600 transition duration-300 transform hover:scale-105">
-            <BookOpen className="w-6 h-6 mr-3" />
-            
-            <Link
+            <div className="hidden md:flex md:space-x-8 items-center justify-center">
+              <div className="flex space-x-4 ml-6">
+                <Link
                     to="/register"
-                    className="flex items-center px-4 py-2 text-sm font-semibold text-white bg-indigo-600 rounded-lg shadow-lg hover:bg-indigo-700 transition duration-150"
+                    className="flex items-center justify-center px-7 py-5 text-md font-semibold text-white bg-indigo-600 rounded-full shadow-lg hover:bg-indigo-700 transition duration-150"
                 >
-                    <UserPlus className="w-4 h-4 mr-1" />
+                    <BookOpen className="w-6 h-6 mr-3" />
                     Start learning for free!
                 </Link>
-          </button>
+              </div>
+            </div>
         </div>
       </header>
 
