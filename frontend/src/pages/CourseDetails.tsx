@@ -46,11 +46,11 @@ import { FaLink } from "react-icons/fa6";
 import { VscRequestChanges } from "react-icons/vsc";
 import { BsSend } from "react-icons/bs";
 import AddMaterialModal from "../components/modals/courses/AddMaterialModal";
+import { CourseSkeleton } from "../components/skeletons";
 import { formatDistanceToNow } from "date-fns";
 import {
   voteCourseComment,
   removeVoteFromCourseComment,
-  getCourseCommentVote,
 } from "../api/courses";
 import {
   BiUpvote,
@@ -1093,12 +1093,21 @@ const CourseDetails: React.FC = () => {
     if (!id) return;
     if (!confirm("Are you sure you want to remove this learner?")) return;
 
+    // Store original learner for rollback
+    const learnerToRemove = learners.find(l => l.id === userId);
+
+    // Optimistic update
+    setLearners(prev => prev.filter(l => l.id !== userId));
+    toast.success("Learner removed successfully");
+
     try {
       await removeLearner(id, userId);
-      await fetchCourseData();
-      toast.success("Learner removed successfully");
     } catch (err: any) {
       console.error("Error removing learner:", err);
+      // Revert optimistic update
+      if (learnerToRemove) {
+        setLearners(prev => [...prev, learnerToRemove]);
+      }
       toast.error(err.response?.data?.message || "Failed to remove learner");
     }
   };
@@ -1106,12 +1115,23 @@ const CourseDetails: React.FC = () => {
   const handleAcceptRequest = async (requestId: number) => {
     if (!id) return;
 
+    // Store original request for rollback
+    const request = joinRequests.find(r => r.id === requestId);
+
+    // Optimistic update - remove from requests
+    setJoinRequests(prev => prev.filter(r => r.id !== requestId));
+    toast.success("Request accepted");
+
     try {
       await acceptJoinRequest(id, requestId);
+      // Refresh to get updated learner list
       await fetchCourseData();
-      toast.success("Request accepted");
     } catch (err: any) {
       console.error("Error accepting request:", err);
+      // Revert optimistic update
+      if (request) {
+        setJoinRequests(prev => [...prev, request]);
+      }
       toast.error(err.response?.data?.message || "Failed to accept request");
     }
   };
@@ -1119,12 +1139,21 @@ const CourseDetails: React.FC = () => {
   const handleRejectRequest = async (requestId: number) => {
     if (!id) return;
 
+    // Store original request for rollback
+    const request = joinRequests.find(r => r.id === requestId);
+
+    // Optimistic update - remove from requests
+    setJoinRequests(prev => prev.filter(r => r.id !== requestId));
+    toast.success("Request rejected");
+
     try {
       await rejectJoinRequest(id, requestId);
-      await fetchCourseData();
-      toast.success("Request rejected");
     } catch (err: any) {
       console.error("Error rejecting request:", err);
+      // Revert optimistic update
+      if (request) {
+        setJoinRequests(prev => [...prev, request]);
+      }
       toast.error(err.response?.data?.message || "Failed to reject request");
     }
   };
@@ -1327,13 +1356,31 @@ const CourseDetails: React.FC = () => {
     if (!id || !newAnnouncement.title.trim() || !newAnnouncement.content.trim())
       return;
 
+    const tempAnnouncement = {
+      id: Date.now(),
+      title: newAnnouncement.title,
+      content: newAnnouncement.content,
+      created_at: new Date().toISOString(),
+    };
+
+    // Optimistic update
+    setAnnouncements(prev => [...prev, tempAnnouncement]);
+    setNewAnnouncement({ title: "", content: "" });
+    toast.success("Announcement posted!");
+
     try {
-      await addCourseAnnouncement(id, newAnnouncement);
-      await fetchCourseData();
-      setNewAnnouncement({ title: "", content: "" });
-      toast.success("Announcement posted!");
+      const response = await addCourseAnnouncement(id, newAnnouncement);
+      // Update with real data from server
+      if (response.data) {
+        setAnnouncements(prev => 
+          prev.map(a => a.id === tempAnnouncement.id ? response.data : a)
+        );
+      }
     } catch (err: any) {
       console.error("Error adding announcement:", err);
+      // Revert optimistic update
+      setAnnouncements(prev => prev.filter(a => a.id !== tempAnnouncement.id));
+      setNewAnnouncement({ title: tempAnnouncement.title, content: tempAnnouncement.content });
       toast.error(err.response?.data?.message || "Failed to post announcement");
     }
   };
@@ -1341,12 +1388,21 @@ const CourseDetails: React.FC = () => {
   const handleDeleteAnnouncement = async (announcementId: number) => {
     if (!id) return;
 
+    // Store original announcement for rollback
+    const announcementToDelete = announcements.find(a => a.id === announcementId);
+
+    // Optimistic update
+    setAnnouncements(prev => prev.filter(a => a.id !== announcementId));
+    toast.success("Announcement deleted");
+
     try {
       await deleteCourseAnnouncement(id, announcementId);
-      await fetchCourseData();
-      toast.success("Announcement deleted");
     } catch (err: any) {
       console.error("Error deleting announcement:", err);
+      // Revert optimistic update
+      if (announcementToDelete) {
+        setAnnouncements(prev => [...prev, announcementToDelete]);
+      }
       toast.error(err.response?.data?.message || "Failed to delete announcement");
     }
   };
@@ -1359,14 +1415,36 @@ const CourseDetails: React.FC = () => {
       return;
     }
 
+    // Store original announcement for rollback
+    const originalAnnouncement = announcements.find(a => a.id === editingAnnouncementId);
+
+    // Optimistic update
+    setAnnouncements(prev => 
+      prev.map(a => 
+        a.id === editingAnnouncementId 
+          ? { ...a, title: editingAnnouncement.title, content: editingAnnouncement.content }
+          : a
+      )
+    );
+    setEditingAnnouncementId(null);
+    setEditingAnnouncement({ title: "", content: "" });
+    toast.success("Announcement updated");
+
     try {
       await updateCourseAnnouncement(id, editingAnnouncementId, editingAnnouncement);
-      await fetchCourseData();
-      setEditingAnnouncementId(null);
-      setEditingAnnouncement({ title: "", content: "" });
-      toast.success("Announcement updated");
     } catch (err: any) {
       console.error("Error updating announcement:", err);
+      // Revert optimistic update
+      if (originalAnnouncement) {
+        setAnnouncements(prev => 
+          prev.map(a => a.id === editingAnnouncementId ? originalAnnouncement : a)
+        );
+      }
+      setEditingAnnouncementId(editingAnnouncementId);
+      setEditingAnnouncement({ 
+        title: editingAnnouncement.title, 
+        content: editingAnnouncement.content 
+      });
       toast.error(err.response?.data?.message || "Failed to update announcement");
     }
   };
@@ -1389,12 +1467,28 @@ const CourseDetails: React.FC = () => {
     if (!confirm("Are you sure you want to ban this user from commenting?"))
       return;
 
+    // Optimistic update
+    setLearners(prev => 
+      prev.map(l => 
+        l.id === userId 
+          ? { ...l, pivot: { ...l.pivot, comment_banned: true } }
+          : l
+      )
+    );
+    toast.success("User banned from commenting");
+
     try {
       await banUserFromComments(id, userId);
-      await fetchCourseData();
-      toast.success("User banned from commenting");
     } catch (err: any) {
       console.error("Error banning user:", err);
+      // Revert optimistic update
+      setLearners(prev => 
+        prev.map(l => 
+          l.id === userId 
+            ? { ...l, pivot: { ...l.pivot, comment_banned: false } }
+            : l
+        )
+      );
       toast.error(err.response?.data?.message || "Failed to ban user");
     }
   };
@@ -1402,24 +1496,34 @@ const CourseDetails: React.FC = () => {
   const handleUnbanUser = async (userId: number) => {
     if (!id) return;
 
+    // Optimistic update
+    setLearners(prev => 
+      prev.map(l => 
+        l.id === userId 
+          ? { ...l, pivot: { ...l.pivot, comment_banned: false } }
+          : l
+      )
+    );
+    toast.success("User unbanned from commenting");
+
     try {
       await unbanUserFromComments(id, userId);
-      await fetchCourseData();
-      toast.success("User unbanned from commenting");
     } catch (err: any) {
       console.error("Error unbanning user:", err);
+      // Revert optimistic update
+      setLearners(prev => 
+        prev.map(l => 
+          l.id === userId 
+            ? { ...l, pivot: { ...l.pivot, comment_banned: true } }
+            : l
+        )
+      );
       toast.error(err.response?.data?.message || "Failed to unban user");
     }
   };
 
   if (loading) {
-    return (
-      <main className="flex-1 overflow-auto p-6">
-        <div className="max-w-4xl mx-auto text-center py-12">
-          <p className="text-gray-600">Loading course...</p>
-        </div>
-      </main>
-    );
+    return <CourseSkeleton />;
   }
 
   if (error || !course) {
