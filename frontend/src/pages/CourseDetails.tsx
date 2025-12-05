@@ -16,6 +16,7 @@ import {
   updateCourseComment,
   deleteCourseComment,
   addCourseAnnouncement,
+  updateCourseAnnouncement,
   deleteCourseAnnouncement,
   banUserFromComments,
   unbanUserFromComments,
@@ -30,21 +31,33 @@ import {
 import {
   MdArrowBack,
   MdOutlineEmail,
-  MdOutlineSlowMotionVideo,
+  // MdOutlineSlowMotionVideo,
 } from "react-icons/md";
 import { HiOutlineBookOpen, HiOutlinePlus } from "react-icons/hi";
-import { FaRegFileAlt, FaRegCommentDots } from "react-icons/fa";
+import { HiArrowTurnDownRight } from "react-icons/hi2";
+import {
+  FaRegFileAlt,
+  FaRegCommentDots,
+  FaChevronDown,
+  FaChevronUp,
+  FaRegPlayCircle,
+} from "react-icons/fa";
 import { FaLink } from "react-icons/fa6";
 import { VscRequestChanges } from "react-icons/vsc";
 import { BsSend } from "react-icons/bs";
 import AddMaterialModal from "../components/modals/courses/AddMaterialModal";
-import {formatDistanceToNow} from 'date-fns';
+import { formatDistanceToNow } from "date-fns";
 import {
   voteCourseComment,
   removeVoteFromCourseComment,
   getCourseCommentVote,
 } from "../api/courses";
-import { BiUpvote, BiSolidUpvote, BiDownvote, BiSolidDownvote } from "react-icons/bi";
+import {
+  BiUpvote,
+  BiSolidUpvote,
+  BiDownvote,
+  BiSolidDownvote,
+} from "react-icons/bi";
 
 interface Comment {
   id: number;
@@ -60,7 +73,7 @@ interface Comment {
   votes?: {
     upvotes: number;
     downvotes: number;
-    user_vote?: 'up' | 'down' | null;
+    user_vote?: "up" | "down" | null;
   };
 }
 
@@ -78,13 +91,18 @@ interface CommentItemProps {
   onDelete: (commentId: number) => void;
   onRefresh: () => void;
   setComments: React.Dispatch<React.SetStateAction<any[]>>;
-  updateCommentVote: (comments: Comment[], commentId: number, voteData: any) => Comment[];
+  updateCommentVote: (
+    comments: Comment[],
+    commentId: number,
+    voteData: any
+  ) => Comment[];
   editingCommentId: number | null;
   editCommentText: string;
   setEditingCommentId: (id: number | null) => void;
   setEditCommentText: (text: string) => void;
   visibleReplies?: Record<number, number>;
   onLoadMoreReplies?: (commentId: number) => void;
+  onToggleReplies?: (commentId: number) => void;
   depth?: number;
 }
 
@@ -109,17 +127,22 @@ const CommentItem: React.FC<CommentItemProps> = ({
   setEditCommentText,
   visibleReplies = {},
   onLoadMoreReplies,
+  onToggleReplies,
   depth = 0,
 }) => {
   const [showReplyForm, setShowReplyForm] = useState(false);
   const [replyContent, setReplyContent] = useState("");
+  const [replyingToReplyId, setReplyingToReplyId] = useState<number | null>(
+    null
+  );
+  const [replyToReplyContent, setReplyToReplyContent] = useState("");
 
   const isOwnComment = comment.user?.id === user?.id;
 
   // Flatten all nested replies into a single array for display
   const flattenReplies = (replies: Comment[]): Comment[] => {
     let flattened: Comment[] = [];
-    replies.forEach(reply => {
+    replies.forEach((reply) => {
       flattened.push(reply);
       if (reply.replies && reply.replies.length > 0) {
         flattened = flattened.concat(flattenReplies(reply.replies));
@@ -133,7 +156,7 @@ const CommentItem: React.FC<CommentItemProps> = ({
   // Find the parent comment user for context in replies to replies
   const getReplyContext = () => {
     if (!isReply || !comment.parent_comment_id) return null;
-    
+
     // Find the parent comment in the course comments
     const findParentComment = (comments: Comment[]): Comment | null => {
       for (const c of comments) {
@@ -145,7 +168,7 @@ const CommentItem: React.FC<CommentItemProps> = ({
       }
       return null;
     };
-    
+
     const parentComment = findParentComment(course.comments || []);
     return parentComment?.user?.name || null;
   };
@@ -160,6 +183,19 @@ const CommentItem: React.FC<CommentItemProps> = ({
     }
   };
 
+  const initializeReplyToReply = (replyId: number, replyUserName: string) => {
+    setReplyingToReplyId(replyId);
+    setReplyToReplyContent(`@${replyUserName} `);
+  };
+
+  const handleReplyToReplySubmit = () => {
+    if (replyToReplyContent.trim() && replyingToReplyId) {
+      onReply(replyingToReplyId, replyToReplyContent);
+      setReplyToReplyContent("");
+      setReplyingToReplyId(null);
+    }
+  };
+
   // Initialize reply content with @mention for replies to replies
   const initializeReplyForm = () => {
     if (isReply && comment.user?.name) {
@@ -170,28 +206,43 @@ const CommentItem: React.FC<CommentItemProps> = ({
     setShowReplyForm(true);
   };
 
-  const handleVote = async (voteType: 'up' | 'down') => {
+  const handleVote = async (voteType: "up" | "down") => {
     try {
       let voteData;
       if (comment.votes?.user_vote === voteType) {
         // Remove vote
         await removeVoteFromCourseComment(courseId, comment.id);
         voteData = {
-          upvotes: Math.max(0, (comment.votes?.upvotes || 0) - (voteType === 'up' ? 1 : 0)),
-          downvotes: Math.max(0, (comment.votes?.downvotes || 0) - (voteType === 'down' ? 1 : 0)),
-          user_vote: null
+          upvotes: Math.max(
+            0,
+            (comment.votes?.upvotes || 0) - (voteType === "up" ? 1 : 0)
+          ),
+          downvotes: Math.max(
+            0,
+            (comment.votes?.downvotes || 0) - (voteType === "down" ? 1 : 0)
+          ),
+          user_vote: null,
         };
       } else {
         // Add or change vote
         await voteCourseComment(courseId, comment.id, voteType);
-        const wasOppositeVote = comment.votes?.user_vote === (voteType === 'up' ? 'down' : 'up');
+        const wasOppositeVote =
+          comment.votes?.user_vote === (voteType === "up" ? "down" : "up");
         voteData = {
-          upvotes: (comment.votes?.upvotes || 0) + (voteType === 'up' ? 1 : (wasOppositeVote ? 0 : 0)) - (voteType === 'down' && wasOppositeVote ? 1 : 0),
-          downvotes: (comment.votes?.downvotes || 0) + (voteType === 'down' ? 1 : (wasOppositeVote ? 0 : 0)) - (voteType === 'up' && wasOppositeVote ? 1 : 0),
-          user_vote: voteType
+          upvotes:
+            (comment.votes?.upvotes || 0) +
+            (voteType === "up" ? 1 : wasOppositeVote ? 0 : 0) -
+            (voteType === "down" && wasOppositeVote ? 1 : 0),
+          downvotes:
+            (comment.votes?.downvotes || 0) +
+            (voteType === "down" ? 1 : wasOppositeVote ? 0 : 0) -
+            (voteType === "up" && wasOppositeVote ? 1 : 0),
+          user_vote: voteType,
         };
       }
-      setComments(prevComments => updateCommentVote(prevComments, comment.id, voteData));
+      setComments((prevComments) =>
+        updateCommentVote(prevComments, comment.id, voteData)
+      );
     } catch (error) {
       console.error("Error voting on comment:", error);
       // Optionally revert the optimistic update on error
@@ -199,18 +250,22 @@ const CommentItem: React.FC<CommentItemProps> = ({
   };
 
   return (
-    <div className={`mt-4 ${isReply && !isNestedReply ? 'ml-10' : ''} ${!isReply && 'border-b border-gray-200'}`}>
-      <div className={`pb-4 ${isOwnComment ? "bg-blue-50 -mx-4 px-4 py-3 rounded-lg" : ""}`}>
+    <div
+      className={`mt-4 ${isReply && !isNestedReply ? "ml-10" : ""} ${
+        !isReply && "border-b border-gray-200"
+      }`}
+    >
+      <div
+        className={`pb-4 ${
+          isOwnComment ? "bg-blue-50 -mx-4 px-4 py-3 rounded-lg" : ""
+        }`}
+      >
         <div className="flex justify-between items-start">
           <div className="flex-1">
             <div className="flex items-center gap-2 mb-2">
               <span
                 className={`font-medium ${
-                  isInstructor
-                    ? "text-blue-600"
-                    : isOwnComment
-                    ? "text-green-600"
-                    : "text-gray-900"
+                  isOwnComment ? "text-green-600" : "text-gray-900"
                 }`}
               >
                 {comment.user?.name || "Unknown User"}
@@ -235,10 +290,12 @@ const CommentItem: React.FC<CommentItemProps> = ({
               )}
 
               <span className="text-xs text-gray-500">
-                {formatDistanceToNow(new Date(comment.created_at), { addSuffix: true })}
+                {formatDistanceToNow(new Date(comment.created_at), {
+                  addSuffix: true,
+                })}
               </span>
             </div>
-            
+
             {editingCommentId === comment.id ? (
               <div className="mt-2">
                 <textarea
@@ -265,74 +322,99 @@ const CommentItem: React.FC<CommentItemProps> = ({
             ) : (
               <p className="text-gray-700">{comment.content}</p>
             )}
-            
+
             {/* Action buttons */}
             <div className="mt-2 flex items-center gap-2">
               {/*Voting Buttons */}
               <div className="flex items-center gap-2 mr-4">
-                <button 
-                  onClick={() => handleVote('up')}
+                <button
+                  onClick={() => handleVote("up")}
                   className={`flex items-center gap-1 ${
-                    comment.votes?.user_vote === 'up' ? 'text-green-600' : 'text-gray-500'
+                    comment.votes?.user_vote === "up"
+                      ? "text-green-600"
+                      : "text-gray-500"
                   }`}
                 >
-                  {comment.votes?.user_vote === 'up' ? <BiSolidUpvote /> : <BiUpvote />} {comment.votes?.upvotes || 0}
+                  {comment.votes?.user_vote === "up" ? (
+                    <BiSolidUpvote />
+                  ) : (
+                    <BiUpvote />
+                  )}{" "}
+                  {comment.votes?.upvotes || 0}
                 </button>
-                
-                <button 
-                  onClick={() => handleVote('down')}
+
+                <button
+                  onClick={() => handleVote("down")}
                   className={`flex items-center gap-1 ${
-                    comment.votes?.user_vote === 'down' ? 'text-red-600' : 'text-gray-500'
+                    comment.votes?.user_vote === "down"
+                      ? "text-red-600"
+                      : "text-gray-500"
                   }`}
                 >
-                  {comment.votes?.user_vote === 'down' ? <BiSolidDownvote /> : <BiDownvote />} {comment.votes?.downvotes || 0}
+                  {comment.votes?.user_vote === "down" ? (
+                    <BiSolidDownvote />
+                  ) : (
+                    <BiDownvote />
+                  )}{" "}
+                  {comment.votes?.downvotes || 0}
                 </button>
               </div>
-              <button 
+              <button
                 onClick={() => initializeReplyForm()}
-                className="text-blue-500 text-sm hover:text-blue-700"
+                className="text-blue-500 text-sm hover:text-white font-medium rounded-full hover:bg-blue-500 hover:ring-blue-300 transition px-2 py-1"
               >
                 Reply
               </button>
-              
-              {comment.user_id === user?.id && editingCommentId !== comment.id && (
-                <>
-                  <button
-                    onClick={() => {
-                      setEditingCommentId(comment.id);
-                      setEditCommentText(comment.content);
-                    }}
-                    className="px-3 py-1 bg-gray-500 text-white text-sm rounded-md hover:bg-gray-600 font-medium inline-flex items-center gap-1"
-                  >
-                    <RiDeleteBin6Line className="h-4 w-4" />
-                    Edit
-                  </button>
-                  <button
-                    onClick={() => onDelete(comment.id)}
-                    className="px-3 py-1 bg-red-500 text-white text-sm rounded-md hover:bg-red-600 font-medium inline-flex items-center gap-1"
-                  >
-                    <RiDeleteBin6Line className="h-4 w-4" />
-                    Delete
-                  </button>
-                </>
-              )}
+
+              {comment.user_id === user?.id &&
+                editingCommentId !== comment.id && (
+                  <>
+                    <button
+                      onClick={() => {
+                        setEditingCommentId(comment.id);
+                        setEditCommentText(comment.content);
+                      }}
+                      className="px-3 py-1 bg-gray-500 text-white text-sm rounded-md hover:bg-gray-600 font-medium inline-flex items-center gap-1"
+                    >
+                      <RiDeleteBin6Line className="h-4 w-4" />
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => onDelete(comment.id)}
+                      className="px-3 py-1 bg-red-500 text-white text-sm rounded-md hover:bg-red-600 font-medium inline-flex items-center gap-1"
+                    >
+                      <RiDeleteBin6Line className="h-4 w-4" />
+                      Delete
+                    </button>
+                  </>
+                )}
             </div>
-            
+
             {/* Reply form */}
             {showReplyForm && (
               <div className="mt-3">
                 <textarea
                   value={replyContent}
                   onChange={(e) => setReplyContent(e.target.value)}
-                  placeholder={isReply ? `Reply to @${comment.user?.name}...` : "Write a reply..."}
+                  placeholder={
+                    isReply
+                      ? `Reply to @${comment.user?.name}...`
+                      : "Write a reply..."
+                  }
                   className="w-full px-3 py-2 border rounded-md text-black"
                   rows={2}
                 />
                 <div className="flex gap-2 mt-2">
-                  <button onClick={handleReplySubmit} className="px-3 py-1 bg-blue-500 text-white rounded-md">
+                  <button
+                    onClick={handleReplySubmit}
+                    className="px-3 py-1 bg-blue-500 text-white rounded-md"
+                  >
                     Reply
                   </button>
-                  <button onClick={() => setShowReplyForm(false)} className="px-3 py-1 bg-gray-500 text-white rounded-md">
+                  <button
+                    onClick={() => setShowReplyForm(false)}
+                    className="px-3 py-1 bg-gray-500 text-white rounded-md"
+                  >
                     Cancel
                   </button>
                 </div>
@@ -341,12 +423,34 @@ const CommentItem: React.FC<CommentItemProps> = ({
           </div>
         </div>
       </div>
-      
+
       {/* Render replies - flatten all nested replies to same level */}
       {allReplies.length > 0 && depth === 0 && (
-        <div className="mt-4">
-          {allReplies.slice(0, visibleReplies[comment.id] || 1).map((reply) => (
-            <div key={reply.id} className="mt-4 ml-10 border-b border-gray-100 pb-4">
+        <div className="mt-0">
+          <div className="mb-4 flex items-center gap-2">
+            {(visibleReplies[comment.id] || 0) === 0 ? (
+              <button
+                onClick={() => onLoadMoreReplies?.(comment.id)}
+                className="text-blue-500 text-sm hover:text-blue-700 font-medium inline-flex items-center gap-2 ml-1 mb-1"
+              >
+                <FaChevronDown className="w-4 h-4" />
+                {allReplies.length} replies
+              </button>
+            ) : (
+              <button
+                onClick={() => onToggleReplies?.(comment.id)}
+                className="text-blue-500 text-sm hover:text-blue-700 font-medium inline-flex items-center gap-2 ml-1 mb-1"
+              >
+                <FaChevronUp className="w-4 h-4" />
+                {allReplies.length} replies
+              </button>
+            )}
+          </div>
+          {allReplies.slice(0, visibleReplies[comment.id] || 0).map((reply) => (
+            <div
+              key={reply.id}
+              className="mt-4 ml-10 border-b border-gray-100 pb-4"
+            >
               <div className="flex items-center gap-2 mb-2">
                 <span className="font-medium text-gray-900">
                   {reply.user?.name || "Unknown User"}
@@ -357,138 +461,259 @@ const CommentItem: React.FC<CommentItemProps> = ({
                   </span>
                 )}
                 <span className="text-xs text-gray-500">
-                  {formatDistanceToNow(new Date(reply.created_at), { addSuffix: true })}
+                  {formatDistanceToNow(new Date(reply.created_at), {
+                    addSuffix: true,
+                  })}
                 </span>
               </div>
-              <p className="text-gray-700">{reply.content}</p>
-              
+
+              {editingCommentId === reply.id ? (
+                <div className="mt-2">
+                  <textarea
+                    value={editCommentText}
+                    onChange={(e) => setEditCommentText(e.target.value)}
+                    className="w-full px-3 py-2 border rounded-md text-black"
+                    rows={3}
+                  />
+                  <div className="flex gap-2 mt-2">
+                    <button
+                      onClick={() => onEdit(reply.id, editCommentText)}
+                      className="px-3 py-1 bg-blue-500 text-white rounded-md"
+                    >
+                      Save
+                    </button>
+                    <button
+                      onClick={() => setEditingCommentId(null)}
+                      className="px-3 py-1 bg-gray-500 text-white rounded-md"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-gray-700">{reply.content}</p>
+              )}
+
               {/* Action buttons for flattened replies */}
               <div className="mt-2 flex items-center gap-2">
                 <div className="flex items-center gap-2 mr-4">
-                  <button 
+                  <button
                     onClick={async () => {
                       try {
                         let voteData;
-                        if (reply.votes?.user_vote === 'up') {
+                        if (reply.votes?.user_vote === "up") {
                           await removeVoteFromCourseComment(courseId, reply.id);
                           voteData = {
-                            upvotes: Math.max(0, (reply.votes?.upvotes || 0) - 1),
+                            upvotes: Math.max(
+                              0,
+                              (reply.votes?.upvotes || 0) - 1
+                            ),
                             downvotes: reply.votes?.downvotes || 0,
-                            user_vote: null
+                            user_vote: null,
                           };
                         } else {
-                          await voteCourseComment(courseId, reply.id, 'up');
-                          const wasOppositeVote = reply.votes?.user_vote === 'down';
+                          await voteCourseComment(courseId, reply.id, "up");
+                          const wasOppositeVote =
+                            reply.votes?.user_vote === "down";
                           voteData = {
                             upvotes: (reply.votes?.upvotes || 0) + 1,
-                            downvotes: (reply.votes?.downvotes || 0) - (wasOppositeVote ? 1 : 0),
-                            user_vote: 'up'
+                            downvotes:
+                              (reply.votes?.downvotes || 0) -
+                              (wasOppositeVote ? 1 : 0),
+                            user_vote: "up",
                           };
                         }
-                        setComments(prevComments => updateCommentVote(prevComments, reply.id, voteData));
+                        setComments((prevComments) =>
+                          updateCommentVote(prevComments, reply.id, voteData)
+                        );
                       } catch (error) {
                         console.error("Error voting:", error);
                       }
                     }}
                     className={`flex items-center gap-1 ${
-                      reply.votes?.user_vote === 'up' ? 'text-green-600' : 'text-gray-500'
+                      reply.votes?.user_vote === "up"
+                        ? "text-green-600"
+                        : "text-gray-500"
                     }`}
                   >
-                    {reply.votes?.user_vote === 'up' ? <BiSolidUpvote /> : <BiUpvote />} {reply.votes?.upvotes || 0}
+                    {reply.votes?.user_vote === "up" ? (
+                      <BiSolidUpvote />
+                    ) : (
+                      <BiUpvote />
+                    )}{" "}
+                    {reply.votes?.upvotes || 0}
                   </button>
-                  <button 
+                  <button
                     onClick={async () => {
                       try {
                         let voteData;
-                        if (reply.votes?.user_vote === 'down') {
+                        if (reply.votes?.user_vote === "down") {
                           await removeVoteFromCourseComment(courseId, reply.id);
                           voteData = {
                             upvotes: reply.votes?.upvotes || 0,
-                            downvotes: Math.max(0, (reply.votes?.downvotes || 0) - 1),
-                            user_vote: null
+                            downvotes: Math.max(
+                              0,
+                              (reply.votes?.downvotes || 0) - 1
+                            ),
+                            user_vote: null,
                           };
                         } else {
-                          await voteCourseComment(courseId, reply.id, 'down');
-                          const wasOppositeVote = reply.votes?.user_vote === 'up';
+                          await voteCourseComment(courseId, reply.id, "down");
+                          const wasOppositeVote =
+                            reply.votes?.user_vote === "up";
                           voteData = {
-                            upvotes: (reply.votes?.upvotes || 0) - (wasOppositeVote ? 1 : 0),
+                            upvotes:
+                              (reply.votes?.upvotes || 0) -
+                              (wasOppositeVote ? 1 : 0),
                             downvotes: (reply.votes?.downvotes || 0) + 1,
-                            user_vote: 'down'
+                            user_vote: "down",
                           };
                         }
-                        setComments(prevComments => updateCommentVote(prevComments, reply.id, voteData));
+                        setComments((prevComments) =>
+                          updateCommentVote(prevComments, reply.id, voteData)
+                        );
                       } catch (error) {
                         console.error("Error voting:", error);
                       }
                     }}
                     className={`flex items-center gap-1 ${
-                      reply.votes?.user_vote === 'down' ? 'text-red-600' : 'text-gray-500'
+                      reply.votes?.user_vote === "down"
+                        ? "text-red-600"
+                        : "text-gray-500"
                     }`}
                   >
-                    {reply.votes?.user_vote === 'down' ? <BiSolidDownvote /> : <BiDownvote />} {reply.votes?.downvotes || 0}
+                    {reply.votes?.user_vote === "down" ? (
+                      <BiSolidDownvote />
+                    ) : (
+                      <BiDownvote />
+                    )}{" "}
+                    {reply.votes?.downvotes || 0}
                   </button>
                 </div>
-                <button 
-                  onClick={() => onReply(comment.id, '')}
-                  className="text-blue-500 text-sm hover:text-blue-700"
+                <button
+                  onClick={() =>
+                    initializeReplyToReply(reply.id, reply.user?.name || "")
+                  }
+                  className="text-blue-500 text-sm hover:text-white font-medium rounded-full hover:bg-blue-500 hover:ring-blue-300 transition px-2 py-1"
                 >
                   Reply
                 </button>
+
+                {reply.user_id === user?.id &&
+                  editingCommentId !== reply.id && (
+                    <>
+                      <button
+                        onClick={() => {
+                          setEditingCommentId(reply.id);
+                          setEditCommentText(reply.content);
+                        }}
+                        className="px-3 py-1 bg-gray-500 text-white text-sm rounded-md hover:bg-gray-600 font-medium inline-flex items-center gap-1"
+                      >
+                        <RiDeleteBin6Line className="h-4 w-4" />
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => onDelete(reply.id)}
+                        className="px-3 py-1 bg-red-500 text-white text-sm rounded-md hover:bg-red-600 font-medium inline-flex items-center gap-1"
+                      >
+                        <RiDeleteBin6Line className="h-4 w-4" />
+                        Delete
+                      </button>
+                    </>
+                  )}
               </div>
+
+              {/* Reply to reply form */}
+              {replyingToReplyId === reply.id && (
+                <div className="mt-3">
+                  <textarea
+                    value={replyToReplyContent}
+                    onChange={(e) => setReplyToReplyContent(e.target.value)}
+                    placeholder={`Reply to @${reply.user?.name}...`}
+                    className="w-full px-3 py-2 border rounded-md text-black"
+                    rows={2}
+                  />
+                  <div className="flex gap-2 mt-2">
+                    <button
+                      onClick={handleReplyToReplySubmit}
+                      className="px-3 py-1 bg-blue-500 text-white rounded-md"
+                    >
+                      Reply
+                    </button>
+                    <button
+                      onClick={() => {
+                        setReplyingToReplyId(null);
+                        setReplyToReplyContent("");
+                      }}
+                      className="px-3 py-1 bg-gray-500 text-white rounded-md"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           ))}
-          {allReplies.length > (visibleReplies[comment.id] || 1) && (
-            <div className="mt-2 ml-10">
-              <button
-                onClick={() => onLoadMoreReplies?.(comment.id)}
-                className="text-blue-500 text-sm hover:text-blue-700 font-medium"
-              >
-                Load more replies
-              </button>
-            </div>
-          )}
+          {(visibleReplies[comment.id] || 0) > 0 &&
+            allReplies.length > (visibleReplies[comment.id] || 0) && (
+              <div className="mt-2 mb-2 flex items-center gap-2">
+                <button
+                  onClick={() => onLoadMoreReplies?.(comment.id)}
+                  className="text-blue-500 text-sm hover:text-blue-700 font-medium inline-flex items-center gap-1 ml-5 mb-1"
+                >
+                  <HiArrowTurnDownRight className="w-4 h-4" />
+                  Show more replies
+                </button>
+              </div>
+            )}
         </div>
       )}
-      
+
       {/* Keep nested rendering for depth > 0 (shouldn't happen with flattening, but keep as fallback) */}
       {comment.replies && comment.replies.length > 0 && depth > 0 && (
         <div className="mt-4">
-          {comment.replies.slice(0, visibleReplies[comment.id] || 1).map((reply) => (
-            <CommentItem 
-              key={reply.id} 
-              comment={reply} 
-              courseId={courseId}
-              course={course}
-              user={user}
-              isInstructor={isInstructor}
-              isAdmin={isAdmin}
-              isReply={true}
-              isNestedReply={isReply}
-              onReply={onReply}
-              onEdit={onEdit}
-              onDelete={onDelete}
-              onRefresh={onRefresh}
-              setComments={setComments}
-              updateCommentVote={updateCommentVote}
-              editingCommentId={editingCommentId}
-              editCommentText={editCommentText}
-              setEditingCommentId={setEditingCommentId}
-              setEditCommentText={setEditCommentText}
-              visibleReplies={visibleReplies}
-              onLoadMoreReplies={onLoadMoreReplies}
-              depth={depth + 1}
-            />
-          ))}
-          {comment.replies && comment.replies.length > (visibleReplies[comment.id] || 1) && (
-            <div className={`mt-2 ${isReply && !isNestedReply ? 'ml-10' : ''}`}>
-              <button
-                onClick={() => onLoadMoreReplies?.(comment.id)}
-                className="text-blue-500 text-sm hover:text-blue-700 font-medium"
+          {comment.replies
+            .slice(0, visibleReplies[comment.id] || 1)
+            .map((reply) => (
+              <CommentItem
+                key={reply.id}
+                comment={reply}
+                courseId={courseId}
+                course={course}
+                user={user}
+                isInstructor={isInstructor}
+                isAdmin={isAdmin}
+                isReply={true}
+                isNestedReply={isReply}
+                onReply={onReply}
+                onEdit={onEdit}
+                onDelete={onDelete}
+                onRefresh={onRefresh}
+                setComments={setComments}
+                updateCommentVote={updateCommentVote}
+                editingCommentId={editingCommentId}
+                editCommentText={editCommentText}
+                setEditingCommentId={setEditingCommentId}
+                setEditCommentText={setEditCommentText}
+                visibleReplies={visibleReplies}
+                onLoadMoreReplies={onLoadMoreReplies}
+                onToggleReplies={onToggleReplies}
+                depth={depth + 1}
+              />
+            ))}
+          {comment.replies &&
+            comment.replies.length > (visibleReplies[comment.id] || 1) && (
+              <div
+                className={`mt-2 ${isReply && !isNestedReply ? "ml-10" : ""}`}
               >
-                Load more replies
-              </button>
-            </div>
-          )}
+                <button
+                  onClick={() => onLoadMoreReplies?.(comment.id)}
+                  className="text-blue-500 text-sm hover:text-blue-700 font-medium"
+                >
+                  Load more replies
+                </button>
+              </div>
+            )}
         </div>
       )}
     </div>
@@ -536,7 +761,9 @@ const CourseDetails: React.FC = () => {
   const [showEditModal, setShowEditModal] = useState(false);
   const [showAddMaterialModal, setShowAddMaterialModal] = useState(false);
   const [showEditMaterialModal, setShowEditMaterialModal] = useState(false);
-  const [editingMaterialId, setEditingMaterialId] = useState<number | null>(null);
+  const [editingMaterialId, setEditingMaterialId] = useState<number | null>(
+    null
+  );
   const [editMaterialForm, setEditMaterialForm] = useState({
     title: "",
     description: "",
@@ -547,6 +774,11 @@ const CourseDetails: React.FC = () => {
   >("all");
   const [newComment, setNewComment] = useState("");
   const [newAnnouncement, setNewAnnouncement] = useState({
+    title: "",
+    content: "",
+  });
+  const [editingAnnouncementId, setEditingAnnouncementId] = useState<number | null>(null);
+  const [editingAnnouncement, setEditingAnnouncement] = useState({
     title: "",
     content: "",
   });
@@ -573,18 +805,27 @@ const CourseDetails: React.FC = () => {
 
   // Pagination states
   const [visibleComments, setVisibleComments] = useState(10);
-  const [visibleReplies, setVisibleReplies] = useState<{ [commentId: number]: number }>({});
+  const [visibleReplies, setVisibleReplies] = useState<{
+    [commentId: number]: number;
+  }>({});
   const COMMENTS_PER_LOAD = 10;
 
   // Pagination handlers
   const handleLoadMoreComments = () => {
-    setVisibleComments(prev => prev + COMMENTS_PER_LOAD);
+    setVisibleComments((prev) => prev + COMMENTS_PER_LOAD);
   };
 
   const handleLoadMoreReplies = (commentId: number) => {
-    setVisibleReplies(prev => ({
+    setVisibleReplies((prev) => ({
       ...prev,
-      [commentId]: (prev[commentId] || 1) + 3
+      [commentId]: (prev[commentId] || 0) + 10,
+    }));
+  };
+
+  const handleToggleReplies = (commentId: number) => {
+    setVisibleReplies((prev) => ({
+      ...prev,
+      [commentId]: (prev[commentId] || 0) > 0 ? 0 : 10,
     }));
   };
 
@@ -634,41 +875,48 @@ const CourseDetails: React.FC = () => {
   };
 
   // Helper functions for asynchronous updates
-  const updateCommentVote = (comments: Comment[], commentId: number, voteData: any): Comment[] => {
-    return comments.map(comment => {
+  const updateCommentVote = (
+    comments: Comment[],
+    commentId: number,
+    voteData: any
+  ): Comment[] => {
+    return comments.map((comment) => {
       if (comment.id === commentId) {
         return {
           ...comment,
           votes: {
             ...comment.votes,
-            ...voteData
-          }
+            ...voteData,
+          },
         };
       }
       if (comment.replies) {
         return {
           ...comment,
-          replies: updateCommentVote(comment.replies, commentId, voteData)
+          replies: updateCommentVote(comment.replies, commentId, voteData),
         };
       }
       return comment;
     });
   };
 
-  const addCommentToList = (comments: Comment[], newComment: Comment): Comment[] => {
+  const addCommentToList = (
+    comments: Comment[],
+    newComment: Comment
+  ): Comment[] => {
     if (newComment.parent_comment_id) {
       // It's a reply, find the parent and add to its replies
-      return comments.map(comment => {
+      return comments.map((comment) => {
         if (comment.id === newComment.parent_comment_id) {
           return {
             ...comment,
-            replies: [...(comment.replies || []), newComment]
+            replies: [...(comment.replies || []), newComment],
           };
         }
         if (comment.replies) {
           return {
             ...comment,
-            replies: addCommentToList(comment.replies, newComment)
+            replies: addCommentToList(comment.replies, newComment),
           };
         }
         return comment;
@@ -679,32 +927,43 @@ const CourseDetails: React.FC = () => {
     }
   };
 
-  const updateCommentInList = (comments: Comment[], commentId: number, updatedContent: string): Comment[] => {
-    return comments.map(comment => {
+  const updateCommentInList = (
+    comments: Comment[],
+    commentId: number,
+    updatedContent: string
+  ): Comment[] => {
+    return comments.map((comment) => {
       if (comment.id === commentId) {
         return {
           ...comment,
-          content: updatedContent
+          content: updatedContent,
         };
       }
       if (comment.replies) {
         return {
           ...comment,
-          replies: updateCommentInList(comment.replies, commentId, updatedContent)
+          replies: updateCommentInList(
+            comment.replies,
+            commentId,
+            updatedContent
+          ),
         };
       }
       return comment;
     });
   };
 
-  const removeCommentFromList = (comments: Comment[], commentId: number): Comment[] => {
+  const removeCommentFromList = (
+    comments: Comment[],
+    commentId: number
+  ): Comment[] => {
     return comments
-      .filter(comment => comment.id !== commentId)
-      .map(comment => {
+      .filter((comment) => comment.id !== commentId)
+      .map((comment) => {
         if (comment.replies) {
           return {
             ...comment,
-            replies: removeCommentFromList(comment.replies, commentId)
+            replies: removeCommentFromList(comment.replies, commentId),
           };
         }
         return comment;
@@ -712,9 +971,12 @@ const CourseDetails: React.FC = () => {
   };
 
   // Helper function for optimistic material updates
-  const addMaterialOptimistically = (materials: any[], newMaterial: any): any[] => {
+  const addMaterialOptimistically = (
+    materials: any[],
+    newMaterial: any
+  ): any[] => {
     // Check if this is replacing an optimistic material (same title and temp ID)
-    const existingIndex = materials.findIndex(m => m.id === newMaterial.id);
+    const existingIndex = materials.findIndex((m) => m.id === newMaterial.id);
     if (existingIndex >= 0) {
       // Replace the optimistic material with real data
       const updatedMaterials = [...materials];
@@ -726,24 +988,31 @@ const CourseDetails: React.FC = () => {
     }
   };
 
-  const updateMaterialInList = (materials: any[], materialId: number, updatedMaterial: any): any[] => {
-    return materials.map(material => 
-      material.id === materialId ? { ...material, ...updatedMaterial } : material
+  const updateMaterialInList = (
+    materials: any[],
+    materialId: number,
+    updatedMaterial: any
+  ): any[] => {
+    return materials.map((material) =>
+      material.id === materialId
+        ? { ...material, ...updatedMaterial }
+        : material
     );
   };
 
   const handleMaterialAdded = (material: any) => {
-    setMaterials(prev => addMaterialOptimistically(prev, material));
+    setMaterials((prev) => addMaterialOptimistically(prev, material));
   };
 
   const handleEditMaterial = (materialId: number) => {
     // Prevent editing materials with temporary IDs (timestamps)
-    if (materialId > 1000000000000) { // Timestamp IDs are > 1 trillion
+    if (materialId > 1000000000000) {
+      // Timestamp IDs are > 1 trillion
       alert("Please wait for the material to finish uploading before editing.");
       return;
     }
 
-    const material = materials.find(m => m.id === materialId);
+    const material = materials.find((m) => m.id === materialId);
     if (material) {
       setEditingMaterialId(materialId);
       setEditMaterialForm({
@@ -760,10 +1029,12 @@ const CourseDetails: React.FC = () => {
     if (!id || !editingMaterialId) return;
 
     // Store original material for potential rollback
-    const originalMaterial = materials.find(m => m.id === editingMaterialId);
+    const originalMaterial = materials.find((m) => m.id === editingMaterialId);
 
     // Optimistic update
-    setMaterials(prev => updateMaterialInList(prev, editingMaterialId, editMaterialForm));
+    setMaterials((prev) =>
+      updateMaterialInList(prev, editingMaterialId, editMaterialForm)
+    );
     setShowEditMaterialModal(false);
     setEditingMaterialId(null);
     setEditMaterialForm({
@@ -778,7 +1049,9 @@ const CourseDetails: React.FC = () => {
       console.error("Error updating material:", err);
       // Revert optimistic update
       if (originalMaterial) {
-        setMaterials(prev => updateMaterialInList(prev, editingMaterialId, originalMaterial));
+        setMaterials((prev) =>
+          updateMaterialInList(prev, editingMaterialId, originalMaterial)
+        );
       }
       setShowEditMaterialModal(true);
       setEditingMaterialId(editingMaterialId);
@@ -886,18 +1159,21 @@ const CourseDetails: React.FC = () => {
     if (!id) return;
 
     // Prevent deleting materials with temporary IDs (timestamps)
-    if (materialId > 1000000000000) { // Timestamp IDs are > 1 trillion
-      alert("Please wait for the material to finish uploading before deleting.");
+    if (materialId > 1000000000000) {
+      // Timestamp IDs are > 1 trillion
+      alert(
+        "Please wait for the material to finish uploading before deleting."
+      );
       return;
     }
 
     if (!confirm("Are you sure you want to delete this material?")) return;
 
     // Store the material for potential rollback
-    const materialToDelete = materials.find(m => m.id === materialId);
+    const materialToDelete = materials.find((m) => m.id === materialId);
 
     // Optimistic update
-    setMaterials(prev => prev.filter(m => m.id !== materialId));
+    setMaterials((prev) => prev.filter((m) => m.id !== materialId));
 
     try {
       await deleteCourseMaterial(id, materialId);
@@ -905,7 +1181,7 @@ const CourseDetails: React.FC = () => {
       console.error("Error deleting material:", err);
       // Revert optimistic update
       if (materialToDelete) {
-        setMaterials(prev => [...prev, materialToDelete]);
+        setMaterials((prev) => [...prev, materialToDelete]);
       }
       alert(err.response?.data?.message || "Failed to delete material");
     }
@@ -925,27 +1201,29 @@ const CourseDetails: React.FC = () => {
       votes: {
         upvotes: 0,
         downvotes: 0,
-        user_vote: null
-      }
+        user_vote: null,
+      },
     };
 
     // Optimistic update
-    setComments(prev => [...prev, tempComment]);
+    setComments((prev) => [...prev, tempComment]);
     setNewComment("");
 
     // Ensure the new comment is visible
-    setVisibleComments(prev => Math.max(prev, comments.length + 1));
+    setVisibleComments((prev) => Math.max(prev, comments.length + 1));
 
     try {
       const response = await addCourseComment(id, newComment);
       // Update with real data from server
       if (response.data?.comment) {
-        setComments(prev => prev.map(c => c.id === tempComment.id ? response.data.comment : c));
+        setComments((prev) =>
+          prev.map((c) => (c.id === tempComment.id ? response.data.comment : c))
+        );
       }
     } catch (err: any) {
       console.error("Error adding comment:", err);
       // Revert optimistic update
-      setComments(prev => prev.filter(c => c.id !== tempComment.id));
+      setComments((prev) => prev.filter((c) => c.id !== tempComment.id));
       setNewComment(newComment); // Restore the text
       alert(err.response?.data?.message || "Failed to post comment");
     }
@@ -965,24 +1243,24 @@ const CourseDetails: React.FC = () => {
       votes: {
         upvotes: 0,
         downvotes: 0,
-        user_vote: null
-      }
+        user_vote: null,
+      },
     };
 
     // Optimistic update
-    setComments(prev => addCommentToList(prev, tempReply));
-    
+    setComments((prev) => addCommentToList(prev, tempReply));
+
     // Update visibleReplies to show the new reply
-    setVisibleReplies(prev => ({
-      ...prev,
-      [parentCommentId]: (prev[parentCommentId] || 1) + 1
-    }));
+    // setVisibleReplies(prev => ({
+    //   ...prev,
+    //   [parentCommentId]: (prev[parentCommentId] || 1) + 1
+    // }));
 
     try {
       const response = await addCourseComment(id, content, parentCommentId);
       // Update with real data from server
       if (response.data?.comment) {
-        setComments(prev => {
+        setComments((prev) => {
           // Remove temp reply and add real one
           const withoutTemp = removeCommentFromList(prev, tempReply.id);
           return addCommentToList(withoutTemp, response.data.comment);
@@ -991,7 +1269,7 @@ const CourseDetails: React.FC = () => {
     } catch (err: any) {
       console.error("Error adding reply:", err);
       // Revert optimistic update
-      setComments(prev => removeCommentFromList(prev, tempReply.id));
+      setComments((prev) => removeCommentFromList(prev, tempReply.id));
       alert(err.response?.data?.message || "Failed to post reply");
     }
   };
@@ -1006,7 +1284,7 @@ const CourseDetails: React.FC = () => {
     const originalText = editCommentText;
 
     // Optimistic update
-    setComments(prev => updateCommentInList(prev, commentId, updatedText));
+    setComments((prev) => updateCommentInList(prev, commentId, updatedText));
     setEditingCommentId(null);
     setEditCommentText("");
 
@@ -1015,7 +1293,7 @@ const CourseDetails: React.FC = () => {
     } catch (err: any) {
       console.error("Error updating comment:", err);
       // Revert optimistic update
-      setComments(prev => updateCommentInList(prev, commentId, originalText));
+      setComments((prev) => updateCommentInList(prev, commentId, originalText));
       setEditingCommentId(commentId);
       setEditCommentText(originalText);
       alert(err.response?.data?.message || "Failed to update comment");
@@ -1033,7 +1311,7 @@ const CourseDetails: React.FC = () => {
 
     // Store the comment for potential rollback (simplified - just proceed with delete)
     // Optimistic update
-    setComments(prev => removeCommentFromList(prev, commentId));
+    setComments((prev) => removeCommentFromList(prev, commentId));
 
     try {
       await deleteCourseComment(id!, commentId);
@@ -1070,6 +1348,39 @@ const CourseDetails: React.FC = () => {
       console.error("Error deleting announcement:", err);
       alert(err.response?.data?.message || "Failed to delete announcement");
     }
+  };
+
+  const handleEditAnnouncement = async () => {
+    if (!id || !editingAnnouncementId) return;
+
+    if (!editingAnnouncement.title.trim() || !editingAnnouncement.content.trim()) {
+      alert("Please fill in both title and content");
+      return;
+    }
+
+    try {
+      await updateCourseAnnouncement(id, editingAnnouncementId, editingAnnouncement);
+      await fetchCourseData();
+      setEditingAnnouncementId(null);
+      setEditingAnnouncement({ title: "", content: "" });
+      alert("Announcement updated");
+    } catch (err: any) {
+      console.error("Error updating announcement:", err);
+      alert(err.response?.data?.message || "Failed to update announcement");
+    }
+  };
+
+  const startEditingAnnouncement = (announcement: any) => {
+    setEditingAnnouncementId(announcement.id);
+    setEditingAnnouncement({
+      title: announcement.title,
+      content: announcement.content,
+    });
+  };
+
+  const cancelEditingAnnouncement = () => {
+    setEditingAnnouncementId(null);
+    setEditingAnnouncement({ title: "", content: "" });
   };
 
   const handleBanUser = async (userId: number) => {
@@ -1250,7 +1561,7 @@ const CourseDetails: React.FC = () => {
                   </span>
                 </button>
               )}
-              {isInstructor && (
+              {isInstructor && course?.privacy === "private" && (
                 <button
                   onClick={() => setActiveTab("requests")}
                   className={`flex items-center gap-2 px-6 py-4 text-sm font-medium border-b-2 ${
@@ -1378,7 +1689,6 @@ const CourseDetails: React.FC = () => {
                                   {/* Ban/Unban from comments - only for admins */}
                                   {(isAdmin || isInstructor) &&
                                     (learner.pivot?.comment_banned ? (
-                                      
                                       <button
                                         onClick={() =>
                                           handleUnbanUser(learner.id)
@@ -1542,7 +1852,7 @@ const CourseDetails: React.FC = () => {
                               <FaRegFileAlt className="h-10 w-10 text-blue-500" />
                             )}
                             {material.type === "video" && (
-                              <MdOutlineSlowMotionVideo className="h-10 w-10 text-red-500" />
+                              <FaRegPlayCircle className="h-10 w-10 text-red-500" />
                             )}
                             {material.type === "link" && (
                               <FaLink className="h-10 w-10 text-green-500" />
@@ -1583,7 +1893,9 @@ const CourseDetails: React.FC = () => {
                                 <LiaEditSolid className="h-5 w-5" />
                               </button>
                               <button
-                                onClick={() => handleDeleteMaterial(material.id)}
+                                onClick={() =>
+                                  handleDeleteMaterial(material.id)
+                                }
                                 className="text-red-500 hover:text-red-700"
                                 title="Delete material"
                               >
@@ -1626,10 +1938,10 @@ const CourseDetails: React.FC = () => {
               <div>
                 <div className="space-y-6">
                   {comments.slice(0, visibleComments).map((comment) => (
-                    <CommentItem 
-                      key={comment.id} 
-                      comment={comment} 
-                      courseId={id!} 
+                    <CommentItem
+                      key={comment.id}
+                      comment={comment}
+                      courseId={id!}
                       course={course!}
                       user={user}
                       isInstructor={isInstructor}
@@ -1648,6 +1960,7 @@ const CourseDetails: React.FC = () => {
                       setEditCommentText={setEditCommentText}
                       visibleReplies={visibleReplies}
                       onLoadMoreReplies={handleLoadMoreReplies}
+                      onToggleReplies={handleToggleReplies}
                       depth={0}
                     />
                   ))}
@@ -1689,80 +2002,197 @@ const CourseDetails: React.FC = () => {
             {/* Announcements Tab */}
             {activeTab === "announcements" && (
               <div>
-                <div className="space-y-6">
-                  {announcements.map((announcement: any) => (
+                {/* Empty State */}
+                {announcements.length === 0 && !isInstructor && (
+                  <div className="text-center py-12">
+                    <RiMegaphoneLine className="mx-auto h-16 w-16 text-gray-300 mb-4" />
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">
+                      No Announcements Yet
+                    </h3>
+                    <p className="text-gray-500">
+                      Check back later for course announcements from your instructor.
+                    </p>
+                  </div>
+                )}
+
+                {/* Announcements List */}
+                <div className="space-y-4">
+                  {announcements
+                    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+                    .map((announcement: any) => (
                     <div
                       key={announcement.id}
-                      className="border border-gray-200 rounded-lg p-4"
+                      className="bg-gradient-to-r from-blue-50 to-purple-50 border-l-4 border-blue-500 rounded-lg shadow-sm hover:shadow-md transition-shadow"
                     >
-                      <div className="flex justify-between items-start">
-                        <div className="flex-1">
-                          <h3 className="font-semibold text-gray-900 mb-2">
-                            {announcement.title}
-                          </h3>
-                          <p className="text-gray-700 mb-2">
-                            {announcement.content}
-                          </p>
-                          <p className="text-xs text-gray-500">
-                            Posted on{" "}
-                            {new Date(
-                              announcement.created_at
-                            ).toLocaleDateString()}
-                          </p>
+                      {editingAnnouncementId === announcement.id ? (
+                        <div className="p-5">
+                          <div className="mb-4">
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                              Title
+                            </label>
+                            <input
+                              type="text"
+                              value={editingAnnouncement.title}
+                              onChange={(e) =>
+                                setEditingAnnouncement({
+                                  ...editingAnnouncement,
+                                  title: e.target.value,
+                                })
+                              }
+                              placeholder="Announcement Title"
+                              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black"
+                            />
+                          </div>
+                          <div className="mb-4">
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                              Content
+                            </label>
+                            <textarea
+                              value={editingAnnouncement.content}
+                              onChange={(e) =>
+                                setEditingAnnouncement({
+                                  ...editingAnnouncement,
+                                  content: e.target.value,
+                                })
+                              }
+                              placeholder="Write your announcement here..."
+                              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black"
+                              rows={4}
+                            />
+                          </div>
+                          <div className="flex gap-2">
+                            <button
+                              onClick={handleEditAnnouncement}
+                              className="px-5 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium shadow-sm inline-flex items-center gap-2"
+                            >
+                              <RiCheckLine className="h-4 w-4" />
+                              Save Changes
+                            </button>
+                            <button
+                              onClick={cancelEditingAnnouncement}
+                              className="px-5 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 font-medium shadow-sm inline-flex items-center gap-2"
+                            >
+                              <LiaTimesSolid className="h-4 w-4" />
+                              Cancel
+                            </button>
+                          </div>
                         </div>
-                        {isInstructor && (
-                          <button
-                            onClick={() =>
-                              handleDeleteAnnouncement(announcement.id)
-                            }
-                            className="px-3 py-1 bg-red-500 text-white text-sm rounded-md hover:bg-red-600 font-medium ml-4 inline-flex items-center gap-1"
-                          >
-                            <RiDeleteBin6Line className="h-4 w-4" />
-                            Delete
-                          </button>
-                        )}
-                      </div>
+                      ) : (
+                        <div className="p-5">
+                          <div className="flex items-start gap-4">
+                            <div className="flex-shrink-0">
+                              <div className="h-12 w-12 bg-blue-500 rounded-full flex items-center justify-center">
+                                <RiMegaphoneLine className="h-6 w-6 text-white" />
+                              </div>
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-start justify-between gap-4">
+                                <div className="flex-1">
+                                  <h3 className="text-xl font-bold text-gray-900 mb-2">
+                                    {announcement.title}
+                                  </h3>
+                                  <p className="text-gray-700 leading-relaxed whitespace-pre-wrap mb-3">
+                                    {announcement.content}
+                                  </p>
+                                  <div className="flex items-center gap-2 text-sm text-gray-500">
+                                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                    </svg>
+                                    <span>
+                                      {new Date(announcement.created_at).toLocaleDateString('en-US', { 
+                                        year: 'numeric', 
+                                        month: 'long', 
+                                        day: 'numeric',
+                                        hour: '2-digit',
+                                        minute: '2-digit'
+                                      })}
+                                    </span>
+                                  </div>
+                                </div>
+                                {isInstructor && (
+                                  <div className="flex gap-2">
+                                    <button
+                                      onClick={() => startEditingAnnouncement(announcement)}
+                                      className="p-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 font-medium shadow-sm transition-colors"
+                                      title="Edit announcement"
+                                    >
+                                      <LiaEditSolid className="h-4 w-4" />
+                                    </button>
+                                    <button
+                                      onClick={() =>
+                                        handleDeleteAnnouncement(announcement.id)
+                                      }
+                                      className="p-2 bg-red-500 text-white rounded-lg hover:bg-red-600 font-medium shadow-sm transition-colors"
+                                      title="Delete announcement"
+                                    >
+                                      <RiDeleteBin6Line className="h-4 w-4" />
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
 
                 {/* Add Announcement Form */}
                 {isInstructor && (
-                  <div className="mt-6 border-t pt-6">
-                    <h3 className="text-lg font-medium mb-3">
-                      Post New Announcement
-                    </h3>
-                    <input
-                      type="text"
-                      value={newAnnouncement.title}
-                      onChange={(e) =>
-                        setNewAnnouncement({
-                          ...newAnnouncement,
-                          title: e.target.value,
-                        })
-                      }
-                      placeholder="Announcement Title"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md mb-3 text-black"
-                    />
-                    <textarea
-                      value={newAnnouncement.content}
-                      onChange={(e) =>
-                        setNewAnnouncement({
-                          ...newAnnouncement,
-                          content: e.target.value,
-                        })
-                      }
-                      placeholder="Write your announcement here..."
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md mb-3 text-black"
-                      rows={4}
-                    />
-                    <button
-                      onClick={handleAddAnnouncement}
-                      className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 flex items-center gap-2"
-                    >
-                      <RiMegaphoneLine className="h-4 w-4" />
-                      Post Announcement
-                    </button>
+                  <div className="mt-8 bg-white border-2 border-dashed border-gray-300 rounded-lg p-6 hover:border-blue-400 transition-colors">
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="h-10 w-10 bg-blue-100 rounded-full flex items-center justify-center">
+                        <RiMegaphoneLine className="h-5 w-5 text-blue-600" />
+                      </div>
+                      <h3 className="text-lg font-semibold text-gray-900">
+                        Create New Announcement
+                      </h3>
+                    </div>
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Title <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          value={newAnnouncement.title}
+                          onChange={(e) =>
+                            setNewAnnouncement({
+                              ...newAnnouncement,
+                              title: e.target.value,
+                            })
+                          }
+                          placeholder="e.g., Important Update, New Assignment, etc."
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black placeholder-gray-400"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Content <span className="text-red-500">*</span>
+                        </label>
+                        <textarea
+                          value={newAnnouncement.content}
+                          onChange={(e) =>
+                            setNewAnnouncement({
+                              ...newAnnouncement,
+                              content: e.target.value,
+                            })
+                          }
+                          placeholder="Write your announcement details here..."
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black placeholder-gray-400"
+                          rows={5}
+                        />
+                      </div>
+                      <button
+                        onClick={handleAddAnnouncement}
+                        disabled={!newAnnouncement.title.trim() || !newAnnouncement.content.trim()}
+                        className="w-full px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed font-medium shadow-sm flex items-center justify-center gap-2 transition-colors"
+                      >
+                        <RiMegaphoneLine className="h-5 w-5" />
+                        Post Announcement
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>
@@ -1877,14 +2307,15 @@ const CourseDetails: React.FC = () => {
             <h2 className="text-xl font-bold mb-4">Edit Material</h2>
             <form onSubmit={handleUpdateMaterial}>
               <div className="mb-4">
-                <label className="block text-sm font-medium mb-1">
-                  Title
-                </label>
+                <label className="block text-sm font-medium mb-1">Title</label>
                 <input
                   type="text"
                   value={editMaterialForm.title}
                   onChange={(e) =>
-                    setEditMaterialForm({ ...editMaterialForm, title: e.target.value })
+                    setEditMaterialForm({
+                      ...editMaterialForm,
+                      title: e.target.value,
+                    })
                   }
                   className="w-full px-3 py-2 border border-gray-300 rounded-md text-black"
                   required
@@ -1897,22 +2328,27 @@ const CourseDetails: React.FC = () => {
                 <textarea
                   value={editMaterialForm.description}
                   onChange={(e) =>
-                    setEditMaterialForm({ ...editMaterialForm, description: e.target.value })
+                    setEditMaterialForm({
+                      ...editMaterialForm,
+                      description: e.target.value,
+                    })
                   }
                   className="w-full px-3 py-2 border border-gray-300 rounded-md text-black"
                   rows={3}
                 />
               </div>
-              {materials.find(m => m.id === editingMaterialId)?.type !== "file" && (
+              {materials.find((m) => m.id === editingMaterialId)?.type !==
+                "file" && (
                 <div className="mb-4">
-                  <label className="block text-sm font-medium mb-1">
-                    URL
-                  </label>
+                  <label className="block text-sm font-medium mb-1">URL</label>
                   <input
                     type="url"
                     value={editMaterialForm.url}
                     onChange={(e) =>
-                      setEditMaterialForm({ ...editMaterialForm, url: e.target.value })
+                      setEditMaterialForm({
+                        ...editMaterialForm,
+                        url: e.target.value,
+                      })
                     }
                     className="w-full px-3 py-2 border border-gray-300 rounded-md text-black"
                     required
@@ -1953,4 +2389,3 @@ const CourseDetails: React.FC = () => {
 };
 
 export default CourseDetails;
-

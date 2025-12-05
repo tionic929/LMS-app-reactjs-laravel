@@ -484,6 +484,28 @@ class CourseController extends Controller
     }
 
     /**
+     * Update announcement
+     */
+    public function updateAnnouncement(Request $request, Course $course, $announcementId)
+    {
+        if (auth()->id() !== $course->instructor_id) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        $validated = $request->validate([
+            'title' => 'required|string|max:255',
+            'content' => 'required|string',
+        ]);
+
+        $announcement = CourseAnnouncement::where('course_id', $course->id)
+            ->findOrFail($announcementId);
+
+        $announcement->update($validated);
+
+        return response()->json($announcement);
+    }
+
+    /**
      * Enroll in a public course or request to join a private course
      */
     public function enroll(Course $course)
@@ -529,14 +551,22 @@ class CourseController extends Controller
 
             return response()->json(['message' => 'Successfully enrolled']);
         } else {
-            // Create join request for private courses
+            // Create or update join request for private courses
             $existingRequest = CourseJoinRequest::where('course_id', $course->id)
                 ->where('user_id', $user->id)
-                ->where('status', 'pending')
                 ->first();
 
             if ($existingRequest) {
-                return response()->json(['message' => 'Join request already pending'], 400);
+                if ($existingRequest->status === 'pending') {
+                    return response()->json(['message' => 'Join request already pending'], 400);
+                } else {
+                    // Update existing request to pending (e.g., if previously rejected)
+                    $existingRequest->update([
+                        'status' => 'pending',
+                        'updated_at' => now(),
+                    ]);
+                    return response()->json(['message' => 'Join request submitted']);
+                }
             }
 
             CourseJoinRequest::create([

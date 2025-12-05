@@ -172,6 +172,17 @@ export const deleteCourseAnnouncement = async (
   return api.delete(`/courses/${courseId}/announcements/${announcementId}`);
 };
 
+export const updateCourseAnnouncement = async (
+  courseId: string | number,
+  announcementId: string | number,
+  data: {
+    title: string;
+    content: string;
+  }
+) => {
+  return api.put(`/courses/${courseId}/announcements/${announcementId}`, data);
+};
+
 // User moderation
 export const banUserFromComments = async (
   courseId: string | number,
