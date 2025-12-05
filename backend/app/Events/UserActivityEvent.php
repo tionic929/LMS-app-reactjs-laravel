@@ -5,7 +5,7 @@ use App\Models\User;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
-
+use Illuminate\Broadcasting\PrivateChannel; 
 
 class UserActivityEvent implements ShouldBroadcast
 {
@@ -23,6 +23,14 @@ class UserActivityEvent implements ShouldBroadcast
     }
     public function broadcastOn()
     {
-        return new PrivateChannel('user-activity'); // or PublicChannel
+        return new PrivateChannel('role.admin'); // or PublicChannel
+    }
+
+    public function toBroadcast($notifiable): BroadcastMessage
+    {
+        // Ensure this targets the channel the admin is subscribed to (e.g., role.admin)
+        return new BroadcastMessage([
+            'message' => 'Your notification content',
+        ], new PrivateChannel('role.admin'));
     }
 }

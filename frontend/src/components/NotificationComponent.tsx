@@ -1,49 +1,77 @@
 // NotificationComponent.tsx
 import React, { useEffect } from 'react';
-import { echo } from '../echo';
+import { echo } from '../echo'; // your existing Echo instance
 import { toast } from 'react-toastify';
 
-const NotificationComponent: React.FC = () => {
+interface NotificationComponentProps {
+  userId: number;
+  userRole: string;
+}
+
+const NotificationComponent: React.FC<NotificationComponentProps> = ({ userId, userRole }) => {
   useEffect(() => {
-    // Subscribe to the 'notifications' channel
-    const channel = echo.channel('notifications');
 
-    // Listener for the broadcasted event
-    const listener = (payload: any) => {
-      // Extract message safely from queued or non-queued events
+    if (!userId || !userRole) {
+        console.warn("NotificationComponent not fully initialized: Missing userId or userRole.");
+        return;
+    }
+    console.log(`[Component] Mounting. Subscribing to role.${userRole} and user.${userId}`);
+    // --- Role-based channel ---
+    const roleChannel = echo.private(`role.${userRole}`);
+    const roleListener = (payload: any) => {
       const message =
-        payload.message ||          // Non-queued event
-        payload.data?.message ||   // Queued event
-        payload.notification ||    // If you used 'notification' property
-        JSON.stringify(payload);   // fallback
-
-      // Debug logs (optional)
-      console.log('[Notification] Received payload:', payload);
-      console.log('[Notification] Parsed message:', message);
-
-      // Display toast notification
-      toast.info(message, {
-        position: 'top-right',
-        autoClose: 5000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: true,
-        draggable: true,
-        progress: undefined,
-      });
+        payload.message ||
+        payload.data?.message ||
+        payload.notification ||
+        JSON.stringify(payload);
+      toast.info(`[${userRole}] ${message}`, { position: 'top-right', autoClose: 5000 });
+      console.log('[Role Notification RECEIVED]', payload);
     };
+    roleChannel
+            .listen('.NewNotification', roleListener)
+            .error((err: any) => {
+                console.error(`[ECHO SUBSCRIPTION ERROR] Role Channel failed for ${userRole}.`, err);
+            });
 
-    // Listen for the specific event
-    channel.listen('.NewNotification', listener);
+    // --- Private channel ---
+    const privateChannel = echo.private(`user.${userId}`);
+    const privateListener = (payload: any) => {
+      const message =
+        payload.message ||
+        payload.data?.message ||
+        payload.notification ||
+        JSON.stringify(payload);
+      toast.success(`[Private] ${message}`, { position: 'top-right', autoClose: 5000 });
+      console.log('[Private Notification RECEIVED]', payload);
+    };
+    privateChannel
+            .listen('.NewNotification', privateListener)
+            .error((err: any) => {
+                console.error(`[ECHO SUBSCRIPTION ERROR] Private Channel failed for ${userId}.`, err);
+            });
 
-    // Cleanup on unmount
+    // --- Public channel ---
+    const publicChannel = echo.channel('public');
+    const publicListener = (payload: any) => {
+      const message =
+        payload.message ||
+        payload.data?.message ||
+        payload.notification ||
+        JSON.stringify(payload);
+      toast.info(`[Public] ${message}`, { position: 'top-right', autoClose: 5000 });
+      console.log('[Public Notification RECEIVED]', payload);
+    };
+    publicChannel.listen('.NewNotification', publicListener);
+
+    // --- Cleanup on unmount ---
     return () => {
-      channel.stopListening('.NewNotification');
-      echo.leaveChannel('notifications');
+        console.log('[Component] Cleanup complete.');
+        echo.leaveChannel(`role.${userRole}`);
+        echo.leaveChannel(`user.${userId}`);
+        echo.leaveChannel('public');
     };
-  }, []);
+  }, [userId, userRole]);
 
-  // Component renders nothing; all work is via toast
   return null;
 };
 

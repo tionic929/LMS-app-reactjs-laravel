@@ -13,21 +13,28 @@ class UsersController extends Controller
 {
     /**
      * Display a listing of the resource.
-     */
+    */
     public function index()
     {
     }
-
+    
     /**
      * Handles paginated fetching, filtering, and searching of users.
-     */
+    */
     public function getPaginatedUsers(Request $request)
     {
         $search = $request->query('search');
         $role = $request->query('role');
-
+        
         $query = User::select('id', 'name', 'email', 'role', 'is_enabled', 'is_confirmed', 'is_banned_from_comments')
-            ->orderBy('id', 'asc');
+        ->orderBy('id', 'asc');
+        if ($request->user()) {
+            UserActivityEvent::dispatch(
+                $request->user(),
+                'Viewed Paginated Users List',
+                $request->path()
+            );
+        }
 
         if ($search) {
             $query->where(function ($q) use ($search) {
@@ -49,13 +56,6 @@ class UsersController extends Controller
 
     public function getUsersAnalytics(Request $request)
     {   
-        if ($request->user()) {
-            UserActivityEvent::dispatch(
-                $request->user(),
-                'Viewed Paginated Users List',
-                $request->path()
-            );
-        }
         $totalAnnouncements = Announcement::count();
         $totalUsers = User::count();
         $totalInstructors = User::where('role', 'instructor')

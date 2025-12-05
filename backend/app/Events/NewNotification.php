@@ -6,6 +6,7 @@ use Illuminate\Broadcasting\Channel;
 use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Broadcasting\PrivateChannel; // Use PrivateChannel for role.{roleName}
 
 class NewNotification implements ShouldBroadcast
 {
@@ -18,9 +19,9 @@ class NewNotification implements ShouldBroadcast
         $this->notification = $notification;
     }
 
-    public function broadcastOn()
+    public function broadcastOn(): Channel | array
     {
-        return new Channel('notifications');
+        return new PrivateChannel('role.learner');
     }
 
     public function broadcastAs()

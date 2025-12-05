@@ -10,28 +10,36 @@ use Illuminate\Support\Facades\Log;
 
 class NotificationService
 {
-    public function send($targetType, $targetId, $message, $type = 'info', $link = null)
+    /**
+     * Send a notification.
+     *
+     * @param string $targetType 'user', 'role', or 'public'
+     * @param mixed $targetId User ID, role string, or null for public
+     * @param string $message
+     * @param string $type
+     * @param string|null $link
+     * @return Notification
+     */
+    public function send(string $targetType, $targetId, string $message, string $type = 'info', string $link = null)
     {
         try {
-            // 💡 FIX: Set the value for the database column
-            $notifiableIdForDB = $targetId;
+            // Determine notifiable_id for DB
+            $notifiableIdForDB = $targetType === 'role' || $targetType === 'public' ? 0 : $targetId;
 
-            // If targeting a role, use a generic integer ID (like 0) 
-            // to satisfy the 'notifiable_id' column data type constraint.
-            if ($targetType === 'role') {
-                $notifiableIdForDB = 0;
-            }
+            // Determine role column value
+            $roleForDB = $targetType === 'role' ? $targetId : null;
 
-            // 1. Save in DB
+            // 1. Save notification in DB
             $notification = Notification::create([
                 'notifiable_type' => $targetType,
-                'notifiable_id'   => $notifiableIdForDB, // Use the safe integer ID
+                'notifiable_id'   => $notifiableIdForDB,
                 'message'         => $message,
                 'type'            => $type,
                 'link_url'        => $link,
+                'role'            => $roleForDB,
             ]);
 
-            // 2. Mark unread for users (The original logic uses $targetId which is the string 'admin')
+            // 2. Mark as unread for users
             if ($targetType === 'user') {
                 NotificationRead::create([
                     'user_id' => $targetId,
@@ -41,9 +49,8 @@ class NotificationService
             }
 
             if ($targetType === 'role') {
-                // This lookup still uses the original $targetId (the string 'admin'), which is correct.
                 $users = DB::table('users')->where('role', $targetId)->pluck('id');
-                
+
                 if ($users->isEmpty()) {
                     Log::warning("NotificationService: No users found for role: {$targetId}");
                 }
@@ -57,15 +64,26 @@ class NotificationService
                 }
             }
 
-            // 3. Dispatch Socket Job
-            event(new \App\Events\NewNotification($message));
+            if ($targetType === 'public') {
+                $users = DB::table('users')->pluck('id');
+                foreach ($users as $uid) {
+                    NotificationRead::create([
+                        'user_id' => $uid,
+                        'notification_id' => $notification->id,
+                        'is_read' => false,
+                    ]);
+                }
+            }
+
+            // 3. Dispatch broadcast/event
+            event(new NewNotification($message, $targetType, $targetId));
 
             return $notification;
-            
+
         } catch (\Exception $e) {
-            Log::error("Notification Service Database Failure - FINAL:", [
+            Log::error("NotificationService Error:", [
                 'error' => $e->getMessage(),
-                'payload' => ['targetType' => $targetType, 'targetId' => $targetId, 'message' => $message]
+                'payload' => compact('targetType', 'targetId', 'message', 'type', 'link')
             ]);
             throw $e; 
         }

@@ -45,7 +45,10 @@ const App: React.FC = () => {
 
   return (
     <div className="h-screen flex relative bg-gray-100">
-      <NotificationComponent />
+      { user && (
+      <NotificationComponent userId={user.id} userRole={user.role} />
+      )}
+
       <ToastContainer position="top-right" />
 
       {user && (
