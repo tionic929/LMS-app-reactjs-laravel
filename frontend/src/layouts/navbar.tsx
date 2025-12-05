@@ -1,12 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { FaBell, FaSearch } from 'react-icons/fa'
 import { useAuth } from '../contexts/AuthContext'
-import { useNotification } from '../contexts/NotificationContext' // Import Context
 import api from '../api/axios'
 
 const Navbar: React.FC = () => {
   const { user } = useAuth();
-  const { refreshTrigger } = useNotification(); // 💡 Listen for socket updates
   
   const [open, setOpen] = useState(false);
   const [dbNotifications, setDbNotifications] = useState<any[]>([]);
@@ -37,12 +35,12 @@ const Navbar: React.FC = () => {
     }
   };
 
-  // 💡 EFFECT: Fetch initially AND whenever refreshTrigger changes (Socket Event)
-  useEffect(() => {
-    if(user) {
-        fetchNotifications();
-    }
-  }, [user, refreshTrigger]); // dependencies ensure real-time update
+  // // 💡 EFFECT: Fetch initially AND whenever refreshTrigger changes (Socket Event)
+  // useEffect(() => {
+  //   if(user) {
+  //       fetchNotifications();
+  //   }
+  // }, [user, refreshTrigger]); // dependencies ensure real-time update
 
   const toggleNotifications = () => {
     setOpen(!open);

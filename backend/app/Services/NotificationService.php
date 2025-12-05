@@ -4,7 +4,7 @@ namespace App\Services;
 
 use App\Models\Notification;
 use App\Models\NotificationRead;
-use App\Jobs\SendSocketNotificationJob;
+use App\Events\NewNotification;
 use Illuminate\Support\Facades\DB;  
 use Illuminate\Support\Facades\Log; 
 
@@ -58,13 +58,7 @@ class NotificationService
             }
 
             // 3. Dispatch Socket Job
-            SendSocketNotificationJob::dispatch(
-                $targetType, 
-                $targetId, 
-                $message, 
-                $type, 
-                $link
-            );
+            event(new \App\Events\NewNotification($message));
 
             return $notification;
             

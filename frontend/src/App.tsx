@@ -19,9 +19,8 @@ import InstructorApplications from "./pages/Admin/Instructors/Index";
 import PendingApproval from "./pages/auth/pendingApproval";
 import { ToastContainer } from "react-toastify";
 import 'react-toastify/dist/ReactToastify.css';
-import SocketInitializer from "./components/SocketInitializer";
 import Home from "./pages/Home";
-import NotificationDisplay from "./components/notification/NotificationDisplay";
+import NotificationComponent from './components/NotificationComponent';
 
 const RoleGuard = ({ children, allowedRoles }: { children: React.ReactNode; allowedRoles: ('admin' | 'instructor' | 'learner')[] }) => {
   const { user } = useAuth();
@@ -46,8 +45,7 @@ const App: React.FC = () => {
 
   return (
     <div className="h-screen flex relative bg-gray-100">
-      <NotificationDisplay />
-      <SocketInitializer />
+      <NotificationComponent />
       <ToastContainer position="top-right" />
 
       {user && (

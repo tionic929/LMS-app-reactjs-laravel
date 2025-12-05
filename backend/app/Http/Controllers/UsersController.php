@@ -16,14 +16,6 @@ class UsersController extends Controller
      */
     public function index()
     {
-        // Include new boolean fields in the index method
-        $users = User::select('id', 'name', 'email', 'role', 'is_enabled', 'is_confirmed', 'is_banned_from_comments')
-            ->orderBy('id', 'asc')
-            ->paginate(10);
-        return response()->json([
-            'success' => true,
-            'data' => $users,
-        ]);
     }
 
     /**
@@ -33,30 +25,17 @@ class UsersController extends Controller
     {
         $search = $request->query('search');
         $role = $request->query('role');
-        
-        // Include new boolean fields for the frontend display
-        $query = User::select('id', 'name', 'email', 'role', 'is_enabled', 'is_confirmed', 'is_banned_from_comments')->orderBy('id', 'asc');
-        if ($request->user()) {
-            UserActivityEvent::dispatch(
-                $request->user(),
-                'Viewed Paginated Users List',
-                $request->path()
-            );
-        }
-        // Apply Search Filter (Name, Email, or ID)
+
+        $query = User::select('id', 'name', 'email', 'role', 'is_enabled', 'is_confirmed', 'is_banned_from_comments')
+            ->orderBy('id', 'asc');
+
         if ($search) {
             $query->where(function ($q) use ($search) {
-                // Check for numeric search separately to handle potential ID search without SQL errors
                 if (is_numeric($search)) {
                     $q->where('id', $search);
                 }
-                
-                // Optimized search terms (using full text search if configured, otherwise standard LIKE)
                 $q->orWhere('name', 'LIKE', "%{$search}%")
-                  ->orWhere('email', 'LIKE', "%{$search}%");
-
-                // Note: If full text index is configured, use the following instead:
-                // $q->orWhereFullText(['name', 'email'], $search);
+                ->orWhere('email', 'LIKE', "%{$search}%");
             });
         }
 
@@ -67,8 +46,16 @@ class UsersController extends Controller
         return response()->json($query->paginate(5));
     }
 
-    public function getUsersAnalytics()
+
+    public function getUsersAnalytics(Request $request)
     {   
+        if ($request->user()) {
+            UserActivityEvent::dispatch(
+                $request->user(),
+                'Viewed Paginated Users List',
+                $request->path()
+            );
+        }
         $totalAnnouncements = Announcement::count();
         $totalUsers = User::count();
         $totalInstructors = User::where('role', 'instructor')
