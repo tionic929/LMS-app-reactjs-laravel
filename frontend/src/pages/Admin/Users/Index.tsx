@@ -5,6 +5,7 @@ import { MdDeleteForever, MdEdit, MdRemoveRedEye } from "react-icons/md";
 import { TbPhotoOff } from "react-icons/tb";
 // NOTE: FaRegBan is not available, using FaBan for both states.
 import { FaBan, FaCheckCircle, FaToggleOn, FaToggleOff, FaRegCheckCircle, FaUser, FaUsers, FaGraduationCap } from "react-icons/fa"; 
+import { HiBadgeCheck } from "react-icons/hi";
 import { deleteUser, getAllUsers, toggleUserField, getUsersAnalytics, deleteUserAvatar, type User, type UserAnalytics } from "../../../api/users"; 
 import AddUserModal from "../../../components/modals/AddUserModal";
 import EditUserModal from "../../../components/modals/EditUserModal";
@@ -224,14 +225,19 @@ const UsersIndex: React.FC = () => {
             <div className="mx-auto py-8 px-4 sm:px-6 lg:px-8">
 
                 {/* Header and Main Action */}
-                <header className="mb-8 flex items-center justify-between">
+                                <header className="mb-8 flex items-center justify-between">
                     <div>
-                        <h1 className="text-3xl font-bold text-gray-900">User Management</h1>
-                        <p className="text-md text-gray-500 mt-1">Overview and control panel for all system users.</p>
+                                                <div className="flex items-center gap-2">
+                                                    <h1 className="text-3xl font-semibold text-gray-900">User Management</h1>
+                                                    <span className="inline-flex items-center rounded-full bg-indigo-50 text-indigo-600 px-2 py-0.5 text-xs font-semibold border border-indigo-100">
+                                                        <HiBadgeCheck className="w-4 h-4 mr-1"/> Admin Panel
+                                                    </span>
+                                                </div>
+                                                <p className="text-sm text-gray-500 mt-1">Overview and control panel for all system users.</p>
                     </div>
                     <button
                         onClick={() => setIsAddModalOpen(true)}
-                        className="flex items-center rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-md transition-colors hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                        className="flex items-center rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
                     >
                         <svg className="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
                         Add New User
@@ -253,21 +259,21 @@ const UsersIndex: React.FC = () => {
                                 icon={FaUser} 
                                 title="Active Accounts" 
                                 value={analytics.activeUsers.toLocaleString()} 
-                                color="bg-green-500"
+                                color="bg-emerald-500"
                             />
 
                             <MetricCard 
                                 icon={FaGraduationCap} 
                                 title="Pending Instructors" 
                                 value={analytics.unconfirmedInstructors.toLocaleString()} 
-                                color="bg-yellow-500"
+                                color="bg-amber-500"
                             />
 
                             <MetricCard 
                                 icon={FaBan} 
                                 title="Banned Users"  
                                 value={analytics.bannedUsers.toLocaleString()} 
-                                color="bg-red-500"
+                                color="bg-rose-500"
                             />
                         </>
                     )}
@@ -286,11 +292,11 @@ const UsersIndex: React.FC = () => {
                                     value={query}
                                     onChange={(e) => setQuery(e.target.value)}
                                     placeholder="Search name or email..."
-                                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-indigo-500 focus:border-indigo-500"
+                                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md text-sm focus:ring-indigo-500 focus:border-indigo-500"
                                 />
                             </div>
                         </div>
-                        <div className="flex rounded-lg bg-gray-100 p-1 space-x-1 shadow-inner flex-shrink-0">
+                        <div className="flex rounded-md bg-gray-100 p-1 space-x-1 shadow-inner flex-shrink-0">
                             {["all", "instructor", "learner", "admin"].map((r) => (
                                 <button
                                     key={r}
@@ -310,9 +316,23 @@ const UsersIndex: React.FC = () => {
                     {/* User List Container */}
                     <div className="space-y-3 pt-4 border-t border-gray-100">
                         {loading ? (
-                            <div className="text-center py-10 text-gray-500">
-                                <svg className="animate-spin h-5 w-5 mr-3 inline-block text-indigo-500" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" className="opacity-25"></circle><path fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" className="opacity-75"></path></svg>
-                                Loading users...
+                            <div className="space-y-3">
+                                {[...Array(5)].map((_, i) => (
+                                    <div key={i} className="flex items-center justify-between p-4 bg-white rounded-lg border border-gray-100">
+                                        <div className="flex items-center gap-4 flex-1 min-w-0">
+                                            <div className="h-10 w-10 rounded-full bg-gray-200 animate-pulse" />
+                                            <div className="min-w-0 flex-1">
+                                                <div className="h-3 w-40 bg-gray-200 rounded animate-pulse" />
+                                                <div className="mt-2 h-2 w-64 bg-gray-100 rounded animate-pulse" />
+                                            </div>
+                                        </div>
+                                        <div className="flex gap-1 ml-4 flex-shrink-0">
+                                            {[...Array(4)].map((__, j) => (
+                                                <div key={j} className="h-8 w-8 bg-gray-100 rounded-md animate-pulse" />
+                                            ))}
+                                        </div>
+                                    </div>
+                                ))}
                             </div>
                         ) : users.length > 0 ? (
                             users.map((user) => {
@@ -320,14 +340,14 @@ const UsersIndex: React.FC = () => {
                                 return (
                                     <div
                                         key={user.id}
-                                        className="flex items-center justify-between p-4 bg-white rounded-xl shadow-sm hover:shadow-lg transition-shadow border border-gray-100"
+                                        className="flex items-center justify-between p-4 bg-white rounded-lg shadow-sm hover:shadow-md transition-all border border-gray-100 hover:border-indigo-200"
                                     >
                                         <div className="flex items-center gap-4 flex-1 min-w-0">
                                             {/* User Avatar or Initials */}
                                             {user.avatar_url ? (
-                                                <img src={user.avatar_url} alt="avatar" className="h-10 w-10 rounded-full object-cover flex-shrink-0" />
+                                                <img src={user.avatar_url} alt="avatar" className="h-10 w-10 rounded-full object-cover flex-shrink-0 ring-2 ring-indigo-100" />
                                             ) : (
-                                                <div className={`flex h-10 w-10 items-center justify-center rounded-full font-bold text-sm flex-shrink-0 ${
+                                                <div className={`flex h-10 w-10 items-center justify-center rounded-full font-bold text-sm flex-shrink-0 ring-2 ring-gray-100 ${
                                                     user.role === "admin" ? "bg-purple-100 text-purple-700" :
                                                     user.role === "instructor" ? "bg-green-100 text-green-700" :
                                                     "bg-blue-100 text-blue-700"
@@ -338,7 +358,7 @@ const UsersIndex: React.FC = () => {
 
                                             {/* User Details & Status Hierarchy */}
                                             <div className="min-w-0 flex-1">
-                                                <h3 className="text-sm font-medium text-gray-900 truncate">
+                                                <h3 className="text-sm font-semibold text-gray-900 truncate">
                                                     {user.name}
                                                     
                                                     {/* Status Block */}
@@ -351,6 +371,7 @@ const UsersIndex: React.FC = () => {
                                                                 "bg-blue-100 text-blue-800"
                                                             }`}
                                                         >
+                                                            <svg className="w-3 h-3 mr-1" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="10" opacity="0.2"></circle><path d="M12 12m-9 0a9 9 0 1 0 18 0a9 9 0 1 0 -18 0" fill="none"></path></svg>
                                                             {roleLabel(user.role)}
                                                         </span>
                                                         
@@ -359,6 +380,7 @@ const UsersIndex: React.FC = () => {
                                                             <span 
                                                                 className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ${status.colorClass}`}
                                                             >
+                                                                <svg className="w-3 h-3 mr-1" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="4"></circle></svg>
                                                                 {status.label}
                                                             </span>
                                                         )}
@@ -373,12 +395,12 @@ const UsersIndex: React.FC = () => {
                                                         )}
                                                     </div>
                                                 </h3>
-                                                <p className="mt-1 text-xs text-gray-500 truncate">{user.email}</p>
+                                                <p className="mt-1 text-xs text-gray-600 truncate">{user.email}</p>
                                             </div>
                                         </div>
 
                                         {/* Actions Button Group */}
-                                        <div className="flex gap-1 ml-4 flex-shrink-0 border p-1 rounded-lg bg-gray-50">
+                                        <div className="flex gap-1 ml-4 flex-shrink-0 border p-1 rounded-md bg-gray-50">
                                             {/* 1. Account Enable/Disable (Instructor/Learner) */}
                                             {(user.role === 'instructor' || user.role === 'learner') && (
                                                 <ActionButton
@@ -387,7 +409,7 @@ const UsersIndex: React.FC = () => {
                                                     disabled={isActionDisabled(user.id)}
                                                     isDanger={!user.is_enabled}
                                                     title={user.is_enabled ? "Disable Account" : "Enable Account"}
-                                                    className={`${user.is_enabled ? 'text-green-600 hover:bg-green-100' : 'text-gray-400 hover:bg-gray-100'}`}
+                                                    className={`${user.is_enabled ? 'text-emerald-600 hover:bg-emerald-100' : 'text-gray-500 hover:bg-gray-100'}`}
                                                 />
                                             )}
 
@@ -398,7 +420,7 @@ const UsersIndex: React.FC = () => {
                                                     onClick={() => handleToggleStatus(user.id, 'is_confirmed')}
                                                     disabled={isActionDisabled(user.id)}
                                                     title={user.is_confirmed ? "Unconfirm Instructor" : "Confirm Instructor"}
-                                                    className={`${user.is_confirmed ? 'text-indigo-600 hover:bg-indigo-100' : 'text-yellow-600 hover:bg-yellow-100'}`}
+                                                    className={`${user.is_confirmed ? 'text-indigo-600 hover:bg-indigo-100' : 'text-amber-600 hover:bg-amber-100'}`}
                                                 />
                                             )}
 
@@ -411,7 +433,7 @@ const UsersIndex: React.FC = () => {
                                                     // isDanger logic removed from ActionButton props, color handled by className
                                                     title={user.is_banned_from_comments ? "Unban Comments" : "Ban from Comments"}
                                                     // FIX: Ensures RED color when BANNED, GRAY when UNBANNED
-                                                    className={`${user.is_banned_from_comments ? 'text-red-600 hover:bg-red-100' : 'text-gray-400 hover:bg-gray-100'}`}
+                                                    className={`${user.is_banned_from_comments ? 'text-rose-600 hover:bg-rose-100' : 'text-gray-500 hover:bg-gray-100'}`}
                                                 />
                                             )}
                                             
@@ -449,19 +471,28 @@ const UsersIndex: React.FC = () => {
                                                 disabled={isActionDisabled(user.id)}
                                                 isDanger={true}
                                                 title="Delete User"
-                                                className="text-red-600 hover:bg-red-100"
+                                                className="text-rose-600 hover:bg-rose-100"
                                             />
                                         </div>
                                     </div>
                                 ); // End User Map Return
                             }
                         )) : (
-                            <div className="rounded-xl p-10 text-center text-gray-500">
-                                <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M12 20.005v-2.348m0-12.72v-2.348m-5.464 12.378l1.638-1.638m9.252-9.252l-1.638 1.638m0 9.252l-1.638-1.638M4.354 12a4 4 0 115.292 0 4 4 0 01-5.292 0z"></path></svg>
-                                <h3 className="mt-2 text-sm font-medium text-gray-900">No users found</h3>
-                                <p className="mt-1 text-sm text-gray-500">
-                                    Get started by adding a new user or adjusting your search filters.
-                                </p>
+                            <div className="rounded-xl p-12 text-center text-gray-500">
+                                <div className="mx-auto h-16 w-16 rounded-full bg-indigo-50 flex items-center justify-center">
+                                    <svg className="h-8 w-8 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5.121 17.804A4 4 0 019 16h6a4 4 0 013.879 1.804M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                                </div>
+                                <h3 className="mt-3 text-sm font-medium text-gray-900">No users found</h3>
+                                <p className="mt-1 text-sm text-gray-500">Try adjusting filters or add a new user to get started.</p>
+                                <div className="mt-4">
+                                    <button
+                                        onClick={() => setIsAddModalOpen(true)}
+                                        className="inline-flex items-center rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-indigo-700"
+                                    >
+                                        <svg className="w-4 h-4 mr-1" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v12M6 12h12"/></svg>
+                                        Add User
+                                    </button>
+                                </div>
                             </div>
                         )}
                     </div>
@@ -471,17 +502,17 @@ const UsersIndex: React.FC = () => {
                         <button
                             disabled={page <= 1 || loading}
                             onClick={() => handlePageChange(page - 1)}
-                            className="px-4 py-2 text-sm font-medium bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                            className="px-4 py-2 text-sm font-medium bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition shadow-sm"
                         >
                             Previous
                         </button>
-                        <span className="text-sm text-gray-600">
+                        <span className="text-sm text-gray-600 bg-gray-50 border border-gray-200 rounded-md px-3 py-1">
                             Page <span className="font-semibold text-gray-900">{page}</span> of {lastPage}
                         </span>
                         <button
                             disabled={page >= lastPage || loading}
                             onClick={() => handlePageChange(page + 1)}
-                            className="px-4 py-2 text-sm font-medium bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                            className="px-4 py-2 text-sm font-medium bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition shadow-sm"
                         >
                             Next
                         </button>

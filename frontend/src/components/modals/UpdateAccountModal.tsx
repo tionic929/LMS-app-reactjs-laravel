@@ -2,6 +2,8 @@ import React, { useEffect, useState } from "react";
 import Modal from "./Modal";
 import { updateUser, deleteUserAvatar, type User, type UpdateUserPayload } from "../../api/users";
 import { useAuth } from "../../contexts/AuthContext";
+import { FaCamera } from "react-icons/fa";
+import { MdPerson, MdEmail, MdLock } from "react-icons/md";
 
 interface UpdateAccountModalProps {
   show: boolean;
@@ -97,7 +99,7 @@ const UpdateAccountModal: React.FC<UpdateAccountModalProps> = ({ show, user, onC
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="flex items-center gap-4">
-          <div className="w-16 h-16 rounded-full overflow-hidden bg-gray-200 flex items-center justify-center">
+          <div className="relative w-20 h-20 rounded-full overflow-hidden bg-gray-200 flex items-center justify-center ring-2 ring-indigo-100">
             {avatarPreview || user?.avatar_url ? (
               <img
                 src={avatarPreview || (user?.avatar_url as string)}
@@ -107,44 +109,53 @@ const UpdateAccountModal: React.FC<UpdateAccountModalProps> = ({ show, user, onC
             ) : (
               <span className="text-gray-500 text-xs">No photo</span>
             )}
+            <label className="absolute -bottom-1 -right-1 inline-flex items-center justify-center w-8 h-8 bg-indigo-600 text-white rounded-full shadow cursor-pointer hover:bg-indigo-700">
+              <FaCamera className="w-4 h-4" />
+              <input
+                title="avatar"
+                name="avatar"
+                type="file"
+                accept="image/*"
+                onChange={handleAvatarChange}
+                className="sr-only"
+              />
+            </label>
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700">Profile Photo</label>
-            <input
-              title="avatar"
-              name="avatar"
-              type="file"
-              accept="image/*"
-              onChange={handleAvatarChange}
-              className="mt-1 block w-full text-sm text-gray-700 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"
-            />
-            <p className="text-xs text-gray-500 mt-1">JPEG/PNG/WebP up to 5MB.</p>
+            <p className="text-xs text-gray-500 mt-1">JPEG/PNG/WebP up to 5MB. Click the camera to upload.</p>
           </div>
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700">Name</label>
-          <input
-            title="name"
-            name="name"
-            type="text"
-            required
-            value={formData.name}
-            onChange={handleChange}
-            className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-          />
+          <div className="mt-1 relative">
+            <MdPerson className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <input
+              title="name"
+              name="name"
+              type="text"
+              required
+              value={formData.name}
+              onChange={handleChange}
+              className="block w-full rounded-md border border-gray-300 pl-10 pr-3 py-2 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+            />
+          </div>
         </div>
 
         <div>
           <label className="block text-sm font-medium text-gray-700">Email</label>
-          <input
-            title="email"
-            name="email"
-            type="email"
-            required
-            value={formData.email}
-            onChange={handleChange}
-            className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-          />
+          <div className="mt-1 relative">
+            <MdEmail className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <input
+              title="email"
+              name="email"
+              type="email"
+              required
+              value={formData.email}
+              onChange={handleChange}
+              className="block w-full rounded-md border border-gray-300 pl-10 pr-3 py-2 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+            />
+          </div>
         </div>
 
         <div>
@@ -161,14 +172,23 @@ const UpdateAccountModal: React.FC<UpdateAccountModalProps> = ({ show, user, onC
 
         <div>
           <label className="block text-sm font-medium text-gray-700">Password (optional)</label>
-          <input
-            name="password"
-            type="password"
-            value={formData.password}
-            onChange={handleChange}
-            className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-            placeholder="Enter new password to change"
-          />
+          <div className="mt-1 relative">
+            <MdLock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <input
+              name="password"
+              type="password"
+              value={formData.password}
+              onChange={handleChange}
+              className="block w-full rounded-md border border-gray-300 pl-10 pr-3 py-2 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              placeholder="Enter new password to change"
+            />
+          </div>
+          {/* Simple strength hint */}
+          {formData.password && (
+            <p className={`mt-1 text-xs ${formData.password.length >= 8 ? 'text-emerald-600' : 'text-amber-600'}`}>
+              {formData.password.length >= 8 ? 'Looks good — at least 8 characters.' : 'Tip: Use 8+ characters for best security.'}
+            </p>
+          )}
         </div>
 
         <div className="flex justify-end gap-3 pt-2">

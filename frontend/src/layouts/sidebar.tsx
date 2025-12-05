@@ -133,12 +133,12 @@ const Sidebar: React.FC<SidebarProps> = ({
         <>
         <aside 
             ref={sidebarRef}
-            className={`${widthClass} bg-gray-800 text-gray-200 border-r border-gray-700 flex flex-col flex-shrink-0 fixed h-screen z-50 ${sidebarTransition} overflow-hidden`}
+            className={`${widthClass} text-gray-200 border-r border-gray-800 flex flex-col flex-shrink-0 fixed h-screen z-50 ${sidebarTransition} overflow-hidden bg-gradient-to-b from-gray-900 via-gray-900 to-gray-800`}
         >
             {/* --- HEADER --- */}
-            <div className="flex items-center h-16 px-4 border-b border-gray-700 bg-gray-900/50">
+            <div className="flex items-center h-16 px-4 border-b border-gray-800 bg-gray-900/60">
                 <div className={`flex items-center justify-center  ${textTransition} ${textClass}`}>
-                    <FaBook className="w-6 h-6 text-blue-500" />
+                    <FaBook className="w-6 h-6 text-indigo-400" />
                 </div>
                 <div className={`ml-3 font-bold text-xl text-blue-500 whitespace-nowrap ${textTransition} ${textClass}`}>
                     LMS
@@ -153,7 +153,10 @@ const Sidebar: React.FC<SidebarProps> = ({
             </div>
             
             {/* --- NAVIGATION --- */}
-            <nav className="flex-1 px-3 py-4 space-y-2 overflow-y-hidden overflow-x-hidden">
+            <nav className="flex-1 px-3 py-4 space-y-1.5 overflow-y-hidden overflow-x-hidden">
+                {!isCollapsed && (
+                  <p className="px-3 pb-2 text-[11px] uppercase tracking-wide text-gray-400">Main</p>
+                )}
                 {navItems.map((item) => {
                     const isActive = location.pathname === item.to;
                     
@@ -163,9 +166,9 @@ const Sidebar: React.FC<SidebarProps> = ({
                             to={item.to}
                             title={isCollapsed ? item.label : ""}
                             className={`
-                                flex items-center px-3 py-2.5 rounded-lg group relative
-                                ${isActive ? 'bg-blue-600 text-white' : 'text-gray-400 hover:bg-gray-700 hover:text-white'}
-                                transition-colors duration-200
+                                flex items-center px-3 py-2.5 rounded-md group relative
+                                ${isActive ? 'bg-indigo-600 text-white shadow-sm' : 'text-gray-300 hover:bg-gray-800/70 hover:text-white'}
+                                transition-all duration-200
                             `}
                         >
                             <div className={`flex-shrink-0 inline-flex items-center justify-center ${isActive ? 'text-white' : 'text-gray-400 group-hover:text-white'}`}>
@@ -174,23 +177,26 @@ const Sidebar: React.FC<SidebarProps> = ({
                             <span className={`ml-3 whitespace-nowrap font-medium ${textTransition} ${textClass}`}>
                                 {item.label}
                             </span>
+                            {isActive && !isCollapsed && (
+                              <span className="ml-auto inline-flex h-2 w-2 rounded-full bg-white/80" />
+                            )}
                         </Link>
                     );
                 })}
             </nav>
             
             {/* --- FOOTER (User Dropdown) --- */}
-            <div className="p-4 border-t border-gray-700 bg-gray-900/50">
+            <div className="p-4 border-t border-gray-800 bg-gray-900/60">
                 <div className="flex flex-col gap-2">
                     {/* User Info (toggle dropdown) */}
                     <button
                         ref={userButtonRef}
                         onClick={toggleUserMenu}
-                        className="flex items-center w-full px-3 py-2 text-left rounded-lg text-gray-300 hover:bg-gray-700 hover:text-white transition-colors"
+                        className="flex items-center w-full px-3 py-2 text-left rounded-md text-gray-300 hover:bg-gray-800/70 hover:text-white transition-colors"
                     >
                         <div className="flex-shrink-0">
                             {user?.avatar_url ? (
-                                <img src={user.avatar_url} alt="avatar" className="w-6 h-6 rounded-full object-cover" />
+                                <img src={user.avatar_url} alt="avatar" className="w-7 h-7 rounded-full object-cover ring-2 ring-indigo-200/30" />
                             ) : (
                                 <FaUserCircle className="w-6 h-6" />
                             )}
@@ -208,7 +214,7 @@ const Sidebar: React.FC<SidebarProps> = ({
             <>
                 {/* Overlay to capture outside clicks */}
                 <div
-                    className="fixed inset-0 z-40 bg-black/0"
+                    className="fixed inset-0 z-40 bg-black/20"
                     onClick={() => setIsUserMenuOpen(false)}
                     aria-hidden="true"
                 />
@@ -216,14 +222,14 @@ const Sidebar: React.FC<SidebarProps> = ({
                 <div
                     role="dialog"
                     aria-modal="true"
-                    className="fixed z-50 bg-gray-800 border border-gray-700 rounded-lg shadow-xl w-64 max-w-[85vw] text-gray-200"
+                    className="fixed z-50 bg-gray-900/95 backdrop-blur-sm border border-gray-800 rounded-lg shadow-xl w-64 max-w-[85vw] text-gray-200"
                     style={{ left: panelPos.left, bottom: panelPos.bottom }}
                     onClick={(e) => e.stopPropagation()}
                 >
-                    <div className="p-3 border-b border-gray-700">
+                    <div className="p-3 border-b border-gray-800">
                         <div className="flex items-center gap-3">
                             {user?.avatar_url ? (
-                                <img src={user.avatar_url} alt="avatar" className="w-8 h-8 rounded-full object-cover" />
+                                <img src={user.avatar_url} alt="avatar" className="w-9 h-9 rounded-full object-cover ring-2 ring-indigo-200/30" />
                             ) : (
                                 <FaUserCircle className="w-8 h-8 text-gray-300" />
                             )}
@@ -237,21 +243,21 @@ const Sidebar: React.FC<SidebarProps> = ({
                         <Link
                             to="/account/update"
                             onClick={() => setIsUserMenuOpen(false)}
-                            className="px-3 py-2 rounded-md hover:bg-gray-700/70 transition-colors"
+                            className="px-3 py-2 rounded-md hover:bg-gray-800/70 transition-colors"
                         >
                             Account Details
                         </Link>
                         <button
                             type="button"
                             disabled
-                            className="px-3 py-2 rounded-md text-gray-500 cursor-not-allowed bg-gray-800/70 mt-1 text-left"
+                            className="px-3 py-2 rounded-md text-gray-500 cursor-not-allowed bg-gray-800/60 mt-1 text-left"
                         >
                             Settings (soon)
                         </button>
                         <button
                             type="button"
                             onClick={() => { setIsUserMenuOpen(false); handleLogout(); }}
-                            className="mt-2 flex items-center px-3 py-2 rounded-md text-red-400 hover:bg-gray-700/70 hover:text-red-300 transition-colors text-left"
+                            className="mt-2 flex items-center px-3 py-2 rounded-md text-red-400 hover:bg-red-900/20 hover:text-red-300 transition-colors text-left"
                         >
                             <FaArrowRightFromBracket className="w-5 h-5" />
                             <span className="ml-2 font-medium">Logout</span>

@@ -281,7 +281,7 @@ const AnnouncementsPage: React.FC = () => {
     }
   };
 
-  // Continuous auto-scroll setup per list (always active)
+  // Continuous auto-scroll setup per list
   const newsListRef = useRef<HTMLUListElement | null>(null);
   const eventsListRef = useRef<HTMLUListElement | null>(null);
   const generalListRef = useRef<HTMLUListElement | null>(null);
@@ -311,9 +311,9 @@ const AnnouncementsPage: React.FC = () => {
 
   const queueAutoScroll = (
     el: HTMLUListElement,
-    pausedRef: React.MutableRefObject<boolean>,
-    timerRef: React.MutableRefObject<number | null>,
-    indexRef: React.MutableRefObject<number>,
+    pausedRef: React.RefObject<boolean>,
+    timerRef: React.RefObject<number | null>,
+    indexRef: React.RefObject<number>,
   ) => {
     // if paused, reschedule shortly without moving
     if (pausedRef.current || pausedAllRef.current) {
