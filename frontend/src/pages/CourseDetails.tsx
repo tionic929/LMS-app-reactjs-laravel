@@ -58,6 +58,7 @@ import {
   BiDownvote,
   BiSolidDownvote,
 } from "react-icons/bi";
+import { toast } from "react-toastify";
 
 interface Comment {
   id: number;
@@ -1067,10 +1068,10 @@ const CourseDetails: React.FC = () => {
       await updateCourse(id, editForm);
       await fetchCourseData();
       setShowEditModal(false);
-      alert("Course updated successfully!");
+      toast.success("Course updated successfully!");
     } catch (err: any) {
       console.error("Error updating course:", err);
-      alert(err.response?.data?.message || "Failed to update course");
+      toast.error(err.response?.data?.message || "Failed to update course");
     }
   };
 
@@ -1080,11 +1081,11 @@ const CourseDetails: React.FC = () => {
 
     try {
       await deleteCourse(id);
-      alert("Course disbanded successfully");
+      toast.success("Course disbanded successfully");
       navigate("/courses");
     } catch (err: any) {
       console.error("Error deleting course:", err);
-      alert(err.response?.data?.message || "Failed to disband course");
+      toast.error(err.response?.data?.message || "Failed to disband course");
     }
   };
 
@@ -1095,10 +1096,10 @@ const CourseDetails: React.FC = () => {
     try {
       await removeLearner(id, userId);
       await fetchCourseData();
-      alert("Learner removed successfully");
+      toast.success("Learner removed successfully");
     } catch (err: any) {
       console.error("Error removing learner:", err);
-      alert(err.response?.data?.message || "Failed to remove learner");
+      toast.error(err.response?.data?.message || "Failed to remove learner");
     }
   };
 
@@ -1108,10 +1109,10 @@ const CourseDetails: React.FC = () => {
     try {
       await acceptJoinRequest(id, requestId);
       await fetchCourseData();
-      alert("Request accepted");
+      toast.success("Request accepted");
     } catch (err: any) {
       console.error("Error accepting request:", err);
-      alert(err.response?.data?.message || "Failed to accept request");
+      toast.error(err.response?.data?.message || "Failed to accept request");
     }
   };
 
@@ -1121,10 +1122,10 @@ const CourseDetails: React.FC = () => {
     try {
       await rejectJoinRequest(id, requestId);
       await fetchCourseData();
-      alert("Request rejected");
+      toast.success("Request rejected");
     } catch (err: any) {
       console.error("Error rejecting request:", err);
-      alert(err.response?.data?.message || "Failed to reject request");
+      toast.error(err.response?.data?.message || "Failed to reject request");
     }
   };
 
@@ -1134,10 +1135,10 @@ const CourseDetails: React.FC = () => {
     try {
       const response = await enrollInCourse(id);
       await fetchCourseData();
-      alert(response.data.message || "Successfully enrolled!");
+      toast.success(response.data.message || "Successfully enrolled!");
     } catch (err: any) {
       console.error("Error enrolling:", err);
-      alert(err.response?.data?.message || "Failed to enroll in course");
+      toast.error(err.response?.data?.message || "Failed to enroll in course");
     }
   };
 
@@ -1148,10 +1149,10 @@ const CourseDetails: React.FC = () => {
     try {
       const response = await leaveCourse(id);
       await fetchCourseData();
-      alert(response.data.message || "Successfully left the course");
+      toast.success(response.data.message || "Successfully left the course");
     } catch (err: any) {
       console.error("Error leaving course:", err);
-      alert(err.response?.data?.message || "Failed to leave course");
+      toast.error(err.response?.data?.message || "Failed to leave course");
     }
   };
 
@@ -1161,7 +1162,7 @@ const CourseDetails: React.FC = () => {
     // Prevent deleting materials with temporary IDs (timestamps)
     if (materialId > 1000000000000) {
       // Timestamp IDs are > 1 trillion
-      alert(
+      toast.warning(
         "Please wait for the material to finish uploading before deleting."
       );
       return;
@@ -1183,7 +1184,7 @@ const CourseDetails: React.FC = () => {
       if (materialToDelete) {
         setMaterials((prev) => [...prev, materialToDelete]);
       }
-      alert(err.response?.data?.message || "Failed to delete material");
+      toast.error(err.response?.data?.message || "Failed to delete material");
     }
   };
 
@@ -1225,7 +1226,7 @@ const CourseDetails: React.FC = () => {
       // Revert optimistic update
       setComments((prev) => prev.filter((c) => c.id !== tempComment.id));
       setNewComment(newComment); // Restore the text
-      alert(err.response?.data?.message || "Failed to post comment");
+      toast.error(err.response?.data?.message || "Failed to post comment");
     }
   };
 
@@ -1270,7 +1271,7 @@ const CourseDetails: React.FC = () => {
       console.error("Error adding reply:", err);
       // Revert optimistic update
       setComments((prev) => removeCommentFromList(prev, tempReply.id));
-      alert(err.response?.data?.message || "Failed to post reply");
+      toast.error(err.response?.data?.message || "Failed to post reply");
     }
   };
 
@@ -1330,10 +1331,10 @@ const CourseDetails: React.FC = () => {
       await addCourseAnnouncement(id, newAnnouncement);
       await fetchCourseData();
       setNewAnnouncement({ title: "", content: "" });
-      alert("Announcement posted!");
+      toast.success("Announcement posted!");
     } catch (err: any) {
       console.error("Error adding announcement:", err);
-      alert(err.response?.data?.message || "Failed to post announcement");
+      toast.error(err.response?.data?.message || "Failed to post announcement");
     }
   };
 
@@ -1343,10 +1344,10 @@ const CourseDetails: React.FC = () => {
     try {
       await deleteCourseAnnouncement(id, announcementId);
       await fetchCourseData();
-      alert("Announcement deleted");
+      toast.success("Announcement deleted");
     } catch (err: any) {
       console.error("Error deleting announcement:", err);
-      alert(err.response?.data?.message || "Failed to delete announcement");
+      toast.error(err.response?.data?.message || "Failed to delete announcement");
     }
   };
 
@@ -1354,7 +1355,7 @@ const CourseDetails: React.FC = () => {
     if (!id || !editingAnnouncementId) return;
 
     if (!editingAnnouncement.title.trim() || !editingAnnouncement.content.trim()) {
-      alert("Please fill in both title and content");
+      toast.warning("Please fill in both title and content");
       return;
     }
 
@@ -1363,10 +1364,10 @@ const CourseDetails: React.FC = () => {
       await fetchCourseData();
       setEditingAnnouncementId(null);
       setEditingAnnouncement({ title: "", content: "" });
-      alert("Announcement updated");
+      toast.success("Announcement updated");
     } catch (err: any) {
       console.error("Error updating announcement:", err);
-      alert(err.response?.data?.message || "Failed to update announcement");
+      toast.error(err.response?.data?.message || "Failed to update announcement");
     }
   };
 
@@ -1391,10 +1392,10 @@ const CourseDetails: React.FC = () => {
     try {
       await banUserFromComments(id, userId);
       await fetchCourseData();
-      alert("User banned from commenting");
+      toast.success("User banned from commenting");
     } catch (err: any) {
       console.error("Error banning user:", err);
-      alert(err.response?.data?.message || "Failed to ban user");
+      toast.error(err.response?.data?.message || "Failed to ban user");
     }
   };
 
@@ -1404,10 +1405,10 @@ const CourseDetails: React.FC = () => {
     try {
       await unbanUserFromComments(id, userId);
       await fetchCourseData();
-      alert("User unbanned from commenting");
+      toast.success("User unbanned from commenting");
     } catch (err: any) {
       console.error("Error unbanning user:", err);
-      alert(err.response?.data?.message || "Failed to unban user");
+      toast.error(err.response?.data?.message || "Failed to unban user");
     }
   };
 
