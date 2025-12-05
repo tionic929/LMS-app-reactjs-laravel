@@ -189,7 +189,11 @@ const Sidebar: React.FC<SidebarProps> = ({
                         className="flex items-center w-full px-3 py-2 text-left rounded-lg text-gray-300 hover:bg-gray-700 hover:text-white transition-colors"
                     >
                         <div className="flex-shrink-0">
-                            <FaUserCircle className="w-6 h-6" />
+                            {user?.avatar_url ? (
+                                <img src={user.avatar_url} alt="avatar" className="w-6 h-6 rounded-full object-cover" />
+                            ) : (
+                                <FaUserCircle className="w-6 h-6" />
+                            )}
                         </div>
                         <div className={`ml-3 ${textTransition} ${textClass}`}>
                             <p className="text-sm font-medium text-white truncate">{user?.name ?? 'User'}</p>
@@ -218,7 +222,11 @@ const Sidebar: React.FC<SidebarProps> = ({
                 >
                     <div className="p-3 border-b border-gray-700">
                         <div className="flex items-center gap-3">
-                            <FaUserCircle className="w-8 h-8 text-gray-300" />
+                            {user?.avatar_url ? (
+                                <img src={user.avatar_url} alt="avatar" className="w-8 h-8 rounded-full object-cover" />
+                            ) : (
+                                <FaUserCircle className="w-8 h-8 text-gray-300" />
+                            )}
                             <div className="min-w-0">
                                 <p className="text-sm font-semibold truncate">{user?.name ?? 'User'}</p>
                                 <p className="text-xs text-gray-400 truncate">{user?.role ?? 'Guest'}</p>

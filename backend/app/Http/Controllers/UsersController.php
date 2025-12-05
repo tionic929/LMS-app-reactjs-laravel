@@ -16,7 +16,7 @@ class UsersController extends Controller
     public function index()
     {
         // Include new boolean fields in the index method
-        $users = User::select('id', 'name', 'email', 'role', 'is_enabled', 'is_confirmed', 'is_banned_from_comments')
+        $users = User::select('id', 'name', 'email', 'role', 'avatar', 'is_enabled', 'is_confirmed', 'is_banned_from_comments')
             ->orderBy('id', 'asc')
             ->paginate(10);
         return response()->json([
@@ -34,7 +34,7 @@ class UsersController extends Controller
         $role = $request->query('role');
         
         // Include new boolean fields for the frontend display
-        $query = User::select('id', 'name', 'email', 'role', 'is_enabled', 'is_confirmed', 'is_banned_from_comments')->orderBy('id', 'asc');
+        $query = User::select('id', 'name', 'email', 'role', 'avatar', 'is_enabled', 'is_confirmed', 'is_banned_from_comments')->orderBy('id', 'asc');
 
         // Apply Search Filter (Name, Email, or ID)
         if ($search) {
@@ -148,19 +148,26 @@ class UsersController extends Controller
     public function update(Request $request, User $user)
     { 
         $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|email|max:255|unique:users,email,' . $user->id,
-            'role' => 'required|in:admin,instructor,learner', 
+            'name' => 'sometimes|string|max:255',
+            'email' => 'sometimes|email|max:255|unique:users,email,' . $user->id,
+            'role' => 'sometimes|in:admin,instructor,learner', 
             'password' => 'nullable|string|min:8',
+            'avatar' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:5120',
             // Include validation for new status fields (optional on update)
             'is_enabled' => 'nullable|boolean',
             'is_confirmed' => 'nullable|boolean',
             'is_banned_from_comments' => 'nullable|boolean',
         ]);
 
-        $user->name = $request->name;
-        $user->email = $request->email;
-        $user->role = $request->role;
+        if ($request->has('name')) {
+            $user->name = $request->name;
+        }
+        if ($request->has('email')) {
+            $user->email = $request->email;
+        }
+        if ($request->has('role')) {
+            $user->role = $request->role;
+        }
         
         // Update new status fields if present in the request
         if ($request->has('is_enabled')) {
@@ -177,9 +184,14 @@ class UsersController extends Controller
             // Fix: Changed request->passowrd to request->password
             $user->password = Hash::make($request->password); 
         }
+
+        if ($request->hasFile('avatar')) {
+            $path = $request->file('avatar')->store('avatars', 'public');
+            $user->avatar = $path;
+        }
         
         $user->save();
-        return response()->json($user);
+        return response()->json($user->refresh());
     }
 
     /**
@@ -221,5 +233,23 @@ class UsersController extends Controller
 
         // Return the updated user object
         return response()->json($user);
+    }
+
+    /**
+     * Delete the user's avatar image and clear the avatar field.
+     */
+    public function deleteAvatar(Request $request, User $user)
+    {
+        if ($user->avatar) {
+            try {
+                \Illuminate\Support\Facades\Storage::disk('public')->delete($user->avatar);
+            } catch (\Throwable $e) {
+                // Ignore deletion failure but proceed to clear avatar field
+            }
+            $user->avatar = null;
+            $user->save();
+        }
+
+        return response()->json($user->refresh());
     }
 }

@@ -2,9 +2,10 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import { MdDeleteForever, MdEdit, MdRemoveRedEye } from "react-icons/md";
+import { TbPhotoOff } from "react-icons/tb";
 // NOTE: FaRegBan is not available, using FaBan for both states.
 import { FaBan, FaCheckCircle, FaToggleOn, FaToggleOff, FaRegCheckCircle, FaUser, FaUsers, FaGraduationCap } from "react-icons/fa"; 
-import { deleteUser, getAllUsers, toggleUserField, getUsersAnalytics, type User, type UserAnalytics } from "../../../api/users"; 
+import { deleteUser, getAllUsers, toggleUserField, getUsersAnalytics, deleteUserAvatar, type User, type UserAnalytics } from "../../../api/users"; 
 import AddUserModal from "../../../components/modals/AddUserModal";
 import EditUserModal from "../../../components/modals/EditUserModal";
 import ViewUserModal from "../../../components/modals/ViewUserModal";
@@ -182,6 +183,23 @@ const UsersIndex: React.FC = () => {
         }
     }
 
+    const handleRemoveAvatar = async (u: User) => {
+        if (!u.avatar_url) return; // nothing to remove
+        if (!window.confirm(`Remove profile photo for ${u.name}?`)) return;
+        try {
+            setLoading(true);
+            await deleteUserAvatar(u.id);
+            // Optimistically update list
+            setUsers(prev => prev.map(x => x.id === u.id ? { ...x, avatar_url: null } : x));
+        } catch (err) {
+            console.error("Failed to remove avatar", err);
+            alert("Error removing avatar.");
+        } finally {
+            setLoading(false);
+            handleUserCreatedOrUpdated();
+        }
+    };
+
     useEffect(() => {
         const handler = setTimeout(() => {
             fetchUsers(1, query, filter);
@@ -305,14 +323,18 @@ const UsersIndex: React.FC = () => {
                                         className="flex items-center justify-between p-4 bg-white rounded-xl shadow-sm hover:shadow-lg transition-shadow border border-gray-100"
                                     >
                                         <div className="flex items-center gap-4 flex-1 min-w-0">
-                                            {/* User Avatar Initials */}
-                                            <div className={`flex h-10 w-10 items-center justify-center rounded-full font-bold text-sm flex-shrink-0 ${
-                                                user.role === "admin" ? "bg-purple-100 text-purple-700" :
-                                                user.role === "instructor" ? "bg-green-100 text-green-700" :
-                                                "bg-blue-100 text-blue-700"
-                                            }`}>
-                                                {user.name.split(" ").map((s) => s[0]).slice(0, 2).join("").toUpperCase()}
-                                            </div>
+                                            {/* User Avatar or Initials */}
+                                            {user.avatar_url ? (
+                                                <img src={user.avatar_url} alt="avatar" className="h-10 w-10 rounded-full object-cover flex-shrink-0" />
+                                            ) : (
+                                                <div className={`flex h-10 w-10 items-center justify-center rounded-full font-bold text-sm flex-shrink-0 ${
+                                                    user.role === "admin" ? "bg-purple-100 text-purple-700" :
+                                                    user.role === "instructor" ? "bg-green-100 text-green-700" :
+                                                    "bg-blue-100 text-blue-700"
+                                                }`}>
+                                                    {user.name.split(" ").map((s) => s[0]).slice(0, 2).join("").toUpperCase()}
+                                                </div>
+                                            )}
 
                                             {/* User Details & Status Hierarchy */}
                                             <div className="min-w-0 flex-1">
@@ -393,6 +415,17 @@ const UsersIndex: React.FC = () => {
                                                 />
                                             )}
                                             
+                                            {/* Avatar Remove (Admin only) */}
+                                            {user.avatar_url && (
+                                                <ActionButton
+                                                    icon={TbPhotoOff}
+                                                    onClick={() => handleRemoveAvatar(user)}
+                                                    disabled={isActionDisabled(user.id)}
+                                                    title="Remove Profile Photo"
+                                                    className="text-red-600 hover:bg-red-100"
+                                                />
+                                            )}
+
                                             {/* Standard View/Edit/Delete Actions */}
                                             <div className="w-px h-6 bg-gray-200 mx-1 self-center"></div> {/* Separator */}
 

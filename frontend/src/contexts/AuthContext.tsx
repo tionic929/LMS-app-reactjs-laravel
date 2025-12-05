@@ -10,6 +10,7 @@ export interface User {
   email: string;
   role: 'admin' | 'instructor' | 'learner';
   name: string;
+  avatar_url?: string | null;
 }
 
 interface RegistrationPayload {
@@ -33,6 +34,7 @@ interface AuthContextType {
   logout: () => Promise<void>;
   register: (data: RegistrationPayload) => Promise<void>;
   remember: boolean;
+  refreshUser: () => Promise<void>;
 }
 
 // Initialize AuthContext with defined type
@@ -137,8 +139,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     navigate("/login");
   };
 
+  const refreshUser = async () => {
+    try {
+      const res = await fetchUser();
+      setUser(res.data);
+    } catch {
+      // ignore
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout, register, remember }}>
+    <AuthContext.Provider value={{ user, loading, login, logout, register, remember, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );

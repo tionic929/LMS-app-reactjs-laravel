@@ -57,6 +57,7 @@ Route::post('/logout', [AuthController::class, 'logout']);
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::put('/users/{user}/toggle', [UsersController::class, 'toggleUserField']);
+    Route::delete('/users/{user}/avatar', [UsersController::class, 'deleteAvatar']);
 });
 
     // Admin-authored announcements (placed BEFORE resource to avoid parameter capture of 'admin')
