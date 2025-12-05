@@ -140,7 +140,7 @@ const AnnouncementsPage: React.FC = () => {
       <footer className="px-5 py-3 border-t bg-gray-50/60 flex items-center justify-between gap-2">
         <div className="mt-2 flex items-center gap-2 flex-wrap">
           {announcement.date && (
-            <span className="text-xs text-gray-500">Posted on {announcement.date}</span>
+            <span className="text-xs text-black font-bold">Posted on {announcement.date}</span>
           )}
           {user?.role === 'admin' && (announcement as any) && (
             <span className="text-xs text-gray-500">Audience: {(announcement as any).audience === 'all' ? 'All' : (announcement as any).audience === 'learners' ? 'Learners' : 'Instructors'}</span>

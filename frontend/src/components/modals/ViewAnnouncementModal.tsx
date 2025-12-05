@@ -77,10 +77,7 @@ const ViewAnnouncementModal: React.FC<ViewAnnouncementModalProps> = ({ show, ann
         <div className="mt-6 flex justify-between gap-2">
           <div className="mt-2 flex items-center gap-2">
             {announcement.date && (
-              <span className="text-xs text-gray-500">Posted on {announcement.date}</span>
-            )}
-            {announcement.audience && (
-              <span className="text-xs text-gray-600">Audience: {announcement.audience === 'all' ? 'All' : announcement.audience === 'learners' ? 'Learners' : 'Instructors'}</span>
+              <span className="text-xs text-black font-bold">Posted on {announcement.date}</span>
             )}
           </div>
           <button onClick={onClose} className="px-4 py-2 rounded-md bg-gray-100 hover:bg-gray-200 text-sm">
