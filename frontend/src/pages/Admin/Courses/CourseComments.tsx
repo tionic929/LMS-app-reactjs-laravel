@@ -1,13 +1,25 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { addCourseComment, voteComment, updateComment, deleteComment } from "../../../api/courses";
+import {
+  addCourseComment,
+  voteComment,
+  updateComment,
+  deleteComment,
+} from "../../../api/courses";
 import { BsSend } from "react-icons/bs";
-import { BiUpvote, BiDownvote, BiSolidUpvote, BiSolidDownvote } from "react-icons/bi";
+import {
+  BiUpvote,
+  BiDownvote,
+  BiSolidUpvote,
+  BiSolidDownvote,
+} from "react-icons/bi";
 import { FaReply, FaEdit, FaTrash } from "react-icons/fa";
 import { MdMoreHoriz } from "react-icons/md";
 
 interface User {
   id: number;
   name: string;
+  role: "admin" | "instructor" | "learner";
+  avatar_url?: string | null;
 }
 
 interface Comment {
@@ -42,9 +54,16 @@ const CourseComments: React.FC<CourseCommentsProps> = ({
 }) => {
   const [newComment, setNewComment] = useState("");
   const [votingCommentId, setVotingCommentId] = useState<number | null>(null);
-  const [replyingTo, setReplyingTo] = useState<{ commentId: number; userId: number; userName: string } | null>(null);
+  const [replyingTo, setReplyingTo] = useState<{
+    commentId: number;
+    userId: number;
+    userName: string;
+  } | null>(null);
   const [replyContent, setReplyContent] = useState("");
-  const [editingComment, setEditingComment] = useState<{ commentId: number; content: string } | null>(null);
+  const [editingComment, setEditingComment] = useState<{
+    commentId: number;
+    content: string;
+  } | null>(null);
   const [editContent, setEditContent] = useState("");
   const [dropdownOpen, setDropdownOpen] = useState<number | null>(null);
   const [hiddenReplies, setHiddenReplies] = useState<Set<number>>(new Set());
@@ -53,7 +72,7 @@ const CourseComments: React.FC<CourseCommentsProps> = ({
   useEffect(() => {
     const commentsWithReplies = new Set<number>();
     const processComments = (comments: Comment[]) => {
-      comments.forEach(comment => {
+      comments.forEach((comment) => {
         if (comment.replies_count > 0) {
           commentsWithReplies.add(comment.id);
         }
@@ -69,13 +88,16 @@ const CourseComments: React.FC<CourseCommentsProps> = ({
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownOpen && !(event.target as Element).closest('.dropdown-menu')) {
+      if (
+        dropdownOpen &&
+        !(event.target as Element).closest(".dropdown-menu")
+      ) {
         setDropdownOpen(null);
       }
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [dropdownOpen]);
 
   const handleAddComment = async () => {
@@ -107,7 +129,10 @@ const CourseComments: React.FC<CourseCommentsProps> = ({
     }
   };
 
-  const handleVote = async (commentId: number, voteType: "upvote" | "downvote") => {
+  const handleVote = async (
+    commentId: number,
+    voteType: "upvote" | "downvote"
+  ) => {
     setVotingCommentId(commentId);
     try {
       await voteComment(courseId, commentId, voteType);
@@ -159,7 +184,7 @@ const CourseComments: React.FC<CourseCommentsProps> = ({
   };
 
   const toggleReplies = (commentId: number) => {
-    setHiddenReplies(prev => {
+    setHiddenReplies((prev) => {
       const newSet = new Set(prev);
       if (newSet.has(commentId)) {
         newSet.delete(commentId);
@@ -171,29 +196,64 @@ const CourseComments: React.FC<CourseCommentsProps> = ({
   };
 
   // Flatten all comments and replies into a single array, respecting hidden replies
-  const flattenComments = (comments: Comment[], hiddenReplies: Set<number>): Comment[] => {
+  const flattenComments = (
+    comments: Comment[],
+    hiddenReplies: Set<number>
+  ): Comment[] => {
     const flattened: Comment[] = [];
-    
+
     const processComment = (comment: Comment) => {
       flattened.push(comment);
       // Only include replies if this comment's replies are not hidden
-      if (comment.replies && comment.replies.length > 0 && !hiddenReplies.has(comment.id)) {
+      if (
+        comment.replies &&
+        comment.replies.length > 0 &&
+        !hiddenReplies.has(comment.id)
+      ) {
         comment.replies.forEach(processComment);
       }
     };
-    
+
     comments.forEach(processComment);
     return flattened;
   };
 
-  const allComments = useMemo(() => flattenComments(comments, hiddenReplies), [comments, hiddenReplies]);
+  const allComments = useMemo(
+    () => flattenComments(comments, hiddenReplies),
+    [comments, hiddenReplies]
+  );
 
   const renderComment = (comment: Comment, isReply: boolean = false) => (
     <div
       key={comment.id}
-      className={`${comment.parent_id ? "ml-12 mt-4" : ""} border-b border-gray-200 pb-4`}
+      className={`${
+        comment.parent_id ? "ml-12 mt-4" : ""
+      } border-b border-gray-200 pb-4`}
     >
-      <div className="flex gap-4">
+      <div className="flex gap-3">
+        {/* User Avatar */}
+        <div className="flex-shrink-0">
+          {comment.user?.avatar_url ? (
+            <img
+              src={comment.user.avatar_url}
+              alt={`${comment.user.name}'s avatar`}
+              className="w-10 h-10 rounded-full object-cover border-2 border-gray-200"
+            />
+          ) : (
+            <div
+              className={`flex h-10 w-10 items-center justify-center rounded-full font-bold text-sm flex-shrink-0 ring-2 ring-gray-100 ${
+                comment.user?.role === "admin"
+                  ? "bg-purple-100 text-purple-700"
+                  : comment.user?.role === "instructor"
+                  ? "bg-green-100 text-green-700"
+                  : "bg-blue-100 text-blue-700"
+              }`}
+            >
+              {comment.user?.name?.charAt(0).toUpperCase() || "U"}
+            </div>
+          )}
+        </div>
+
         {/* Comment content */}
         <div className="flex-1">
           <div className="flex items-center justify-between mb-2">
@@ -205,7 +265,7 @@ const CourseComments: React.FC<CourseCommentsProps> = ({
                     : "text-gray-900"
                 }`}
               >
-                {comment.user?.name || 'Unknown User'}
+                {comment.user?.name || "Unknown User"}
               </span>
               {comment.user?.id === instructorId && (
                 <span className="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs rounded-full">
@@ -216,17 +276,22 @@ const CourseComments: React.FC<CourseCommentsProps> = ({
                 {new Date(comment.created_at).toLocaleDateString()}
               </span>
             </div>
-            
+
             {/* Dropdown menu */}
-            {(currentUserId === comment.user?.id || currentUserId === instructorId) && (
+            {(currentUserId === comment.user?.id ||
+              currentUserId === instructorId) && (
               <div className="relative dropdown-menu">
                 <button
-                  onClick={() => setDropdownOpen(dropdownOpen === comment.id ? null : comment.id)}
+                  onClick={() =>
+                    setDropdownOpen(
+                      dropdownOpen === comment.id ? null : comment.id
+                    )
+                  }
                   className="p-1 rounded-full hover:bg-gray-100 transition-colors"
                 >
                   <MdMoreHoriz className="w-5 h-5 text-gray-500" />
                 </button>
-                
+
                 {dropdownOpen === comment.id && (
                   <div className="absolute right-0 mt-1 w-32 bg-white border border-gray-200 rounded-md shadow-lg z-10">
                     <button
@@ -289,7 +354,7 @@ const CourseComments: React.FC<CourseCommentsProps> = ({
               {comment.content}
             </p>
           )}
-          
+
           {/* Action buttons */}
           <div className="flex items-center gap-4 mt-2">
             {/* Vote buttons - horizontal */}
@@ -298,8 +363,14 @@ const CourseComments: React.FC<CourseCommentsProps> = ({
                 onClick={() => handleVote(comment.id, "upvote")}
                 disabled={votingCommentId === comment.id}
                 className={`p-1 rounded hover:bg-gray-100 transition-colors ${
-                  comment.user_vote === "upvote" ? "text-blue-600" : "text-gray-500"
-                } ${votingCommentId === comment.id ? "opacity-50 cursor-not-allowed" : ""}`}
+                  comment.user_vote === "upvote"
+                    ? "text-blue-600"
+                    : "text-gray-500"
+                } ${
+                  votingCommentId === comment.id
+                    ? "opacity-50 cursor-not-allowed"
+                    : ""
+                }`}
                 title="Upvote"
               >
                 {comment.user_vote === "upvote" ? (
@@ -315,8 +386,14 @@ const CourseComments: React.FC<CourseCommentsProps> = ({
                 onClick={() => handleVote(comment.id, "downvote")}
                 disabled={votingCommentId === comment.id}
                 className={`p-1 rounded hover:bg-gray-100 transition-colors ${
-                  comment.user_vote === "downvote" ? "text-red-600" : "text-gray-500"
-                } ${votingCommentId === comment.id ? "opacity-50 cursor-not-allowed" : ""}`}
+                  comment.user_vote === "downvote"
+                    ? "text-red-600"
+                    : "text-gray-500"
+                } ${
+                  votingCommentId === comment.id
+                    ? "opacity-50 cursor-not-allowed"
+                    : ""
+                }`}
                 title="Downvote"
               >
                 {comment.user_vote === "downvote" ? (
@@ -328,7 +405,13 @@ const CourseComments: React.FC<CourseCommentsProps> = ({
             </div>
 
             <button
-              onClick={() => setReplyingTo({ commentId: isReply ? comment.id : comment.id, userId: comment.user.id, userName: comment.user.name })}
+              onClick={() =>
+                setReplyingTo({
+                  commentId: isReply ? comment.id : comment.id,
+                  userId: comment.user.id,
+                  userName: comment.user.name,
+                })
+              }
               className="text-sm text-gray-600 hover:text-blue-600 flex items-center gap-1"
             >
               <FaReply className="w-3 h-3" />
@@ -344,7 +427,8 @@ const CourseComments: React.FC<CourseCommentsProps> = ({
                 {hiddenReplies.has(comment.id) ? (
                   <>
                     <span className="text-xs">▼</span>
-                    Load {comment.replies_count} {comment.replies_count === 1 ? 'reply' : 'replies'}
+                    Load {comment.replies_count}{" "}
+                    {comment.replies_count === 1 ? "reply" : "replies"}
                   </>
                 ) : (
                   <>
@@ -395,7 +479,9 @@ const CourseComments: React.FC<CourseCommentsProps> = ({
     <div>
       <div className="space-y-6">
         {allComments.length === 0 ? (
-          <p className="text-gray-500 text-center py-4">No comments yet. Be the first to post!</p>
+          <p className="text-gray-500 text-center py-4">
+            No comments yet. Be the first to post!
+          </p>
         ) : (
           allComments.map((comment) => renderComment(comment, false))
         )}
