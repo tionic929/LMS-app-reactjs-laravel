@@ -24,7 +24,8 @@ Route::get('/test-notification', [NotificationController::class, 'test']);
 
 Route::resource('courses', CourseController::class);
 
-Route::middleware('auth:sanctum' , 'log.activity')->group(function () {
+// , 'log.activity'
+Route::middleware('auth:sanctum')->group(function () {
     Route::post('/courses/{course}/enroll', [CourseController::class, 'enroll']);
     Route::post('/courses/{course}/leave', [CourseController::class, 'leave']);
     Route::get('/courses/{course}/learners', [CourseController::class, 'learners']);
@@ -40,10 +41,10 @@ Route::middleware('auth:sanctum' , 'log.activity')->group(function () {
     Route::delete('/courses/{course}/comments/{comment}', [CourseController::class, 'deleteComment']);
 });
 
-
+// @auth sanctum , 'log.activity'
 Route::get('announcements', [AnnouncementController::class, 'index']);
 Route::get('announcements/{announcement}', [AnnouncementController::class, 'show']);
-Route::middleware(['auth:sanctum', 'role:admin', 'log.activity'])->group(function () {
+Route::middleware(['auth:sanctum', 'role:admin'])->group(function () {
     Route::post('announcements', [AnnouncementController::class, 'store']);
     Route::put('announcements/{announcement}', [AnnouncementController::class, 'update']);
     Route::delete('announcements/{announcement}', [AnnouncementController::class, 'destroy']);
@@ -69,7 +70,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
 Route::middleware('auth:sanctum')->group(function () {
     
-    // NOTE: If you are using Sanctum for API authentication, you should call 
+    // NOTE: If you are using Sanctum for API authentication, you should call
     Route::post('/logout', [AuthController::class, 'logout']); 
     
     // 💡 NEW ROUTE: Destroys the session cookie.

@@ -9,7 +9,7 @@ import { useAuth } from "./contexts/AuthContext";
 import Announcements from './pages/AnnouncementsPage';
 import UsersIndex from "./pages/Admin/Users/Index";
 import Courses from "./pages/Course";
-import CourseDetails from './pages/CourseDetails';
+import CourseDetails from './pages/Admin/Courses/CourseDetails';
 import Register from "./pages/auth/register";
 import AccountUpdate from "./pages/Account/Update";
 import RegisterInstructor from "./pages/auth/registerInstructor";

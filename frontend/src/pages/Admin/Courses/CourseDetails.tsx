@@ -2,8 +2,8 @@ import React, { useState, useEffect, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "../../../contexts/AuthContext";
 import { getCourse } from "../../../api/courses";
-import { MdArrowBack } from "react-icons/md";
-import CourseHeader from "../Courses/CourseHeader";
+import { MdArrowBack, MdEdit, MdPeople, MdLibraryBooks, MdComment, MdAnnouncement } from "react-icons/md";
+import { FaUserGraduate, FaLock, FaGlobe } from "react-icons/fa";
 import CourseTabs from "../Courses/CourseTabs";
 import CourseLearners from "../Courses/CourseLearners";
 import CourseRequests from "../Courses/CourseRequests";
@@ -12,6 +12,21 @@ import CourseComments from "../Courses/CourseComments";
 import CourseAnnouncements from "../Courses/CourseAnnouncements";
 import EditCourseModal from "../../../components/modals/courses/EditCourseModal";
 import AddMaterialModal from "../../../components/modals/courses/AddMaterialModal";
+
+// Enhanced stat card with icon
+const StatCard: React.FC<{ label: string; value: string | number; icon: React.ElementType }> = ({ label, value, icon: Icon }) => (
+  <div className="p-4 rounded-lg bg-gradient-to-br from-white to-gray-50 border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
+    <div className="flex items-center gap-3">
+      <div className="p-2 rounded-full bg-indigo-100 text-indigo-600">
+        <Icon className="h-4 w-4" />
+      </div>
+      <div>
+        <p className="text-xs text-gray-500 font-medium">{label}</p>
+        <p className="text-xl font-bold text-gray-900">{value}</p>
+      </div>
+    </div>
+  </div>
+);
 
 // Interface Definitions (Kept in main file for clarity, but could be moved to a shared 'types' file)
 interface CourseType {
@@ -189,49 +204,171 @@ const CourseDetails: React.FC = () => {
 
 
   return (
-    <main className="flex-1 overflow-auto">
-      {/* Course Header - Uses local state and fetch function */}
-      <CourseHeader
-        course={course}
-        isInstructor={isInstructor}
-        isEnrolled={isEnrolled}
-        hasPendingRequest={hasPendingRequest}
-        onCourseUpdate={fetchCourseData}
-        setShowEditModal={setShowEditModal}
-      />
+    <main className="flex-1 overflow-auto bg-gradient-to-br from-gray-50 to-gray-100">
+      <div className="max-w-7xl mx-auto px-4 py-6 space-y-6">
+        {/* Breadcrumb and Back Button */}
+        <div className="flex items-center justify-between">
+          <button
+            onClick={() => navigate("/courses")}
+            className="flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900 transition-colors"
+          >
+            <MdArrowBack className="h-5 w-5" />
+            Back to Courses
+          </button>
+          <div className="text-sm text-gray-500">
+            Course Management Dashboard
+          </div>
+        </div>
 
-      {/* Course Tabs - Manages tab state */}
-      <CourseTabs
-        activeTab={activeTab}
-        setActiveTab={setActiveTab}
-        isInstructor={isInstructor}
-        learnersCount={learners.length}
-        requestsCount={joinRequests.length}
-        materialsCount={materials.length}
-        commentsCount={comments.length}
-        announcementsCount={announcements.length}
-      >
-        {renderTabContent()}
-      </CourseTabs>
+        {/* Hero Section with Course Title and Key Actions */}
+        <section className="bg-white border border-gray-200 rounded-2xl shadow-lg p-6 sm:p-8">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+            <div className="flex-1">
+              <div className="flex items-center gap-3 mb-2">
+                <FaUserGraduate className="h-6 w-6 text-indigo-600" />
+                <h1 className="text-3xl sm:text-4xl font-bold text-gray-900">
+                  {course.title}
+                </h1>
+              </div>
+              <p className="text-gray-600 mb-4">
+                Manage learners, content, and engagement for this course.
+              </p>
+              <div className="flex flex-wrap items-center gap-4">
+                <span className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm font-medium ${
+                  course.privacy === "public"
+                    ? "bg-emerald-100 text-emerald-800 border border-emerald-200"
+                    : "bg-amber-100 text-amber-800 border border-amber-200"
+                }`}>
+                  {course.privacy === "public" ? <FaGlobe className="h-4 w-4" /> : <FaLock className="h-4 w-4" />}
+                  {course.privacy === "public" ? "Public" : "Private"}
+                </span>
+                <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-800 border border-gray-200">
+                  Status: {course.status}
+                </span>
+              </div>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <button
+                onClick={() => setShowEditModal(true)}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+              >
+                <MdEdit className="h-4 w-4" />
+                Edit Course
+              </button>
+              <button
+                onClick={() => setShowAddMaterialModal(true)}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+              >
+                <MdLibraryBooks className="h-4 w-4" />
+                Add Material
+              </button>
+            </div>
+          </div>
 
+          {/* Enrollment Progress Bar */}
+          <div className="mt-6">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium text-gray-700">Enrollment Progress</span>
+              <span className="text-sm text-gray-500">
+                {course.current_enrolled ?? 0} / {course.capacity ?? 0} learners
+              </span>
+            </div>
+            <div className="w-full bg-gray-200 rounded-full h-3">
+              <div
+                className="bg-indigo-600 h-3 rounded-full transition-all duration-300"
+                style={{
+                  width: course.capacity ? `${Math.min((course.current_enrolled / course.capacity) * 100, 100)}%` : '0%'
+                }}
+              ></div>
+            </div>
+          </div>
+        </section>
 
-      {/* Modals */}
-      {showEditModal && (
-        <EditCourseModal
-          courseId={courseId}
-          initialData={editFormInitialState}
-          onClose={() => setShowEditModal(false)}
-          onSuccess={fetchCourseData}
-        />
-      )}
+        {/* Management Layout: Overview + Tabs on Left, Stats on Right */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Left Column: Overview and Tabs */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Course Overview Card */}
+            <section className="bg-white border border-gray-200 rounded-xl shadow-sm p-6">
+              <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                <MdLibraryBooks className="h-5 w-5 text-indigo-600" />
+                Course Description
+              </h2>
+              <div className="prose max-w-none text-gray-700 leading-relaxed">
+                {course.content ? (
+                  <div dangerouslySetInnerHTML={{ __html: course.content }} />
+                ) : (
+                  <p className="text-gray-500 italic">No description provided yet. Click "Edit Course" to add one.</p>
+                )}
+              </div>
+            </section>
 
-      {showAddMaterialModal && (
-        <AddMaterialModal
-          courseId={courseId}
-          onClose={() => setShowAddMaterialModal(false)}
-          onSuccess={fetchCourseData}
-        />
-      )}
+            {/* Tabs Section */}
+            <section className="bg-white border border-gray-200 rounded-xl shadow-sm">
+              <CourseTabs
+                activeTab={activeTab}
+                setActiveTab={setActiveTab}
+                isInstructor={isInstructor}
+                learnersCount={learners.length}
+                requestsCount={joinRequests.length}
+                materialsCount={materials.length}
+                commentsCount={comments.length}
+                announcementsCount={announcements.length}
+              >
+                <div className="p-6">{renderTabContent()}</div>
+              </CourseTabs>
+            </section>
+          </div>
+
+          {/* Right Column: Enhanced Stats Sidebar */}
+          <aside className="lg:col-span-1 space-y-6">
+            <section className="bg-white border border-gray-200 rounded-xl shadow-sm p-6">
+              <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                <MdPeople className="h-5 w-5 text-indigo-600" />
+                Course Metrics
+              </h2>
+              <div className="grid grid-cols-1 gap-4">
+                <StatCard label="Enrolled Learners" value={course.current_enrolled ?? 0} icon={MdPeople} />
+                <StatCard label="Course Capacity" value={course.capacity ?? "-"} icon={FaUserGraduate} />
+                <StatCard label="Materials" value={materials.length} icon={MdLibraryBooks} />
+                <StatCard label="Comments" value={comments.length} icon={MdComment} />
+                <StatCard label="Announcements" value={announcements.length} icon={MdAnnouncement} />
+              </div>
+            </section>
+
+            <section className="bg-white border border-gray-200 rounded-xl shadow-sm p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Instructor</h3>
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center">
+                  <FaUserGraduate className="h-5 w-5 text-indigo-600" />
+                </div>
+                <div>
+                  <p className="font-medium text-gray-900">{course.instructor_name}</p>
+                  <p className="text-sm text-gray-500">Course Instructor</p>
+                </div>
+              </div>
+            </section>
+          </aside>
+        </div>
+
+        {/* Modals */}
+        {showEditModal && (
+          <EditCourseModal
+            courseId={courseId}
+            initialData={editFormInitialState}
+            onClose={() => setShowEditModal(false)}
+            onSuccess={fetchCourseData}
+          />
+        )}
+
+        {showAddMaterialModal && (
+          <AddMaterialModal
+            courseId={courseId}
+            onClose={() => setShowAddMaterialModal(false)}
+            onSuccess={fetchCourseData}
+          />
+        )}
+      </div>
     </main>
   );
 };
