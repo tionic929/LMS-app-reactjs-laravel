@@ -14,6 +14,7 @@ import {
 } from "react-icons/bi";
 import { FaReply, FaEdit, FaTrash } from "react-icons/fa";
 import { MdMoreHoriz } from "react-icons/md";
+import { useAuth } from "../../../contexts/AuthContext";
 
 interface User {
   id: number;
@@ -52,6 +53,7 @@ const CourseComments: React.FC<CourseCommentsProps> = ({
   onCommentAction,
   currentUserId,
 }) => {
+  const { user: currentUser } = useAuth();
   const [newComment, setNewComment] = useState("");
   const [votingCommentId, setVotingCommentId] = useState<number | null>(null);
   const [replyingTo, setReplyingTo] = useState<{
@@ -476,34 +478,85 @@ const CourseComments: React.FC<CourseCommentsProps> = ({
   );
 
   return (
-    <div>
-      <div className="space-y-6">
-        {allComments.length === 0 ? (
-          <p className="text-gray-500 text-center py-4">
-            No comments yet. Be the first to post!
-          </p>
-        ) : (
-          allComments.map((comment) => renderComment(comment, false))
-        )}
+    <div className="max-w-4xl mx-auto">
+      {/* Add Comment Form - Moved to Top */}
+      <div className="mb-8 bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
+        <div className="flex gap-3">
+          {/* User Avatar */}
+          <div className="flex-shrink-0">
+            {currentUser?.avatar_url ? (
+              <img
+                src={currentUser.avatar_url}
+                alt="Your avatar"
+                className="w-10 h-10 rounded-full object-cover"
+              />
+            ) : (
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold ${
+                currentUser?.role === "admin" ? "bg-purple-500" :
+                currentUser?.role === "instructor" ? "bg-green-500" :
+                "bg-blue-500"
+              }`}>
+                {currentUser?.name?.charAt(0).toUpperCase() || 'U'}
+              </div>
+            )}
+          </div>
+
+          {/* Comment Input */}
+          <div className="flex-1">
+            <textarea
+              value={newComment}
+              onChange={(e) => setNewComment(e.target.value)}
+              placeholder="Add a comment..."
+              className="w-full px-0 py-2 border-0 border-b-2 border-gray-200 rounded-none text-black placeholder-gray-500 focus:border-blue-500 focus:ring-0 resize-none transition-colors focus:outline-none"
+              rows={1}
+              onFocus={(e) => {
+                e.target.rows = 3;
+              }}
+              onBlur={(e) => {
+                if (!newComment.trim()) {
+                  e.target.rows = 1;
+                }
+              }}
+            />
+            {newComment.trim() && (
+              <div className="flex justify-end gap-2 mt-3">
+                <button
+                  onClick={() => setNewComment("")}
+                  className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-full font-medium transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleAddComment}
+                  disabled={!newComment.trim()}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-full font-medium hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+                >
+                  Comment
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
 
-      {/* Add Comment Form */}
-      <div className="mt-6 border-t pt-6">
-        <h3 className="text-lg font-medium mb-3">Add a Comment</h3>
-        <textarea
-          value={newComment}
-          onChange={(e) => setNewComment(e.target.value)}
-          placeholder="Write your comment here..."
-          className="w-full px-3 py-2 border border-gray-300 rounded-md mb-3 text-black"
-          rows={3}
-        />
-        <button
-          onClick={handleAddComment}
-          className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 flex items-center gap-2"
-        >
-          <BsSend className="h-4 w-4" />
-          Post Comment
-        </button>
+      {/* Comments Section */}
+      <div className="space-y-6">
+        {allComments.length === 0 ? (
+          <div className="text-center py-12">
+            <div className="text-gray-400 text-6xl mb-4">💬</div>
+            <p className="text-gray-500 text-lg">No comments yet</p>
+            <p className="text-gray-400 text-sm">Be the first to share your thoughts!</p>
+          </div>
+        ) : (
+          <>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-medium text-gray-900">
+                {allComments.length} {allComments.length === 1 ? 'Comment' : 'Comments'}
+              </h3>
+            </div>
+            {allComments.map((comment) => renderComment(comment, false))}
+          </>
+        )}
       </div>
     </div>
   );
