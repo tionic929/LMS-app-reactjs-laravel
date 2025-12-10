@@ -186,6 +186,7 @@ const CourseDetails: React.FC = () => {
             instructorId={course.instructor_id}
             comments={comments}
             onCommentAction={fetchCourseData}
+            currentUserId={user?.id}
           />
         );
       case "announcements":

@@ -61,7 +61,15 @@ class CourseController extends Controller
             'activeLearners',
             'joinRequests.user',
             'materials',
-            'comments.user',
+            'comments' => function ($query) {
+                $query->whereNull('parent_id')
+                    ->with(['user', 'replies' => function ($query) {
+                        $query->with(['user', 'replyToUser', 'replies' => function ($subQuery) {
+                            $subQuery->with(['user', 'replyToUser']);
+                        }]);
+                    }])
+                    ->orderBy('created_at', 'desc');
+            },
             'announcements'
         ]);
 
@@ -361,14 +369,45 @@ class CourseController extends Controller
 
         $validated = $request->validate([
             'content' => 'required|string',
+            'parent_id' => 'nullable|exists:course_comments,id',
+            'reply_to_user_id' => 'nullable|exists:users,id',
         ]);
 
         $comment = $course->comments()->create([
             'user_id' => auth()->id(),
             'content' => $validated['content'],
+            'parent_id' => $validated['parent_id'] ?? null,
+            'reply_to_user_id' => $validated['reply_to_user_id'] ?? null,
         ]);
 
-        return response()->json($comment->load('user'), 201);
+        return response()->json($comment->load('user', 'replyToUser'), 201);
+    }
+
+    public function updateComment(Request $request, Course $course, CourseComment $comment)
+    {
+        if ($comment->course_id !== $course->id) {
+            return response()->json(['message' => 'Comment not found'], 400);
+        }
+
+        $canEdit = (
+            auth()->id() === $course->instructor_id ||
+            auth()->user()->role === 'admin' ||
+            auth()->id() === $comment->user_id
+        );
+
+        if (!$canEdit) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        $validated = $request->validate([
+            'content' => 'required|string|max:1000',
+        ]);
+
+        $comment->update([
+            'content' => $validated['content'],
+        ]);
+
+        return response()->json($comment->load('user', 'replyToUser'));
     }
 
     public function deleteComment(Course $course, CourseComment $comment)

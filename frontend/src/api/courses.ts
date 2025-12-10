@@ -99,9 +99,15 @@ export const deleteCourseMaterial = async (
 // Comment management
 export const addCourseComment = async (
   courseId: string | number,
-  content: string
+  content: string,
+  parentId?: number,
+  replyToUserId?: number
 ) => {
-  return api.post(`/courses/${courseId}/comments`, { content });
+  return api.post(`/courses/${courseId}/comments`, {
+    content,
+    parent_id: parentId,
+    reply_to_user_id: replyToUserId,
+  });
 };
 
 export const voteComment = async (
@@ -112,6 +118,23 @@ export const voteComment = async (
   return api.post(`/courses/${courseId}/comments/${commentId}/vote`, {
     vote_type: voteType,
   });
+};
+
+export const updateComment = async (
+  courseId: string | number,
+  commentId: string | number,
+  content: string
+) => {
+  return api.put(`/courses/${courseId}/comments/${commentId}`, {
+    content,
+  });
+};
+
+export const deleteComment = async (
+  courseId: string | number,
+  commentId: string | number
+) => {
+  return api.delete(`/courses/${courseId}/comments/${commentId}`);
 };
 
 // Announcement management

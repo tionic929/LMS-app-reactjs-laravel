@@ -14,6 +14,8 @@ class CourseComment extends Model
     protected $fillable = [
         'course_id',
         'user_id',
+        'parent_id',
+        'reply_to_user_id',
         'content',
     ];
 
@@ -21,6 +23,8 @@ class CourseComment extends Model
         'upvotes_count',
         'downvotes_count',
         'user_vote',
+        'replies_count',
+        'is_nested_reply',
     ];
 
     public function course(): BelongsTo
@@ -31,6 +35,21 @@ class CourseComment extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function parent(): BelongsTo
+    {
+        return $this->belongsTo(CourseComment::class, 'parent_id');
+    }
+
+    public function replies(): HasMany
+    {
+        return $this->hasMany(CourseComment::class, 'parent_id')->with('user', 'replyToUser');
+    }
+
+    public function replyToUser(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'reply_to_user_id');
     }
 
     public function votes(): HasMany
@@ -63,5 +82,21 @@ class CourseComment extends Model
         }
 
         return $vote->vote === 1 ? 'upvote' : ($vote->vote === -1 ? 'downvote' : null);
+    }
+
+    public function getRepliesCountAttribute(): int
+    {
+        return $this->replies()->count();
+    }
+
+    public function getIsNestedReplyAttribute(): bool
+    {
+        if (!$this->parent_id) {
+            return false; // This is a top-level comment
+        }
+
+        // Check if the parent comment itself has a parent (making this a nested reply)
+        // Use a direct query instead of relying on loaded relationship
+        return static::where('id', $this->parent_id)->whereNotNull('parent_id')->exists();
     }
 }
