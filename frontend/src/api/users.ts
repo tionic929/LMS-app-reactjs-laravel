@@ -9,6 +9,7 @@ export interface User {
     is_enabled: boolean; // New: Account status
     is_confirmed: boolean; // New: Instructor confirmation status
     is_banned_from_comments: boolean;
+    avatar_url?: string | null;
 }
 
 export interface UserAnalytics {
@@ -78,6 +79,20 @@ export const viewUser = async (id: number, data: UpdateUserPayload) => {
 }
 
 export const updateUser = async (id: number, data: UpdateUserPayload) => {
+    // Choose JSON or multipart depending on presence of File
+    if ((data as any).avatar instanceof File) {
+        const fd = new FormData();
+        fd.append('_method', 'PUT');
+        fd.append('name', data.name);
+        fd.append('email', data.email);
+        fd.append('role', data.role);
+        if (data.password) fd.append('password', data.password);
+        fd.append('avatar', (data as any).avatar as File);
+        const response = await api.post(`/users/${id}`, fd, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+        });
+        return response.data;
+    }
     const response = await api.put(`/users/${id}`, data);
     return response.data;
 }
@@ -91,5 +106,10 @@ export const toggleUserField = async (userId: number, field: keyof User) => {
     const response = await api.put(`/users/${userId}/toggle`, { 
         field: field 
     });
+    return response.data;
+};
+
+export const deleteUserAvatar = async (userId: number) => {
+    const response = await api.delete(`/users/${userId}/avatar`);
     return response.data;
 };

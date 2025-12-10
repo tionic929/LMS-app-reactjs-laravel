@@ -37,6 +37,7 @@ Route::middleware('auth:sanctum' , 'log.activity')->group(function () {
     Route::post('/courses/{course}/comments', [CourseController::class, 'addComment']);
     Route::post('/courses/{course}/announcements', [CourseController::class, 'addAnnouncement']);
     Route::delete('/courses/{course}/announcements/{announcementId}', [CourseController::class, 'deleteAnnouncement']);
+    Route::delete('/courses/{course}/comments/{comment}', [CourseController::class, 'deleteComment']);
 });
 
 
@@ -74,6 +75,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // 💡 NEW ROUTE: Destroys the session cookie.
     Route::post('/logout-session', [AuthController::class, 'logoutSession']);
     Route::put('/users/{user}/toggle', [UsersController::class, 'toggleUserField']);
+    Route::delete('/users/{user}/avatar', [UsersController::class, 'deleteAvatar']);
 });
 
 // Admin-authored announcements (placed BEFORE resource to avoid parameter capture of 'admin')

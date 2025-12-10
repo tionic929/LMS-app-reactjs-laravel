@@ -121,6 +121,7 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ show, user, onClose, onSu
             <option value="instructor">Instructor</option>
             <option value="admin">Admin</option>
           </select>
+          <p className="mt-1 text-xs text-gray-500">Changing role affects available permissions and instructor confirmation.</p>
         </div>
 
         {/* Password */}
@@ -134,6 +135,7 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ show, user, onClose, onSu
             className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
             placeholder="Enter new password to change"
           />
+          <p className="mt-1 text-xs text-gray-500">Leave blank to keep the current password.</p>
         </div>
 
         {/* Buttons */}

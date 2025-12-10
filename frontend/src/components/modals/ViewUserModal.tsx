@@ -1,140 +1,122 @@
-import React, { useState, useEffect } from "react";
-import Modal from "./Modal"; // Assuming Modal is in the same directory or adjust path
-import { updateUser, type User, type UpdateUserPayload } from "../../api/users"; // Adjust path as needed
+import React from "react";
+import Modal from "./Modal";
+import { type User } from "../../api/users";
+import { FaUsers, FaUser, FaGraduationCap, FaBan, FaCheckCircle, FaRegCheckCircle } from "react-icons/fa";
 
 interface ViewUserModalProps {
   show: boolean;
-  user: User | null; // Note: Ensure User interface includes 'role'
+  user: User | null;
   onClose: () => void;
   onSuccess: () => void;
 }
 
-const ViewUserModal: React.FC<ViewUserModalProps> = ({ show, user, onClose, onSuccess }) => {
-  const [formData, setFormData] = useState<UpdateUserPayload>({
-    name: user?.name || "",
-    email: user?.email || "",
-    role: user?.role || "learner", // Initialize role
-    password: "",
-  });
-  
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  // Synchronize state when the `user` prop changes
-  useEffect(() => {
-    if (user) {
-      setFormData({
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        password: "", // Always clear password field on user change
-      });
-    }
-  }, [user]);
-
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
-  ) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!user) return;
-
-    setLoading(true);
-    setError(null);
-
-    // Prepare payload, excluding empty password field
-    const payload: UpdateUserPayload = {
-      name: formData.name,
-      email: formData.email,
-      role: formData.role,
-    };
-    if (formData.password) {
-      payload.password = formData.password;
-    }
-
-    try {
-      await updateUser(user.id, payload);
-      onSuccess(); // Refresh parent list
-      onClose();   // Close modal
-    } catch (err: any) {
-      console.error(err);
-      const msg = err.response?.data?.message || "Failed to update user.";
-      setError(msg);
-    } finally {
-      setLoading(false);
-    }
-  };
-
+const ViewUserModal: React.FC<ViewUserModalProps> = ({ show, user, onClose }) => {
   if (!show || !user) return null;
 
+  const roleChip = (
+    <span
+      className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ${
+        user.role === "instructor"
+          ? "bg-green-100 text-green-800"
+          : user.role === "admin"
+          ? "bg-purple-100 text-purple-800"
+          : "bg-blue-100 text-blue-800"
+      }`}
+    >
+      {user.role === "instructor" ? "Instructor" : user.role === "learner" ? "Learner" : "Admin"}
+    </span>
+  );
+
+  const activeChip = (
+    <span
+      className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ${
+        user.is_banned_from_comments
+          ? "bg-rose-100 text-rose-700"
+          : user.is_enabled
+          ? "bg-emerald-100 text-emerald-700"
+          : "bg-gray-100 text-gray-700"
+      }`}
+    >
+      {user.is_banned_from_comments ? "Banned" : user.is_enabled ? "Active" : "Disabled"}
+    </span>
+  );
+
+  const confirmChip = (
+    user.role === "instructor" ? (
+      <span
+        className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ${
+          user.is_confirmed ? "bg-indigo-100 text-indigo-700" : "bg-amber-100 text-amber-700"
+        }`}
+      >
+        {user.is_confirmed ? "Confirmed" : "Unconfirmed"}
+      </span>
+    ) : null
+  );
+
   return (
-    <Modal show={show} onClose={onClose} title={`View User: ${user.name}`}>
-      {error && (
-        <div className="mb-4 p-3 bg-red-100 text-red-700 rounded text-sm">
-          {error}
-        </div>
-      )}
-
-      <form onSubmit={handleSubmit} className="space-y-4">
-        {/* Name */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700">Name</label>
-          <input
-            title="name"
-            name="name"
-            type="text"
-            required
-            value={formData.name}
-            onChange={handleChange}
-            className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-            disabled
-          />
-        </div>
-
-        {/* Email */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700">Email</label>
-          <input
-            title="email"
-            name="email"
-            type="email"
-            required
-            value={formData.email}
-            onChange={handleChange}
-            className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-            disabled
-          />
-        </div>
-        
-        {/* Role Selection (New) */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700">Role</label>
-          <input
-            title="email"
-            name="email"
-            type="email"
-            required
-            value={formData.role}
-            onChange={handleChange}
-            className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-            disabled
-          />
+    <Modal show={show} onClose={onClose} title={`User Profile`}>
+      <div className="space-y-6">
+        {/* Header with avatar */}
+        <div className="flex items-center gap-4">
+          {user.avatar_url ? (
+            <img src={user.avatar_url} alt="avatar" className="h-14 w-14 rounded-full object-cover" />
+          ) : (
+            <div className="h-14 w-14 rounded-full bg-gray-200 flex items-center justify-center text-gray-700 font-semibold">
+              {user.name.split(" ").map(s => s[0]).slice(0,2).join("").toUpperCase()}
+            </div>
+          )}
+          <div className="min-w-0">
+            <h3 className="text-lg font-semibold text-gray-900 truncate">{user.name}</h3>
+            <p className="text-sm text-gray-600 truncate">{user.email}</p>
+            <div className="mt-2 flex items-center gap-2">
+              {roleChip}
+              {activeChip}
+              {confirmChip}
+            </div>
+          </div>
         </div>
 
-        {/* Buttons */}
-        <div className="flex justify-end gap-3 pt-2">
+        {/* Quick facts */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="rounded-lg border border-gray-200 bg-white p-4">
+            <div className="flex items-center gap-2 text-gray-700"><FaUsers className="h-4 w-4" /><span className="text-xs">User ID</span></div>
+            <div className="mt-1 text-sm font-medium text-gray-900">{user.id}</div>
+          </div>
+          <div className="rounded-lg border border-gray-200 bg-white p-4">
+            <div className="flex items-center gap-2 text-gray-700"><FaUser className="h-4 w-4" /><span className="text-xs">Username</span></div>
+            <div className="mt-1 text-sm font-medium text-gray-900">{user.name}</div>
+          </div>
+          <div className="rounded-lg border border-gray-200 bg-white p-4">
+            <div className="flex items-center gap-2 text-gray-700"><FaGraduationCap className="h-4 w-4" /><span className="text-xs">Role</span></div>
+            <div className="mt-1 text-sm font-medium text-gray-900">{user.role}</div>
+          </div>
+        </div>
+
+        {/* Status section */}
+        <div className="rounded-lg border border-gray-200 bg-white p-4">
+          <h4 className="text-sm font-semibold text-gray-900">Account Status</h4>
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            {activeChip}
+            {confirmChip}
+            <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ${user.is_banned_from_comments ? "bg-rose-100 text-rose-700" : "bg-gray-100 text-gray-700"}`}>
+              <FaBan className="h-3 w-3 mr-1" /> {user.is_banned_from_comments ? "Comments Banned" : "Comments Allowed"}
+            </span>
+            <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ${user.role === "instructor" ? (user.is_confirmed ? "bg-indigo-100 text-indigo-700" : "bg-amber-100 text-amber-700") : "bg-gray-100 text-gray-700"}`}>
+              {(user.role === "instructor" ? (user.is_confirmed ? <FaCheckCircle className="h-3 w-3 mr-1" /> : <FaRegCheckCircle className="h-3 w-3 mr-1" />) : null)} {user.role === "instructor" ? (user.is_confirmed ? "Instructor Confirmed" : "Instructor Unconfirmed") : "Standard Account"}
+            </span>
+          </div>
+        </div>
+
+        <div className="flex justify-end">
           <button
             type="button"
             onClick={onClose}
             className="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 transition"
           >
-            Cancel
+            Close
           </button>
         </div>
-      </form>
+      </div>
     </Modal>
   );
 };

@@ -33,6 +33,9 @@ import { FaRegFileAlt, FaRegCommentDots } from "react-icons/fa";
 import { FaLink } from "react-icons/fa6";
 import { VscRequestChanges } from "react-icons/vsc";
 import { BsSend } from "react-icons/bs";
+import "../App.css";
+import EditCourseModal from "../components/modals/EditCourseModal";
+import AddMaterialModal from "../components/modals/AddMaterialModal";
 
 interface Course {
   id: number;
@@ -71,9 +74,6 @@ const CourseDetails: React.FC = () => {
   // Management modals state
   const [showEditModal, setShowEditModal] = useState(false);
   const [showAddMaterialModal, setShowAddMaterialModal] = useState(false);
-  const [materialType, setMaterialType] = useState<"file" | "video" | "link">(
-    "file"
-  );
   const [materialFilter, setMaterialFilter] = useState<
     "all" | "file" | "video" | "link"
   >("all");
@@ -96,12 +96,7 @@ const CourseDetails: React.FC = () => {
     capacity: 50,
   });
 
-  // Material form state
-  const [materialForm, setMaterialForm] = useState({
-    title: "",
-    url: "",
-    description: "",
-  });
+  // Material form handled by AddMaterialModal
 
   // Data states
   const [learners, setLearners] = useState<any[]>([]);
@@ -150,20 +145,7 @@ const CourseDetails: React.FC = () => {
     }
   };
 
-  const handleUpdateCourse = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!id) return;
-
-    try {
-      await updateCourse(id, editForm);
-      await fetchCourseData();
-      setShowEditModal(false);
-      alert("Course updated successfully!");
-    } catch (err: any) {
-      console.error("Error updating course:", err);
-      alert(err.response?.data?.message || "Failed to update course");
-    }
-  };
+  // Edit handled by EditCourseModal
 
   const handleDeleteCourse = async () => {
     if (!id) return;
@@ -246,26 +228,7 @@ const CourseDetails: React.FC = () => {
     }
   };
 
-  const handleAddMaterial = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!id) return;
-
-    try {
-      await addCourseMaterial(id, {
-        title: materialForm.title,
-        type: materialType,
-        url: materialForm.url,
-        description: materialForm.description,
-      });
-      await fetchCourseData();
-      setShowAddMaterialModal(false);
-      setMaterialForm({ title: "", url: "", description: "" });
-      alert("Material added successfully!");
-    } catch (err: any) {
-      console.error("Error adding material:", err);
-      alert(err.response?.data?.message || "Failed to add material");
-    }
-  };
+  // Add material handled by AddMaterialModal
 
   const handleDeleteMaterial = async (materialId: number) => {
     if (!id) return;
@@ -325,9 +288,9 @@ const CourseDetails: React.FC = () => {
 
   if (loading) {
     return (
-      <main className="flex-1 overflow-auto p-6">
-        <div className="max-w-4xl mx-auto text-center py-12">
-          <p className="text-gray-600">Loading course...</p>
+      <main className="max-w-7xl mx-auto p-6">
+        <div className="text-center py-12">
+          <p className="text-sm text-gray-600">Loading course...</p>
         </div>
       </main>
     );
@@ -335,20 +298,15 @@ const CourseDetails: React.FC = () => {
 
   if (error || !course) {
     return (
-      <main className="flex-1 overflow-auto p-6">
-        <div className="max-w-4xl mx-auto text-center py-12">
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">
-            {error || "Course Not Found"}
-          </h1>
-          <p className="text-gray-600 mb-6">
-            The course you're looking for doesn't exist or you don't have access to it.
-          </p>
+      <main className="max-w-7xl mx-auto p-6">
+        <div className="text-center py-12">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">{error || "Course Not Found"}</h1>
+          <p className="text-sm text-gray-600 mb-6">The course you're looking for doesn't exist or you don't have access to it.</p>
           <button
             onClick={() => navigate("/courses")}
-            className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-md inline-flex items-center gap-2"
+            className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-indigo-700"
           >
-            <MdArrowBack className="h-5 w-5" />
-            Back to Courses
+            <MdArrowBack className="h-5 w-5" /> Back to Courses
           </button>
         </div>
       </main>
@@ -356,30 +314,30 @@ const CourseDetails: React.FC = () => {
   }
 
   return (
-    <main className="flex-1 overflow-auto">
+    <main className="max-w-7xl mx-auto p-0">
       {/* Course Header */}
-      <div className="bg-purple-500 text-white">
+      <div className="bg-indigo-600 text-white">
         <div className="px-6 py-4">
           {/* Back Button */}
           <button
             onClick={() => navigate("/courses")}
-            className="flex items-center gap-2 text-purple-100 hover:text-white mb-4 text-sm"
+            className="flex items-center gap-2 text-indigo-100 hover:text-white mb-4 text-sm"
           >
             <MdArrowBack className="h-5 w-5" />
             Back to Courses
           </button>
           <div className="flex items-center justify-between">
             <div className="inline-flex items-center gap-4">
-              <HiOutlineBookOpen className="h-10 w-10 text-white-200" />
+              <HiOutlineBookOpen className="h-10 w-10 text-white/90" />
               <div>
                 <h2 className="text-xl font-bold text-white">{course.title}</h2>
                 <div className="flex items-center gap-4 mt-2">
-                  <span className="bg-purple-700 text-purple-100 px-2 py-1 rounded-full text-xs font-medium">
+                  <span className="bg-indigo-700 text-indigo-100 px-2 py-1 rounded-full text-xs font-medium">
                     {course.privacy}
                   </span>
 
-                  <span className="text-white-200 text-sm inline-flex items-center gap-1">
-                    <PiStudentFill className="text-white-200 h-5 w-5" />
+                  <span className="text-white/90 text-sm inline-flex items-center gap-1">
+                    <PiStudentFill className="text-white/90 h-5 w-5" />
                     {course.current_enrolled} / {course.capacity} learners
                   </span>
                 </div>
@@ -389,14 +347,14 @@ const CourseDetails: React.FC = () => {
               <div className="flex gap-2">
                 <button
                   onClick={() => setShowEditModal(true)}
-                  className="bg-gray-500 hover:bg-gray-600 text-white-600 px-4 py-2 rounded-md text-sm font-medium border border-gray-400 flex items-center gap-2"
+                  className="inline-flex items-center gap-2 rounded-lg bg-white/20 border border-white/30 px-3 py-2 text-sm font-semibold text-white shadow hover:bg-white/30"
                 >
                   <LiaEditSolid className="h-5 w-5" />
                   Edit
                 </button>
                 <button
                   onClick={handleDeleteCourse}
-                  className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md text-sm font-medium inline-flex items-center gap-1"
+                  className="inline-flex items-center gap-2 rounded-lg bg-red-600 px-3 py-2 text-sm font-semibold text-white shadow hover:bg-red-700"
                 >
                   <RiDeleteBin6Line className="h-5 w-5" />
                   Disband
@@ -408,7 +366,7 @@ const CourseDetails: React.FC = () => {
                   isEnrolled ? (
                     <button
                       onClick={handleLeaveCourse}
-                      className="bg-red-500 hover:bg-red-600 text-white px-6 py-2 rounded-md text-sm font-medium inline-flex items-center gap-2"
+                      className="inline-flex items-center gap-2 rounded-lg bg-red-600 px-3 py-2 text-sm font-semibold text-white shadow hover:bg-red-700"
                     >
                       <LiaUserMinusSolid className="h-5 w-5" />
                       Leave Course
@@ -416,7 +374,7 @@ const CourseDetails: React.FC = () => {
                   ) : hasPendingRequest ? (
                     <button
                       disabled
-                      className="bg-gray-400 text-white px-6 py-2 rounded-md text-sm font-medium inline-flex items-center gap-2 cursor-not-allowed"
+                      className="inline-flex items-center gap-2 rounded-lg bg-gray-400 px-3 py-2 text-sm font-semibold text-white cursor-not-allowed"
                     >
                       <VscRequestChanges className="h-5 w-5" />
                       Request Pending
@@ -424,14 +382,14 @@ const CourseDetails: React.FC = () => {
                   ) : course && course.current_enrolled >= course.capacity ? (
                     <button
                       disabled
-                      className="bg-gray-400 text-white px-6 py-2 rounded-md text-sm font-medium cursor-not-allowed"
+                      className="inline-flex items-center gap-2 rounded-lg bg-gray-400 px-3 py-2 text-sm font-semibold text-white cursor-not-allowed"
                     >
                       Course Full
                     </button>
                   ) : (
                     <button
                       onClick={handleEnrollCourse}
-                      className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-md text-sm font-medium inline-flex items-center gap-2"
+                      className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow hover:bg-indigo-700"
                     >
                       <HiOutlinePlus className="h-5 w-5" />
                       {course?.privacy === "private" ? "Request to Join" : "Join Course"}
@@ -440,7 +398,7 @@ const CourseDetails: React.FC = () => {
                 ) : (
                   <button
                     onClick={() => navigate("/login")}
-                    className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-md text-sm font-medium inline-flex items-center gap-2"
+                    className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow hover:bg-indigo-700"
                   >
                     Login to Join
                   </button>
@@ -571,7 +529,7 @@ const CourseDetails: React.FC = () => {
                           <td className="py-4 px-4">
                             <button
                               onClick={() => handleRemoveLearner(learner.id)}
-                              className="flex items-center gap-1 px-3 py-1 bg-red-500 text-white text-sm rounded-md hover:bg-red-600 font-medium"
+                              className="inline-flex items-center gap-1 px-3 py-1 bg-red-600 text-white text-sm rounded-md hover:bg-red-700 font-medium"
                             >
                               <LiaUserMinusSolid className="h-4 w-4" />
                               Remove
@@ -590,7 +548,7 @@ const CourseDetails: React.FC = () => {
               <div>
                 <div className="space-y-3">
                   {joinRequests.map((request) => (
-                    <div key={request.id} className="border rounded-lg p-4">
+                    <div key={request.id} className="rounded-xl bg-white border shadow-sm p-4 hover:shadow-md transition">
                       <div className="flex justify-between items-start">
                         <div>
                           <h3 className="font-medium">{request.user?.name || 'Unknown'}</h3>
@@ -604,14 +562,14 @@ const CourseDetails: React.FC = () => {
                         <div className="flex gap-2">
                           <button
                             onClick={() => handleAcceptRequest(request.id)}
-                            className="px-3 py-1 bg-green-500 text-white text-sm rounded-md hover:bg-green-600 font-medium inline-flex items-center gap-1"
+                            className="px-3 py-1 bg-green-600 text-white text-sm rounded-md hover:bg-green-700 font-medium inline-flex items-center gap-1"
                           >
                             <RiCheckLine className="h-4 w-4" />
                             Accept
                           </button>
                           <button
                             onClick={() => handleRejectRequest(request.id)}
-                            className="px-3 py-1 bg-red-500 text-white text-sm rounded-md hover:bg-red-600 font-medium inline-flex items-center gap-1"
+                            className="px-3 py-1 bg-red-600 text-white text-sm rounded-md hover:bg-red-700 font-medium inline-flex items-center gap-1"
                           >
                             <LiaTimesSolid className="h-4 w-4" />
                             Reject
@@ -631,41 +589,25 @@ const CourseDetails: React.FC = () => {
                 <div className="flex gap-2 mb-4">
                   <button
                     onClick={() => setMaterialFilter("all")}
-                    className={`px-3 py-1 rounded-md text-sm ${
-                      materialFilter === "all"
-                        ? "bg-blue-500 text-white"
-                        : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-                    }`}
+                    className={`px-4 py-2 rounded-full text-xs font-semibold transition-colors border ${materialFilter === "all" ? "bg-indigo-600 text-white border-indigo-600 shadow" : "bg-white/70 text-gray-700 border-indigo-100 hover:bg-white"}`}
                   >
                     All
                   </button>
                   <button
                     onClick={() => setMaterialFilter("file")}
-                    className={`px-3 py-1 rounded-md text-sm ${
-                      materialFilter === "file"
-                        ? "bg-blue-500 text-white"
-                        : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-                    }`}
+                    className={`px-4 py-2 rounded-full text-xs font-semibold transition-colors border ${materialFilter === "file" ? "bg-indigo-600 text-white border-indigo-600 shadow" : "bg-white/70 text-gray-700 border-indigo-100 hover:bg-white"}`}
                   >
                     Files
                   </button>
                   <button
                     onClick={() => setMaterialFilter("video")}
-                    className={`px-3 py-1 rounded-md text-sm ${
-                      materialFilter === "video"
-                        ? "bg-blue-500 text-white"
-                        : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-                    }`}
+                    className={`px-4 py-2 rounded-full text-xs font-semibold transition-colors border ${materialFilter === "video" ? "bg-indigo-600 text-white border-indigo-600 shadow" : "bg-white/70 text-gray-700 border-indigo-100 hover:bg-white"}`}
                   >
                     Videos
                   </button>
                   <button
                     onClick={() => setMaterialFilter("link")}
-                    className={`px-3 py-1 rounded-md text-sm ${
-                      materialFilter === "link"
-                        ? "bg-blue-500 text-white"
-                        : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-                    }`}
+                    className={`px-4 py-2 rounded-full text-xs font-semibold transition-colors border ${materialFilter === "link" ? "bg-indigo-600 text-white border-indigo-600 shadow" : "bg-white/70 text-gray-700 border-indigo-100 hover:bg-white"}`}
                   >
                     Links
                   </button>
@@ -681,7 +623,7 @@ const CourseDetails: React.FC = () => {
                     .map((material) => (
                       <div
                         key={material.id}
-                        className="border rounded-lg p-4 hover:shadow-md transition-shadow"
+                        className="rounded-xl bg-white border shadow-sm p-4 hover:shadow-md transition"
                       >
                         <div className="flex items-start justify-between">
                           <div className="flex items-start gap-3">
@@ -712,14 +654,14 @@ const CourseDetails: React.FC = () => {
                           {isInstructor && (
                             <button
                               onClick={() => handleDeleteMaterial(material.id)}
-                              className="text-red-500 hover:text-red-700"
+                              className="text-red-600 hover:text-red-700"
                             >
                               <RiDeleteBin6Line className="h-5 w-5" />
                             </button>
                           )}
                         </div>
 
-                        <button className="mt-3 w-full px-3 py-2 bg-blue-50 text-blue-600 rounded-md text-sm hover:bg-blue-100 font-medium">
+                        <button className="mt-3 w-full px-3 py-2 bg-indigo-50 text-indigo-600 rounded-md text-sm hover:bg-indigo-100 font-medium">
                           {material.type === "file" ? "Download" : "Open"}
                         </button>
                       </div>
@@ -730,10 +672,9 @@ const CourseDetails: React.FC = () => {
                 {isInstructor && (
                   <button
                     onClick={() => setShowAddMaterialModal(true)}
-                    className="mt-6 px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 inline-flex items-center gap-2"
+                    className="mt-6 inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow hover:bg-indigo-700"
                   >
-                    <HiOutlinePlus className="h-5 w-5" />
-                    Add Material
+                    <HiOutlinePlus className="h-5 w-5" /> Add Material
                   </button>
                 )}
               </div>
@@ -783,12 +724,12 @@ const CourseDetails: React.FC = () => {
                     value={newComment}
                     onChange={(e) => setNewComment(e.target.value)}
                     placeholder="Write your comment here..."
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md mb-3 text-black"
+                    className="w-full px-3 py-2 border border-indigo-100 rounded-md mb-3 text-black bg-white/80 backdrop-blur focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                     rows={3}
                   />
                   <button
                     onClick={handleAddComment}
-                    className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 flex items-center gap-2"
+                    className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow hover:bg-indigo-700"
                   >
                     <BsSend className="h-4 w-4" />
                     Post Comment
@@ -800,44 +741,51 @@ const CourseDetails: React.FC = () => {
             {/* Announcements Tab */}
             {activeTab === "announcements" && (
               <div>
-                <div className="space-y-6">
-                  {announcements.map((announcement: any) => (
-                    <div
-                      key={announcement.id}
-                      className="border border-gray-200 rounded-lg p-4"
-                    >
-                      <div className="flex justify-between items-start">
-                        <div className="flex-1">
-                          <h3 className="font-semibold text-gray-900 mb-2">
-                            {announcement.title}
-                          </h3>
-                          <p className="text-gray-700 mb-2">
-                            {announcement.content}
-                          </p>
-                          <p className="text-xs text-gray-500">
-                            Posted on {new Date(announcement.created_at).toLocaleDateString()}
-                          </p>
-                        </div>
-                        {isInstructor && (
-                          <button
-                            onClick={() => handleDeleteAnnouncement(announcement.id)}
-                            className="px-3 py-1 bg-red-500 text-white text-sm rounded-md hover:bg-red-600 font-medium ml-4 inline-flex items-center gap-1"
-                          >
-                            <RiDeleteBin6Line className="h-4 w-4" />
-                            Delete
-                          </button>
-                        )}
+                <div className="rounded-xl bg-white border shadow-sm">
+                  <div className="p-5 flex items-center justify-between">
+                    <h3 className="text-lg font-semibold text-gray-900">Announcements</h3>
+                    <span className="text-sm text-gray-600">
+                      {announcements.length === 0
+                        ? "No announcements yet"
+                        : `${announcements.length} item${announcements.length > 1 ? 's' : ''}`}
+                    </span>
+                  </div>
+                  {announcements.length === 0 ? (
+                    <div className="px-5 pb-5">
+                      <div className="rounded-lg p-8 text-center text-gray-500 border border-dashed border-gray-300 bg-white/60">
+                        <RiMegaphoneLine className="mx-auto h-10 w-10 text-gray-400" />
+                        <h4 className="mt-2 text-sm font-medium text-gray-900">No announcements found</h4>
+                        <p className="mt-1 text-sm text-gray-500">Announcements posted by the instructor will appear here.</p>
                       </div>
                     </div>
-                  ))}
+                  ) : (
+                    <div className="divide-y">
+                      {announcements.map((announcement: any) => (
+                        <div key={announcement.id} className="px-5 py-4">
+                          <div className="flex items-start justify-between gap-4">
+                            <div className="min-w-0">
+                              <h4 className="text-base font-semibold text-gray-900 truncate">{announcement.title}</h4>
+                              <p className="mt-2 text-sm text-gray-700 whitespace-pre-wrap break-words">{announcement.content}</p>
+                              <span className="mt-2 block text-xs text-gray-500">Posted on {new Date(announcement.created_at).toLocaleDateString()}</span>
+                            </div>
+                            {isInstructor && (
+                              <button
+                                onClick={() => handleDeleteAnnouncement(announcement.id)}
+                                className="px-3 py-1 bg-red-600 text-white text-xs rounded-md hover:bg-red-700 font-medium inline-flex items-center gap-1 shrink-0"
+                                title="Delete announcement"
+                              >
+                                <RiDeleteBin6Line className="h-4 w-4" /> Delete
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
-
-                {/* Add Announcement Form */}
                 {isInstructor && (
-                  <div className="mt-6 border-t pt-6">
-                    <h3 className="text-lg font-medium mb-3">
-                      Post New Announcement
-                    </h3>
+                  <div className="mt-8">
+                    <h3 className="text-lg font-medium mb-3">Post New Announcement</h3>
                     <input
                       type="text"
                       value={newAnnouncement.title}
@@ -848,7 +796,7 @@ const CourseDetails: React.FC = () => {
                         })
                       }
                       placeholder="Announcement Title"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md mb-3"
+                      className="w-full px-3 py-2 border border-indigo-100 rounded-md mb-3 bg-white/80 backdrop-blur focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-black"
                     />
                     <textarea
                       value={newAnnouncement.content}
@@ -859,15 +807,14 @@ const CourseDetails: React.FC = () => {
                         })
                       }
                       placeholder="Write your announcement here..."
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md mb-3"
+                      className="w-full px-3 py-2 border border-indigo-100 rounded-md mb-3 bg-white/80 backdrop-blur focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-black"
                       rows={4}
                     />
                     <button
                       onClick={handleAddAnnouncement}
-                      className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 flex items-center gap-2"
+                      className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow hover:bg-indigo-700"
                     >
-                      <RiMegaphoneLine className="h-4 w-4" />
-                      Post Announcement
+                      <RiMegaphoneLine className="h-4 w-4" /> Post Announcement
                     </button>
                   </div>
                 )}
@@ -877,204 +824,35 @@ const CourseDetails: React.FC = () => {
         </div>
       </div>
 
-      {/* Edit Course Modal */}
-      {showEditModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md">
-            <h2 className="text-xl font-bold mb-4">Edit Course</h2>
-            <form onSubmit={handleUpdateCourse}>
-              <div className="mb-4">
-                <label className="block text-sm font-medium mb-1">
-                  Course Name
-                </label>
-                <input
-                  type="text"
-                  value={editForm.title}
-                  onChange={(e) => setEditForm({ ...editForm, title: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                  required
-                />
-              </div>
-              <div className="mb-4">
-                <label className="block text-sm font-medium mb-1">
-                  Description
-                </label>
-                <textarea
-                  value={editForm.content}
-                  onChange={(e) => setEditForm({ ...editForm, content: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                  rows={3}
-                  required
-                />
-              </div>
-              <div className="mb-4">
-                <label className="block text-sm font-medium mb-1">
-                  Privacy
-                </label>
-                <select
-                  value={editForm.privacy}
-                  onChange={(e) => setEditForm({ ...editForm, privacy: e.target.value as 'public' | 'private' })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                >
-                  <option value="public">Public</option>
-                  <option value="private">Private</option>
-                </select>
-              </div>
-              <div className="mb-4">
-                <label className="block text-sm font-medium mb-1">
-                  Learners Limit
-                </label>
-                <input
-                  type="number"
-                  value={editForm.capacity}
-                  onChange={(e) => setEditForm({ ...editForm, capacity: parseInt(e.target.value) })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                />
-              </div>
-              <div className="flex justify-end gap-2">
-                <button
-                  type="button"
-                  onClick={() => setShowEditModal(false)}
-                  className="px-4 py-2 bg-red-500 text-white hover:bg-red-600 rounded-md inline-flex items-center gap-2"
-                >
-                  <LiaTimesSolid className="h-4 w-4" />
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 inline-flex items-center gap-2"
-                >
-                  <RiCheckLine className="h-4 w-4" />
-                  Update Course
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      {/* Edit Course Modal (standardized) */}
+      <EditCourseModal
+        show={showEditModal}
+        onClose={() => setShowEditModal(false)}
+        initial={{
+          title: editForm.title,
+          content: editForm.content,
+          privacy: editForm.privacy,
+          capacity: editForm.capacity,
+        }}
+        onSubmit={async (payload) => {
+          if (!id) return;
+          await updateCourse(id, payload);
+          await fetchCourseData();
+          alert("Course updated successfully!");
+        }}
+      />
 
-      {/* Add Material Modal */}
-      {showAddMaterialModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md">
-            <h2 className="text-xl font-bold mb-4">Add Course Material</h2>
-            <form onSubmit={handleAddMaterial}>
-              {/* Material Type Selection */}
-              <div className="mb-4">
-                <label className="block text-sm font-medium mb-2">
-                  Material Type
-                </label>
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setMaterialType("file")}
-                    className={`flex-1 px-3 py-2 rounded-md text-sm ${
-                      materialType === "file"
-                        ? "bg-blue-500 text-white"
-                        : "bg-gray-200 text-gray-700"
-                    }`}
-                  >
-                    File
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setMaterialType("video")}
-                    className={`flex-1 px-3 py-2 rounded-md text-sm ${
-                      materialType === "video"
-                        ? "bg-blue-500 text-white"
-                        : "bg-gray-200 text-gray-700"
-                    }`}
-                  >
-                    Video
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setMaterialType("link")}
-                    className={`flex-1 px-3 py-2 rounded-md text-sm ${
-                      materialType === "link"
-                        ? "bg-blue-500 text-white"
-                        : "bg-gray-200 text-gray-700"
-                    }`}
-                  >
-                    Link
-                  </button>
-                </div>
-              </div>
-
-              <div className="mb-4">
-                <label className="block text-sm font-medium mb-1">Title</label>
-                <input
-                  type="text"
-                  value={materialForm.title}
-                  onChange={(e) => setMaterialForm({ ...materialForm, title: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                  required
-                />
-              </div>
-
-              {materialType === "file" && (
-                <div className="mb-4">
-                  <label className="block text-sm font-medium mb-1">
-                    Upload File (Use URL for now)
-                  </label>
-                  <input
-                    type="text"
-                    value={materialForm.url}
-                    onChange={(e) => setMaterialForm({ ...materialForm, url: e.target.value })}
-                    placeholder="/files/document.pdf"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
-                    required
-                  />
-                </div>
-              )}
-
-              {(materialType === "video" || materialType === "link") && (
-                <div className="mb-4">
-                  <label className="block text-sm font-medium mb-1">URL</label>
-                  <input
-                    type="url"
-                    value={materialForm.url}
-                    onChange={(e) => setMaterialForm({ ...materialForm, url: e.target.value })}
-                    placeholder="https://..."
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                    required
-                  />
-                </div>
-              )}
-
-              <div className="mb-4">
-                <label className="block text-sm font-medium mb-1">
-                  Description (Optional)
-                </label>
-                <textarea
-                  value={materialForm.description}
-                  onChange={(e) => setMaterialForm({ ...materialForm, description: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                  rows={3}
-                />
-              </div>
-
-              <div className="flex justify-end gap-2">
-                <button
-                  type="button"
-                  onClick={() => setShowAddMaterialModal(false)}
-                  className="px-4 py-2 bg-red-500 text-white hover:bg-red-600 rounded-md inline-flex items-center gap-2"
-                >
-                  <LiaTimesSolid className="h-4 w-4" />
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 inline-flex items-center gap-2"
-                >
-                  <RiCheckLine className="h-4 w-4" />
-                  Upload
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      {/* Add Material Modal (standardized) */}
+      <AddMaterialModal
+        show={showAddMaterialModal}
+        onClose={() => setShowAddMaterialModal(false)}
+        onSubmit={async (payload) => {
+          if (!id) return;
+          await addCourseMaterial(id, payload);
+          await fetchCourseData();
+          alert("Material added successfully!");
+        }}
+      />
     </main>
   );
 };

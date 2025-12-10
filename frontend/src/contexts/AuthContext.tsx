@@ -16,6 +16,7 @@ export interface User {
     email: string;
     role: 'admin' | 'instructor' | 'learner';
     name: string;
+  avatar_url?: string | null;
 } 
 
 interface RegistrationPayload {
@@ -46,7 +47,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const [user, setUser] = useState<User | null>(null);
     const [loading, setLoading] = useState(true);
-    const [remember, setRemember] = useState(false);
+    const [remember] = useState(false);
     const navigate = useNavigate();
 
     // 1. useEffect remains stable (only runs on mount)
