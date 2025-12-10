@@ -311,6 +311,7 @@ const CourseDetails: React.FC = () => {
                 activeTab={activeTab}
                 setActiveTab={setActiveTab}
                 isInstructor={isInstructor}
+                isPrivate={course.privacy === "private"}
                 learnersCount={learners.length}
                 requestsCount={joinRequests.length}
                 materialsCount={materials.length}
