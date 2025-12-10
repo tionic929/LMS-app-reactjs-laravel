@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "../../../contexts/AuthContext";
-import { getCourse } from "../../../api/courses";
+import { getCourse, enrollInCourse, leaveCourse } from "../../../api/courses";
 import { MdArrowBack, MdEdit, MdPeople, MdLibraryBooks, MdComment, MdAnnouncement } from "react-icons/md";
 import { FaUserGraduate, FaLock, FaGlobe } from "react-icons/fa";
 import CourseTabs from "../Courses/CourseTabs";
@@ -114,6 +114,33 @@ const CourseDetails: React.FC = () => {
       setError(err.response?.data?.message || "Failed to load course");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleEnrollCourse = async () => {
+    if (!courseId) return;
+
+    try {
+      const response = await enrollInCourse(courseId);
+      await fetchCourseData();
+      alert(response.data.message || "Successfully enrolled!");
+    } catch (err: any) {
+      console.error("Error enrolling:", err);
+      alert(err.response?.data?.message || "Failed to enroll in course");
+    }
+  };
+
+  const handleLeaveCourse = async () => {
+    if (!courseId) return;
+    if (!confirm("Are you sure you want to leave this course?")) return;
+
+    try {
+      const response = await leaveCourse(courseId);
+      await fetchCourseData();
+      alert(response.data.message || "Successfully left the course");
+    } catch (err: any) {
+      console.error("Error leaving course:", err);
+      alert(err.response?.data?.message || "Failed to leave course");
     }
   };
 
@@ -248,27 +275,63 @@ const CourseDetails: React.FC = () => {
               </div>
             </div>
             <div className="flex flex-col sm:flex-row gap-3">
-              <button
-                onClick={() => setShowEditModal(true)}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
-              >
-                <MdEdit className="h-4 w-4" />
-                Edit Course
-              </button>
-              <button
-                onClick={() => setShowAddMaterialModal(true)}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-              >
-                <MdLibraryBooks className="h-4 w-4" />
-                Add Material
-              </button>
+              {isInstructor ? (
+                <>
+                  <button
+                    onClick={() => setShowEditModal(true)}
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+                  >
+                    <MdEdit className="h-4 w-4" />
+                    Edit Course
+                  </button>
+                  <button
+                    onClick={() => setShowAddMaterialModal(true)}
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                  >
+                    <MdLibraryBooks className="h-4 w-4" />
+                    Add Material
+                  </button>
+                </>
+              ) : (
+                <div className="flex gap-2">
+                  {isEnrolled ? (
+                    <button
+                      onClick={handleLeaveCourse}
+                      className="inline-flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                    >
+                      Leave Course
+                    </button>
+                  ) : hasPendingRequest ? (
+                    <button
+                      disabled
+                      className="inline-flex items-center gap-2 px-4 py-2 bg-gray-400 text-white rounded-lg cursor-not-allowed"
+                    >
+                      Request Pending
+                    </button>
+                  ) : course && course.current_enrolled >= course.capacity ? (
+                    <button
+                      disabled
+                      className="inline-flex items-center gap-2 px-4 py-2 bg-gray-400 text-white rounded-lg cursor-not-allowed"
+                    >
+                      Course Full
+                    </button>
+                  ) : (
+                    <button
+                      onClick={handleEnrollCourse}
+                      className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors"
+                    >
+                      {course?.privacy === "private" ? "Request to Join" : "Join Course"}
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 
           {/* Enrollment Progress Bar */}
           <div className="mt-6">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-gray-700">Enrollment Progress</span>
+              <span className="text-sm font-medium text-gray-700">Enrolled Students</span>
               <span className="text-sm text-gray-500">
                 {course.current_enrolled ?? 0} / {course.capacity ?? 0} learners
               </span>
