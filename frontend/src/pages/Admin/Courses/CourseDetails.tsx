@@ -158,6 +158,7 @@ const CourseDetails: React.FC = () => {
             courseId={courseId}
             learners={learners}
             isInstructor={isInstructor}
+            isAdmin={user?.role === 'admin'}
             onLearnerAction={fetchCourseData}
           />
         );

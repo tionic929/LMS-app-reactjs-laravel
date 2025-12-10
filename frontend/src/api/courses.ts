@@ -148,6 +148,17 @@ export const addCourseAnnouncement = async (
   return api.post(`/courses/${courseId}/announcements`, data);
 };
 
+export const updateCourseAnnouncement = async (
+  courseId: string | number,
+  announcementId: string | number,
+  data: {
+    title: string;
+    content: string;
+  }
+) => {
+  return api.put(`/courses/${courseId}/announcements/${announcementId}`, data);
+};
+
 export const deleteCourseAnnouncement = async (
   courseId: string | number,
   announcementId: string | number

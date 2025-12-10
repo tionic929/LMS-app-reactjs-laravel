@@ -537,6 +537,28 @@ class CourseController extends Controller
     }
 
     /**
+     * Update announcement
+     */
+    public function updateAnnouncement(Request $request, Course $course, $announcementId)
+    {
+        if (auth()->id() !== $course->instructor_id) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        $validated = $request->validate([
+            'title' => 'required|string|max:255',
+            'content' => 'required|string',
+        ]);
+
+        $announcement = CourseAnnouncement::where('course_id', $course->id)
+            ->findOrFail($announcementId);
+
+        $announcement->update($validated);
+
+        return response()->json($announcement);
+    }
+
+    /**
      * Enroll in a public course or request to join a private course
      */
     public function enroll(Course $course)
