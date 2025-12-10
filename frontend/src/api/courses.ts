@@ -104,6 +104,16 @@ export const addCourseComment = async (
   return api.post(`/courses/${courseId}/comments`, { content });
 };
 
+export const voteComment = async (
+  courseId: string | number,
+  commentId: string | number,
+  voteType: "upvote" | "downvote"
+) => {
+  return api.post(`/courses/${courseId}/comments/${commentId}/vote`, {
+    vote_type: voteType,
+  });
+};
+
 // Announcement management
 export const addCourseAnnouncement = async (
   courseId: string | number,

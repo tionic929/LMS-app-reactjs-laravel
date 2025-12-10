@@ -7,6 +7,7 @@ use App\Models\CourseEnrollment;
 use App\Models\CourseJoinRequest;
 use App\Models\CourseMaterial;
 use App\Models\CourseComment;
+use App\Models\CommentVote;
 use App\Models\CourseAnnouncement;
 use App\Http\Requests\StoreCourseRequest;
 use App\Http\Requests\UpdateCourseRequest;
@@ -389,6 +390,75 @@ class CourseController extends Controller
         $comment->delete();
 
         return response()->json(['message' => 'Comment deleted']);
+    }
+
+    /**
+     * Vote on a comment
+     */
+    public function voteComment(Request $request, Course $course, CourseComment $comment)
+    {
+        if ($comment->course_id !== $course->id) {
+            return response()->json(['message' => 'Comment not found'], 404);
+        }
+
+        $isInstructor = auth()->check() && $course->instructor_id === auth()->id();
+        $isAdmin = auth()->check() && auth()->user()->role === 'admin';
+        $isEnrolled = $course->enrollments()
+            ->where('user_id', auth()->id())
+            ->where('status', 'active')
+            ->exists();
+
+        if (!$isInstructor && !$isAdmin && !$isEnrolled) {
+            return response()->json(['message' => 'You must be enrolled to this course to vote'], 403);
+        }
+
+        $validated = $request->validate([
+            'vote_type' => 'required|in:upvote,downvote',
+        ]);
+
+        // Convert vote_type to integer: 1 for upvote, -1 for downvote
+        $voteValue = $validated['vote_type'] === 'upvote' ? 1 : -1;
+
+        // Check if user already voted
+        $existingVote = CommentVote::where('comment_id', $comment->id)
+            ->where('user_id', auth()->id())
+            ->first();
+
+        if ($existingVote) {
+            if ($existingVote->vote === $voteValue) {
+                // Remove vote if clicking the same vote type
+                $existingVote->delete();
+                return response()->json([
+                    'message' => 'Vote removed',
+                    'upvotes_count' => $comment->fresh()->upvotes_count,
+                    'downvotes_count' => $comment->fresh()->downvotes_count,
+                    'user_vote' => null,
+                ]);
+            } else {
+                // Update vote type if clicking the opposite
+                $existingVote->update(['vote' => $voteValue]);
+                return response()->json([
+                    'message' => 'Vote updated',
+                    'upvotes_count' => $comment->fresh()->upvotes_count,
+                    'downvotes_count' => $comment->fresh()->downvotes_count,
+                    'user_vote' => $validated['vote_type'],
+                ]);
+            }
+        }
+
+        // Create new vote
+        CommentVote::create([
+            'comment_id' => $comment->id,
+            'user_id' => auth()->id(),
+            'vote' => $voteValue,
+        ]);
+
+        return response()->json([
+            'message' => 'Vote recorded',
+            'upvotes_count' => $comment->fresh()->upvotes_count,
+            'downvotes_count' => $comment->fresh()->downvotes_count,
+            'user_vote' => $validated['vote_type'],
+        ], 201);
     }
 
     /**

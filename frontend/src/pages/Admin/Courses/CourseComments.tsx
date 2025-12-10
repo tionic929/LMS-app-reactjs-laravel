@@ -1,11 +1,15 @@
 import React, { useState } from "react";
-import { addCourseComment } from "../../../api/courses";
+import { addCourseComment, voteComment } from "../../../api/courses";
 import { BsSend } from "react-icons/bs";
+import { BiUpvote, BiDownvote, BiSolidUpvote, BiSolidDownvote } from "react-icons/bi";
 
 interface Comment {
   id: number;
   content: string;
   created_at: string;
+  upvotes_count: number;
+  downvotes_count: number;
+  user_vote: "upvote" | "downvote" | null;
   user: {
     id: number;
     name: string;
@@ -26,6 +30,7 @@ const CourseComments: React.FC<CourseCommentsProps> = ({
   onCommentAction,
 }) => {
   const [newComment, setNewComment] = useState("");
+  const [votingCommentId, setVotingCommentId] = useState<number | null>(null);
 
   const handleAddComment = async () => {
     if (!newComment.trim()) return;
@@ -41,6 +46,19 @@ const CourseComments: React.FC<CourseCommentsProps> = ({
     }
   };
 
+  const handleVote = async (commentId: number, voteType: "upvote" | "downvote") => {
+    setVotingCommentId(commentId);
+    try {
+      await voteComment(courseId, commentId, voteType);
+      onCommentAction(); // Refresh comments to get updated vote counts
+    } catch (err: any) {
+      console.error("Error voting:", err);
+      alert(err.response?.data?.message || "Failed to vote");
+    } finally {
+      setVotingCommentId(null);
+    }
+  };
+
   return (
     <div>
       <div className="space-y-6">
@@ -52,7 +70,43 @@ const CourseComments: React.FC<CourseCommentsProps> = ({
               key={comment.id}
               className="border-b border-gray-200 pb-4"
             >
-              <div className="flex justify-between items-start">
+              <div className="flex gap-4">
+                {/* Vote buttons */}
+                <div className="flex flex-col items-center gap-1">
+                  <button
+                    onClick={() => handleVote(comment.id, "upvote")}
+                    disabled={votingCommentId === comment.id}
+                    className={`p-1 rounded hover:bg-gray-100 transition-colors ${
+                      comment.user_vote === "upvote" ? "text-blue-600" : "text-gray-500"
+                    } ${votingCommentId === comment.id ? "opacity-50 cursor-not-allowed" : ""}`}
+                    title="Upvote"
+                  >
+                    {comment.user_vote === "upvote" ? (
+                      <BiSolidUpvote className="w-5 h-5" />
+                    ) : (
+                      <BiUpvote className="w-5 h-5" />
+                    )}
+                  </button>
+                  <span className="text-sm font-medium text-gray-700">
+                    {comment.upvotes_count - comment.downvotes_count}
+                  </span>
+                  <button
+                    onClick={() => handleVote(comment.id, "downvote")}
+                    disabled={votingCommentId === comment.id}
+                    className={`p-1 rounded hover:bg-gray-100 transition-colors ${
+                      comment.user_vote === "downvote" ? "text-red-600" : "text-gray-500"
+                    } ${votingCommentId === comment.id ? "opacity-50 cursor-not-allowed" : ""}`}
+                    title="Downvote"
+                  >
+                    {comment.user_vote === "downvote" ? (
+                      <BiSolidDownvote className="w-5 h-5" />
+                    ) : (
+                      <BiDownvote className="w-5 h-5" />
+                    )}
+                  </button>
+                </div>
+
+                {/* Comment content */}
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-2">
                     <span
