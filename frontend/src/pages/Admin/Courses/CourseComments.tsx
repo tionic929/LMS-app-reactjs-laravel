@@ -12,7 +12,8 @@ import {
   BiSolidUpvote,
   BiSolidDownvote,
 } from "react-icons/bi";
-import { FaReply, FaEdit, FaTrash } from "react-icons/fa";
+import { FaReply, FaEdit, FaTrash, FaRegCommentDots } from "react-icons/fa";
+import { FaAngleDown, FaAngleUp } from "react-icons/fa6";
 import { MdMoreHoriz } from "react-icons/md";
 import { useAuth } from "../../../contexts/AuthContext";
 
@@ -461,13 +462,13 @@ const CourseComments: React.FC<CourseCommentsProps> = ({
               >
                 {hiddenReplies.has(comment.id) ? (
                   <>
-                    <span className="text-xs">▼</span>
+                    <span className="text-xs"><FaAngleDown /></span>
                     Load {countTotalReplies(comment)}{" "}
                     {countTotalReplies(comment) === 1 ? "reply" : "replies"}
                   </>
                 ) : (
                   <>
-                    <span className="text-xs">▲</span>
+                    <span className="text-xs"><FaAngleUp /></span>
                     Hide replies
                   </>
                 )}
@@ -576,7 +577,7 @@ const CourseComments: React.FC<CourseCommentsProps> = ({
       <div className="space-y-6">
         {allComments.length === 0 ? (
           <div className="text-center py-12">
-            <div className="text-gray-400 text-6xl mb-4">💬</div>
+            <div className="text-gray-400 text-6xl mb-4 justify-center flex"><FaRegCommentDots /></div>
             <p className="text-gray-500 text-lg">No comments yet</p>
             <p className="text-gray-400 text-sm">Be the first to share your thoughts!</p>
           </div>
