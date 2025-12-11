@@ -4,7 +4,6 @@ import { RiDeleteBin6Line } from "react-icons/ri";
 import {
   MdOutlineSlowMotionVideo,
 } from "react-icons/md";
-import { HiOutlinePlus } from "react-icons/hi";
 import { FaRegFileAlt } from "react-icons/fa";
 import { FaLink } from "react-icons/fa6";
 
@@ -36,7 +35,6 @@ const CourseMaterials: React.FC<CourseMaterialsProps> = ({
   materials,
   isInstructor,
   onMaterialAction,
-  setShowAddMaterialModal,
 }) => {
   const [materialFilter, setMaterialFilter] = useState<MaterialFilter>("all");
 
@@ -168,17 +166,6 @@ const CourseMaterials: React.FC<CourseMaterialsProps> = ({
           ))
         )}
       </div>
-
-      {/* Add Material Button */}
-      {/* {isInstructor && (
-        <button
-          onClick={() => setShowAddMaterialModal(true)}
-          className="mt-6 px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 inline-flex items-center gap-2"
-        >
-          <HiOutlinePlus className="h-5 w-5" />
-          Add Material
-        </button>
-      )} */}
     </div>
   );
 };

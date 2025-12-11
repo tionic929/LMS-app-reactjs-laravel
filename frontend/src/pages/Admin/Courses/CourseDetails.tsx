@@ -363,7 +363,7 @@ const CourseDetails: React.FC = () => {
                 {course.content ? (
                   <div dangerouslySetInnerHTML={{ __html: course.content }} />
                 ) : (
-                  <p className="text-gray-500 italic">No description provided yet. Click "Edit Course" to add one.</p>
+                  <p className="text-gray-500 italic">No description provided.</p>
                 )}
               </div>
             </section>
