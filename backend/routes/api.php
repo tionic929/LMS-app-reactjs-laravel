@@ -42,6 +42,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/courses/{course}/announcements/{announcementId}', [CourseController::class, 'updateAnnouncement']);
     Route::delete('/courses/{course}/announcements/{announcementId}', [CourseController::class, 'deleteAnnouncement']);
     Route::delete('/courses/{course}/comments/{comment}', [CourseController::class, 'deleteComment']);
+
+    // Course comment banning routes
+    Route::post('/courses/{course}/bans/{userId}', [CourseController::class, 'banLearner']);
+    Route::delete('/courses/{course}/bans/{userId}', [CourseController::class, 'unbanLearner']);
+    Route::get('/courses/{course}/bans', [CourseController::class, 'getBannedLearners']);
 });
 
 // @auth sanctum , 'log.activity'
