@@ -8,6 +8,7 @@ use App\Models\CourseJoinRequest;
 use App\Models\CourseMaterial;
 use App\Models\CourseComment;
 use App\Models\CommentVote;
+use Illuminate\Support\Facades\Storage;
 use App\Models\CourseAnnouncement;
 use App\Http\Requests\StoreCourseRequest;
 use App\Http\Requests\UpdateCourseRequest;
@@ -315,17 +316,20 @@ class CourseController extends Controller
         if ($request->type === 'file' && $request->hasFile('file')) {
             $file = $request->file('file');
             $fileType = $file->getClientOriginalExtension();
-            $filename = time() . '_' . $file->getClientOriginalName();
+            $originalFilename = $file->getClientOriginalName();
+            $filename = time() . '_' . $originalFilename;
             $path = $file->storeAs('course_materials', $filename, 'public');
-            $url = '/storage/' . $path;
+            $url = asset('storage/' . $path);
         } else {
             $url = $request->url;
+            $originalFilename = null;
         }
 
         $material = $course->materials()->create([
             'title' => $validated['title'],
             'type' => $validated['type'],
             'file_type' => $fileType,
+            'original_filename' => $originalFilename,
             'url' => $url,
             'description' => $validated['description'] ?? null,
         ]);
@@ -344,6 +348,12 @@ class CourseController extends Controller
 
         $material = CourseMaterial::where('course_id', $course->id)
             ->findOrFail($materialId);
+
+        // Delete the associated file if it's a file type
+        if ($material->type === 'file') {
+            $path = str_replace(asset('storage/'), '', $material->url);
+            Storage::disk('public')->delete($path);
+        }
 
         $material->delete();
 
@@ -455,16 +465,13 @@ class CourseController extends Controller
             'vote_type' => 'required|in:upvote,downvote',
         ]);
 
-        // Convert vote_type to integer: 1 for upvote, -1 for downvote
-        $voteValue = $validated['vote_type'] === 'upvote' ? 1 : -1;
-
         // Check if user already voted
-        $existingVote = CommentVote::where('comment_id', $comment->id)
+        $existingVote = CommentVote::where('course_comment_id', $comment->id)
             ->where('user_id', auth()->id())
             ->first();
 
         if ($existingVote) {
-            if ($existingVote->vote === $voteValue) {
+            if ($existingVote->vote_type === $validated['vote_type']) {
                 // Remove vote if clicking the same vote type
                 $existingVote->delete();
                 return response()->json([
@@ -475,7 +482,7 @@ class CourseController extends Controller
                 ]);
             } else {
                 // Update vote type if clicking the opposite
-                $existingVote->update(['vote' => $voteValue]);
+                $existingVote->update(['vote_type' => $validated['vote_type']]);
                 return response()->json([
                     'message' => 'Vote updated',
                     'upvotes_count' => $comment->fresh()->upvotes_count,
@@ -487,9 +494,9 @@ class CourseController extends Controller
 
         // Create new vote
         CommentVote::create([
-            'comment_id' => $comment->id,
+            'course_comment_id' => $comment->id,
             'user_id' => auth()->id(),
-            'vote' => $voteValue,
+            'vote_type' => $validated['vote_type'],
         ]);
 
         return response()->json([

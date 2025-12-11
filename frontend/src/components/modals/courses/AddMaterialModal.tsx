@@ -21,21 +21,33 @@ const AddMaterialModal: React.FC<AddMaterialModalProps> = ({
     title: "",
     url: "",
     description: "",
+    file: null as File | null,
   });
 
   const handleAddMaterial = async (e: React.FormEvent) => {
     e.preventDefault();
 
     try {
-      await addCourseMaterial(courseId, {
+      const data: any = {
         title: materialForm.title,
         type: materialType,
-        url: materialForm.url,
         description: materialForm.description,
-      });
+      };
+
+      if (materialType === 'file') {
+        if (!materialForm.file) {
+          alert('Please select a file to upload');
+          return;
+        }
+        data.file = materialForm.file;
+      } else {
+        data.url = materialForm.url;
+      }
+
+      await addCourseMaterial(courseId, data);
       onSuccess();
       onClose();
-      setMaterialForm({ title: "", url: "", description: "" });
+      setMaterialForm({ title: "", url: "", description: "", file: null });
       alert("Material added successfully!");
     } catch (err: any) {
       console.error("Error adding material:", err);
@@ -107,15 +119,13 @@ const AddMaterialModal: React.FC<AddMaterialModalProps> = ({
           {materialType === "file" && (
             <div className="mb-4">
               <label className="block text-sm font-medium mb-1">
-                Upload File (Use URL for now)
+                Upload File
               </label>
               <input
-                type="text"
-                value={materialForm.url}
+                type="file"
                 onChange={(e) =>
-                  setMaterialForm({ ...materialForm, url: e.target.value })
+                  setMaterialForm({ ...materialForm, file: e.target.files?.[0] || null })
                 }
-                placeholder="/files/document.pdf"
                 className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
                 required
               />

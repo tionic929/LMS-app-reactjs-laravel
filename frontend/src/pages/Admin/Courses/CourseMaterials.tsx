@@ -16,6 +16,7 @@ interface Material {
   url: string;
   description: string;
   file_type?: string;
+  original_filename?: string;
   created_at: string;
 }
 
@@ -156,8 +157,9 @@ const CourseMaterials: React.FC<CourseMaterialsProps> = ({
               {/* Assuming 'url' is the path for all types */}
               <a
                 href={material.url}
-                target="_blank"
-                rel="noopener noreferrer"
+                target={material.type === "link" ? "_blank" : undefined}
+                download={material.type === "file" ? (material.original_filename || true) : undefined}
+                rel={material.type === "link" ? "noopener noreferrer" : undefined}
                 className="mt-3 w-full px-3 py-2 bg-blue-50 text-blue-600 rounded-md text-sm hover:bg-blue-100 font-medium inline-block text-center"
               >
                 {material.type === "file" ? "Download" : "Open"}
@@ -168,7 +170,7 @@ const CourseMaterials: React.FC<CourseMaterialsProps> = ({
       </div>
 
       {/* Add Material Button */}
-      {isInstructor && (
+      {/* {isInstructor && (
         <button
           onClick={() => setShowAddMaterialModal(true)}
           className="mt-6 px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 inline-flex items-center gap-2"
@@ -176,7 +178,7 @@ const CourseMaterials: React.FC<CourseMaterialsProps> = ({
           <HiOutlinePlus className="h-5 w-5" />
           Add Material
         </button>
-      )}
+      )} */}
     </div>
   );
 };
