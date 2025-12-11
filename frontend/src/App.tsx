@@ -33,7 +33,6 @@ const RoleGuard = ({ children, allowedRoles }: { children: React.ReactNode; allo
 const App: React.FC = () => {
   const { user, loading } = useAuth();
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
-  const [isLoggingOut, setIsLoggingOut] = useState(false); // Loader for logout
 
   const expandedWidth = 'w-64';
   const collapsedWidth = 'w-[70px]';
