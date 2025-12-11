@@ -110,6 +110,17 @@ export const deleteCourseMaterial = async (
   return api.delete(`/courses/${courseId}/materials/${materialId}`);
 };
 
+export const updateCourseMaterial = async (
+  courseId: string | number,
+  materialId: string | number,
+  data: {
+    title: string;
+    description?: string;
+  }
+) => {
+  return api.put(`/courses/${courseId}/materials/${materialId}`, data);
+};
+
 // Comment management
 export const addCourseComment = async (
   courseId: string | number,

@@ -358,6 +358,28 @@ class CourseController extends Controller
     }
 
     /**
+     * Update material in course
+     */
+    public function updateMaterial(Request $request, Course $course, $materialId)
+    {
+        if (auth()->id() !== $course->instructor_id) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        $material = CourseMaterial::where('course_id', $course->id)
+            ->findOrFail($materialId);
+
+        $validated = $request->validate([
+            'title' => 'required|string|max:255',
+            'description' => 'nullable|string',
+        ]);
+
+        $material->update($validated);
+
+        return response()->json($material);
+    }
+
+    /**
      * Add comment to course
      */
     public function addComment(Request $request, Course $course)

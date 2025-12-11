@@ -155,6 +155,16 @@ const CourseComments: React.FC<CourseCommentsProps> = ({
     }
   };
 
+  const countTotalReplies = (comment: Comment): number => {
+    if (!comment.replies || comment.replies.length === 0) return 0;
+
+    let total = comment.replies.length;
+    comment.replies.forEach((reply) => {
+      total += countTotalReplies(reply);
+    });
+    return total;
+  };
+
   const handleEditComment = async (commentId: number) => {
     if (!editContent.trim()) return;
 
@@ -452,8 +462,8 @@ const CourseComments: React.FC<CourseCommentsProps> = ({
                 {hiddenReplies.has(comment.id) ? (
                   <>
                     <span className="text-xs">▼</span>
-                    Load {comment.replies_count}{" "}
-                    {comment.replies_count === 1 ? "reply" : "replies"}
+                    Load {countTotalReplies(comment)}{" "}
+                    {countTotalReplies(comment) === 1 ? "reply" : "replies"}
                   </>
                 ) : (
                   <>
