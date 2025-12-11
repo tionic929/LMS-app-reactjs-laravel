@@ -44,7 +44,8 @@ class CourseComment extends Model
 
     public function replies(): HasMany
     {
-        return $this->hasMany(CourseComment::class, 'parent_id')->with('user', 'replyToUser');
+        return $this->hasMany(CourseComment::class, 'parent_id')
+            ->with(['user', 'replyToUser', 'replies']);
     }
 
     public function replyToUser(): BelongsTo

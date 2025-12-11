@@ -70,20 +70,14 @@ const CourseComments: React.FC<CourseCommentsProps> = ({
   const [dropdownOpen, setDropdownOpen] = useState<number | null>(null);
   const [hiddenReplies, setHiddenReplies] = useState<Set<number>>(new Set());
 
-  // Initialize hidden replies - hide all comments that have replies by default
+  // Initialize hidden replies - hide only top-level comments that have replies by default
   useEffect(() => {
     const commentsWithReplies = new Set<number>();
-    const processComments = (comments: Comment[]) => {
-      comments.forEach((comment) => {
-        if (comment.replies_count > 0) {
-          commentsWithReplies.add(comment.id);
-        }
-        if (comment.replies && comment.replies.length > 0) {
-          processComments(comment.replies);
-        }
-      });
-    };
-    processComments(comments);
+    comments.forEach((comment) => {
+      if (comment.replies_count > 0) {
+        commentsWithReplies.add(comment.id);
+      }
+    });
     setHiddenReplies(commentsWithReplies);
   }, [comments]);
 
@@ -218,7 +212,7 @@ const CourseComments: React.FC<CourseCommentsProps> = ({
   ): Comment[] => {
     const flattened: Comment[] = [];
 
-    const processComment = (comment: Comment) => {
+    const processComment = (comment: Comment, depth: number = 0) => {
       flattened.push(comment);
       // Only include replies if this comment's replies are not hidden
       if (
@@ -226,11 +220,12 @@ const CourseComments: React.FC<CourseCommentsProps> = ({
         comment.replies.length > 0 &&
         !hiddenReplies.has(comment.id)
       ) {
-        comment.replies.forEach(processComment);
+        // Process each reply recursively
+        comment.replies.forEach((reply) => processComment(reply, depth + 1));
       }
     };
 
-    comments.forEach(processComment);
+    comments.forEach((comment) => processComment(comment, 0));
     return flattened;
   };
 
