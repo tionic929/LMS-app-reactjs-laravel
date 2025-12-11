@@ -65,11 +65,7 @@ class CourseController extends Controller
             'materials',
             'comments' => function ($query) {
                 $query->whereNull('parent_id')
-                    ->with(['user', 'replies' => function ($query) {
-                        $query->with(['user', 'replyToUser', 'replies' => function ($subQuery) {
-                            $subQuery->with(['user', 'replyToUser']);
-                        }]);
-                    }])
+                    ->with(['user', 'replyToUser', 'replies'])
                     ->orderBy('created_at', 'desc');
             },
             'announcements'

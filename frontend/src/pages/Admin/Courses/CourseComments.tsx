@@ -211,17 +211,26 @@ const CourseComments: React.FC<CourseCommentsProps> = ({
     hiddenReplies: Set<number>
   ): Comment[] => {
     const flattened: Comment[] = [];
+    const idMap = new Map<number, Comment>();
 
-    const processComment = (comment: Comment, depth: number = 0) => {
+    const processComment = (
+      comment: Comment,
+      depth: number = 0,
+      parent?: Comment
+    ) => {
+      // Compute a display name for replies: prefer explicit reply_to_user, otherwise fall back to parent user
+      const displayName = comment.reply_to_user?.name || parent?.user?.name || null;
+      (comment as any)._replyToDisplayName = displayName;
+      // record depth so frontend can determine nested replies
+      (comment as any)._depth = depth;
+
       flattened.push(comment);
+      idMap.set(comment.id, comment);
+
       // Only include replies if this comment's replies are not hidden
-      if (
-        comment.replies &&
-        comment.replies.length > 0 &&
-        !hiddenReplies.has(comment.id)
-      ) {
-        // Process each reply recursively
-        comment.replies.forEach((reply) => processComment(reply, depth + 1));
+      if (comment.replies && comment.replies.length > 0 && !hiddenReplies.has(comment.id)) {
+        // Process each reply recursively, passing current comment as parent
+        comment.replies.forEach((reply) => processComment(reply, depth + 1, comment));
       }
     };
 
@@ -356,11 +365,17 @@ const CourseComments: React.FC<CourseCommentsProps> = ({
             </div>
           ) : (
             <p className="text-gray-700">
-              {comment.reply_to_user && comment.is_nested_reply && (
-                <span className="text-blue-600 font-medium mr-1">
-                  @{comment.reply_to_user.name}
-                </span>
-              )}
+              {(() => {
+                const depth = (comment as any)._depth ?? 0;
+                const displayName =
+                  comment.reply_to_user?.name || (comment as any)._replyToDisplayName;
+                // show @username only for nested replies (depth >= 2)
+                return depth >= 2 && displayName ? (
+                  <span className="text-blue-600 font-medium mr-1">
+                    @{displayName}
+                  </span>
+                ) : null;
+              })()}
               {comment.content}
             </p>
           )}
