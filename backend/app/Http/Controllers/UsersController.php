@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Models\Announcement;
 use Illuminate\Validation\Rule;
 use App\Events\UserActivityEvent;
+use Illuminate\Support\Facades\DB;
 
 class UsersController extends Controller
 {
@@ -58,35 +59,23 @@ class UsersController extends Controller
     public function getUsersAnalytics(Request $request)
     {   
         $totalAnnouncements = Announcement::count();
-        $totalUsers = User::count();
-        $totalInstructors = User::where('role', 'instructor')
-            ->count();
+    
+        // 2. Aggregate ALL User Counts in a single, highly efficient query
+        $userAnalytics = DB::table('users')
+            ->select(
+                DB::raw('COUNT(*) as totalUsers'),
+                DB::raw('SUM(CASE WHEN role = "instructor" THEN 1 ELSE 0 END) as totalInstructors'),
+                DB::raw('SUM(CASE WHEN role = "learner" THEN 1 ELSE 0 END) as totalLearners'),
+                DB::raw('SUM(CASE WHEN is_enabled = TRUE AND is_banned_from_comments = FALSE THEN 1 ELSE 0 END) as activeUsers'),
+                DB::raw('SUM(CASE WHEN role = "instructor" AND is_confirmed = FALSE THEN 1 ELSE 0 END) as unconfirmedInstructors'),
+                DB::raw('SUM(CASE WHEN is_banned_from_comments = TRUE THEN 1 ELSE 0 END) as bannedUsers')
+            )
+            ->first(); // Get the single row of results
 
-        $totalLearners = User::where('role', 'learner')
-            ->count();
-
-        $activeUsers = User::where('is_enabled', true)
-            ->where('is_banned_from_comments', false)
-            ->count();
-
-        // 3. Pending Instructors (role = 'instructor' AND is_confirmed = false)
-        $unconfirmedInstructors = User::where('role', 'instructor')
-                                    ->where('is_confirmed', false)
-                                    ->count();
-
-        $bannedUsers = User::where('is_banned_from_comments', true)
-                        ->count();
-
+        // Combine results, spread them and return
         return response()->json([
-            'totalUsers' => $totalUsers,
-            'totalInstructors' => $totalInstructors,
-            'totalLearners' => $totalLearners,
-
+            ... (array) $userAnalytics,
             'totalAnnouncements' => $totalAnnouncements,
-
-            'activeUsers' => $activeUsers,
-            'unconfirmedInstructors' => $unconfirmedInstructors,
-            'bannedUsers' => $bannedUsers,
         ]);
     }
     
