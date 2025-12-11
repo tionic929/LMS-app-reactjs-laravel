@@ -352,7 +352,12 @@ const UsersIndex: React.FC = () => {
                                                     user.role === "instructor" ? "bg-green-100 text-green-700" :
                                                     "bg-blue-100 text-blue-700"
                                                 }`}>
-                                                    {user.name.split(" ").map((s) => s[0]).slice(0, 2).join("").toUpperCase()}
+                                                    {(() => {
+                                                        const parts = user.name.split(" ");
+                                                        const first = parts[0]?.[0] || "";
+                                                        const last = parts.length > 1 ? parts[parts.length - 1]?.[0] || "" : "";
+                                                        return (first + last).toUpperCase();
+                                                    })()}
                                                 </div>
                                             )}
 
