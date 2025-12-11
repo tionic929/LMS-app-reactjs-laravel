@@ -55,17 +55,17 @@ class CourseComment extends Model
 
     public function votes(): HasMany
     {
-        return $this->hasMany(CommentVote::class, 'comment_id');
+        return $this->hasMany(CommentVote::class, 'course_comment_id');
     }
 
     public function getUpvotesCountAttribute(): int
     {
-        return $this->votes()->where('vote', 1)->count();
+        return $this->votes()->where('vote_type', 'upvote')->count();
     }
 
     public function getDownvotesCountAttribute(): int
     {
-        return $this->votes()->where('vote', -1)->count();
+        return $this->votes()->where('vote_type', 'downvote')->count();
     }
 
     public function getUserVoteAttribute(): ?string
@@ -82,7 +82,7 @@ class CourseComment extends Model
             return null;
         }
 
-        return $vote->vote === 1 ? 'upvote' : ($vote->vote === -1 ? 'downvote' : null);
+        return $vote->vote_type;
     }
 
     public function getRepliesCountAttribute(): int

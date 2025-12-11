@@ -11,14 +11,14 @@ class CommentVote extends Model
     use HasFactory;
 
     protected $fillable = [
-        'comment_id',
+        'course_comment_id',
         'user_id',
-        'vote',
+        'vote_type',
     ];
 
     public function comment(): BelongsTo
     {
-        return $this->belongsTo(CourseComment::class, 'comment_id');
+        return $this->belongsTo(CourseComment::class, 'course_comment_id');
     }
 
     public function user(): BelongsTo

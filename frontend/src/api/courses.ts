@@ -81,12 +81,26 @@ export const addCourseMaterial = async (
   data: {
     title: string;
     type: "file" | "video" | "link";
+    file?: File;
     file_type?: string;
-    url: string;
+    url?: string;
     description?: string;
   }
 ) => {
-  return api.post(`/courses/${courseId}/materials`, data);
+  const formData = new FormData();
+  formData.append('title', data.title);
+  formData.append('type', data.type);
+  if (data.description) formData.append('description', data.description);
+  if (data.type === 'file' && data.file) {
+    formData.append('file', data.file);
+  } else if (data.url) {
+    formData.append('url', data.url);
+  }
+  return api.post(`/courses/${courseId}/materials`, formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  });
 };
 
 export const deleteCourseMaterial = async (

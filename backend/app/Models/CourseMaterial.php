@@ -15,6 +15,7 @@ class CourseMaterial extends Model
         'title',
         'type',
         'file_type',
+        'original_filename',
         'url',
         'description',
     ];
