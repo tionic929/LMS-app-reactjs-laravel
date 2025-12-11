@@ -21,12 +21,12 @@ class NewNotification implements ShouldBroadcast
 
     public function broadcastOn(): Channel | array
     {
-        return new PrivateChannel('role.learner');
+        return new PrivateChannel('role.admin');
     }
 
     public function broadcastAs()
     {
-        return 'NewNotification';
+        return 'RoleNotification';
     }
 }
 

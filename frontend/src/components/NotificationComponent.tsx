@@ -28,7 +28,7 @@ const NotificationComponent: React.FC<NotificationComponentProps> = ({ userId, u
       console.log('[Role Notification RECEIVED]', payload);
     };
     roleChannel
-            .listen('.NewNotification', roleListener)
+            .listen('.RoleNotification', roleListener)
             .error((err: any) => {
                 console.error(`[ECHO SUBSCRIPTION ERROR] Role Channel failed for ${userRole}.`, err);
             });
