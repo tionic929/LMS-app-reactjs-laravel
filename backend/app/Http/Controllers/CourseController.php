@@ -9,6 +9,7 @@ use App\Models\CourseMaterial;
 use App\Models\CourseComment;
 use App\Models\CommentVote;
 use App\Models\CourseAnnouncement;
+use App\Models\CourseCommentBan;
 use App\Http\Requests\StoreCourseRequest;
 use App\Http\Requests\UpdateCourseRequest;
 use Illuminate\Http\Request;
@@ -144,7 +145,7 @@ class CourseController extends Controller
     public function destroy(Course $course)
     {
         // Check if user is the instructor
-        if (auth()->id() !== $course->instructor_id) {
+        if (auth()->id() !== $course->instructor_id && auth()->user()->role !== 'admin') {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
@@ -366,6 +367,15 @@ class CourseController extends Controller
             if (!$isInstructor && !$isAdmin && !$isEnrolled) {
                 return response()->json(['message' => 'You must be enrolled to this course to comment'], 403);
             }
+
+        // Check if user is banned from commenting in this course
+        $isBanned = CourseCommentBan::where('course_id', $course->id)
+            ->where('user_id', auth()->id())
+            ->exists();
+
+        if ($isBanned) {
+            return response()->json(['message' => 'You are banned from commenting in this course'], 403);
+        }
 
         $validated = $request->validate([
             'content' => 'required|string',
@@ -638,5 +648,81 @@ class CourseController extends Controller
         $course->decrement('current_enrolled');
 
         return response()->json(['message' => 'Successfully left the course']);
+    }
+
+    /**
+     * Ban a learner from commenting in a course
+     */
+    public function banLearner(Course $course, $userId)
+    {
+        $user = auth()->user();
+
+        // Only course instructor or admin can ban
+        if ($user->id !== $course->instructor_id && $user->role !== 'admin') {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        // Check if already banned
+        $existingBan = CourseCommentBan::where('course_id', $course->id)
+            ->where('user_id', $userId)
+            ->first();
+
+        if ($existingBan) {
+            return response()->json(['message' => 'User is already banned from commenting'], 400);
+        }
+
+        // Create ban
+        CourseCommentBan::create([
+            'course_id' => $course->id,
+            'user_id' => $userId,
+            'banned_by_user_id' => $user->id,
+            'reason' => request('reason'),
+        ]);
+
+        return response()->json(['message' => 'User banned from commenting successfully']);
+    }
+
+    /**
+     * Unban a learner from commenting in a course
+     */
+    public function unbanLearner(Course $course, $userId)
+    {
+        $user = auth()->user();
+
+        // Only course instructor or admin can unban
+        if ($user->id !== $course->instructor_id && $user->role !== 'admin') {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        $ban = CourseCommentBan::where('course_id', $course->id)
+            ->where('user_id', $userId)
+            ->first();
+
+        if (!$ban) {
+            return response()->json(['message' => 'User is not banned'], 400);
+        }
+
+        $ban->delete();
+
+        return response()->json(['message' => 'User unbanned from commenting successfully']);
+    }
+
+    /**
+     * Get all banned learners for a course
+     */
+    public function getBannedLearners(Course $course)
+    {
+        $user = auth()->user();
+
+        // Only course instructor or admin can view bans
+        if ($user->id !== $course->instructor_id && $user->role !== 'admin') {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        $bans = CourseCommentBan::where('course_id', $course->id)
+            ->with(['user', 'bannedBy'])
+            ->get();
+
+        return response()->json($bans);
     }
 }

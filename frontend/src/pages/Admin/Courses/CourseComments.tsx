@@ -112,7 +112,14 @@ const CourseComments: React.FC<CourseCommentsProps> = ({
       alert("Comment posted!");
     } catch (err: any) {
       console.error("Error adding comment:", err);
-      alert(err.response?.data?.message || "Failed to post comment");
+      const errorMessage = err.response?.data?.message || "Failed to post comment";
+      
+      // Show special message for banned users
+      if (errorMessage.includes("banned")) {
+        alert("You are banned from commenting in this course. Please contact the instructor if you believe this is an error.");
+      } else {
+        alert(errorMessage);
+      }
     }
   };
 
@@ -127,7 +134,14 @@ const CourseComments: React.FC<CourseCommentsProps> = ({
       alert("Reply posted!");
     } catch (err: any) {
       console.error("Error adding reply:", err);
-      alert(err.response?.data?.message || "Failed to post reply");
+      const errorMessage = err.response?.data?.message || "Failed to post reply";
+      
+      // Show special message for banned users
+      if (errorMessage.includes("banned")) {
+        alert("You are banned from commenting in this course. Please contact the instructor if you believe this is an error.");
+      } else {
+        alert(errorMessage);
+      }
     }
   };
 
@@ -280,8 +294,7 @@ const CourseComments: React.FC<CourseCommentsProps> = ({
             </div>
 
             {/* Dropdown menu */}
-            {(currentUserId === comment.user?.id ||
-              currentUserId === instructorId) && (
+            {(currentUserId === comment.user?.id) && (
               <div className="relative dropdown-menu">
                 <button
                   onClick={() =>

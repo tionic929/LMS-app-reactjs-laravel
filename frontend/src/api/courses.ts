@@ -165,3 +165,23 @@ export const deleteCourseAnnouncement = async (
 ) => {
   return api.delete(`/courses/${courseId}/announcements/${announcementId}`);
 };
+
+// Course comment banning
+export const banLearnerFromComments = async (
+  courseId: string | number,
+  userId: number,
+  reason?: string
+) => {
+  return api.post(`/courses/${courseId}/bans/${userId}`, { reason });
+};
+
+export const unbanLearnerFromComments = async (
+  courseId: string | number,
+  userId: number
+) => {
+  return api.delete(`/courses/${courseId}/bans/${userId}`);
+};
+
+export const getCourseBannedLearners = async (courseId: string | number) => {
+  return api.get(`/courses/${courseId}/bans`);
+};
