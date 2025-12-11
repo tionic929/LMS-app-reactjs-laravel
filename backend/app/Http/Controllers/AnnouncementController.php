@@ -16,7 +16,7 @@ class AnnouncementController extends Controller
     {
         $user = request()->user();
 
-        $query = Announcement::query();
+        $query = Announcement::with('creator:id,name,role');
 
         if ($user) {
             if ($user->isRole('learner')) {
@@ -35,7 +35,8 @@ class AnnouncementController extends Controller
      */
     public function adminIndex()
     {
-        return Announcement::whereNotNull('created_by')
+        return Announcement::with('creator:id,name,role')
+            ->whereNotNull('created_by')
             ->whereHas('creator', function ($q) {
                 $q->where('role', 'admin');
             })
@@ -69,13 +70,14 @@ class AnnouncementController extends Controller
 
         $user = $request->user();
 
-        if (!$user || !$user->isRole('admin')) {
+        if (!$user || !in_array($user->role, ['admin', 'instructor'])) {
             return response()->json(['message' => 'Forbidden'], 403);
         }
 
         $data['created_by'] = $user->id;
 
         $announcement = Announcement::create($data);
+        $announcement->load('creator:id,name,role');
 
         return response()->json($announcement, 201);
     }
@@ -113,11 +115,12 @@ class AnnouncementController extends Controller
 
         $user = $request->user();
 
-        if (!$user || !$user->isRole('admin')) {
+        if (!$user || (!$user->isRole('admin') && !($user->isRole('instructor') && $announcement->created_by == $user->id))) {
             return response()->json(['message' => 'Forbidden'], 403);
         }
 
         $announcement->update($data);
+        $announcement->load('creator:id,name,role');
 
         return response()->json($announcement, 200);
     }
@@ -129,7 +132,7 @@ class AnnouncementController extends Controller
     {
         $user = request()->user();
 
-        if (!$user || !$user->isRole('admin')) {
+        if (!$user || (!$user->isRole('admin') && !($user->isRole('instructor') && $announcement->created_by == $user->id))) {
             return response()->json(['message' => 'Forbidden'], 403);
         }
 

@@ -106,7 +106,7 @@ const CourseLearners: React.FC<CourseLearnersProps> = ({
   };
 
   return (
-    <div className="overflow-x-auto">
+    <div className="overflow-visible">
       <table className="w-full">
         <thead>
           <tr className="border-b border-gray-200">
@@ -168,7 +168,7 @@ const CourseLearners: React.FC<CourseLearnersProps> = ({
                       </button>
                       
                       {dropdownOpen === learner.id && (
-                        <div className="absolute right-0 top-0 w-48 bg-white border border-gray-200 rounded-md shadow-lg z-10">
+                        <div className="absolute right-0 top-8 w-48 bg-white border border-gray-200 rounded-md shadow-lg z-50">
                           {bannedLearners.has(learner.id) ? (
                             <button
                               onClick={() => handleUnbanLearner(learner.id)}
