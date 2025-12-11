@@ -16,6 +16,7 @@ class User extends Authenticatable
         'email',
         'password',
         'role',
+        'avatar',
     ];
 
     protected $hidden = [
@@ -26,6 +27,18 @@ class User extends Authenticatable
     protected $casts = [
         'email_verified_at' => 'datetime',
     ];
+
+    protected $appends = ['avatar_url'];
+
+    public function getAvatarUrlAttribute()
+    {
+        if (!$this->avatar) {
+            return null;
+        }
+        // Return absolute URL so frontend can load across origins
+        $relative = \Illuminate\Support\Facades\Storage::url($this->avatar); // e.g. /storage/avatars/xyz.jpg
+        return url($relative);
+    }
 
     // Relationships
     public function admin()

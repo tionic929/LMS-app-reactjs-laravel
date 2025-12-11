@@ -3,10 +3,10 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { getCourses, createCourse } from "../api/courses";
 import { HiOutlineBookOpen, HiOutlinePlus } from "react-icons/hi";
-import { RiCheckLine } from "react-icons/ri";
-import { LiaTimesSolid } from "react-icons/lia";
+import AddCourseModal, { type AddCoursePayload } from "../components/modals/AddCourseModal";
 import { PiUsersThreeBold } from "react-icons/pi";
 import { MdLockOutline, MdOutlinePublic, MdArrowBack } from "react-icons/md";
+import "../App.css";
 
 interface Course {
   id: number;
@@ -28,13 +28,17 @@ const Course: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
 
-  // Form state
-  const [formData, setFormData] = useState({
-    title: "",
-    content: "",
-    privacy: "public" as "public" | "private",
-    capacity: 50,
-  });
+  // Modal create handler
+  const handleAddCourse = async (payload: AddCoursePayload) => {
+    try {
+      await createCourse(payload);
+      await fetchCourses();
+      alert("Course created successfully!");
+    } catch (err: any) {
+      console.error("Error creating course:", err);
+      throw err;
+    }
+  };
 
   useEffect(() => {
     fetchCourses();
@@ -54,19 +58,7 @@ const Course: React.FC = () => {
     }
   };
 
-  const handleCreateCourse = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      await createCourse(formData);
-      await fetchCourses();
-      setShowModal(false);
-      setFormData({ title: "", content: "", privacy: "public", capacity: 50 });
-      alert("Course created successfully!");
-    } catch (err: any) {
-      console.error("Error creating course:", err);
-      alert(err.response?.data?.message || "Failed to create course");
-    }
-  };
+  // Inline create handler removed; using AddCourseModal with onSubmit
 
   const privacyFilterOptions = [
     { label: "All Privacy", value: "all" },
@@ -84,264 +76,185 @@ const Course: React.FC = () => {
   });
 
   return (
-    <main className="flex-1 overflow-auto p-6">
-      <div className="max-w-6xl mx-auto">
-        <div className="flex flex-row justify-between items-center">
-          <div>
-            <h1 className="text-2xl font-semibold text-gray-900">Courses</h1>
-            <p className="text-sm text-gray-500">
-              Explore and Manage your courses
-            </p>
+    <main className="max-w-7xl mx-auto p-6">
+      <div className="flex items-center justify-between mb-4">
+        <h1 className="text-3xl font-bold text-gray-900">Courses</h1>
+        {user?.role === "instructor" && (
+          <button
+            onClick={() => setShowModal(true)}
+            className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow hover:bg-indigo-700"
+          >
+            <HiOutlinePlus className="w-5 h-5" /> Add New
+          </button>
+        )}
+      </div>
+
+      {/* Explorer Bar (matched to announcements) */}
+      <div className="rounded-2xl p-6 border border-transparent bg-gradient-to-r from-indigo-50 to-purple-50 shadow-sm mb-6">
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div className="flex-1 min-w-0 md:max-w-xl">
+            <div className="relative">
+              <svg className="absolute top-1/2 left-4 -translate-y-1/2 w-5 h-5 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+              <input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search courses by title or content..."
+                className="w-full pl-12 pr-4 py-3 rounded-full text-sm bg-white/80 backdrop-blur border border-indigo-100 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 shadow"
+              />
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search courses..."
-              className="flex-1 rounded-md border border-gray-200 bg-white px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            <select
-              value={privacyFilter}
-              onChange={(e) => setPrivacyFilter(e.target.value)}
-              className="px-3 py-2 rounded-md border border-gray-200 bg-white text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[110px]"
-            >
-              {privacyFilterOptions.map((filter) => (
-                <option key={filter.value} value={filter.value}>
-                  {filter.label}
-                </option>
-              ))}
-            </select>
-            {user?.role === "instructor" && (
+          <div className="flex items-center gap-2 overflow-x-auto">
+            {privacyFilterOptions.map((filter) => (
               <button
-                onClick={() => setShowModal(true)}
-                className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md inline-flex items-center gap-2 text-sm font-medium shadow-sm"
+                key={filter.value}
+                onClick={() => setPrivacyFilter(filter.value)}
+                className={`px-4 py-2 rounded-full text-xs font-semibold transition-colors border ${privacyFilter === filter.value
+                  ? "bg-indigo-600 text-white border-indigo-600 shadow"
+                  : "bg-white/70 text-gray-700 border-indigo-100 hover:bg-white"
+                  }`}
               >
-                <HiOutlinePlus className="w-5 h-5" />
-                Add New
+                {filter.label}
               </button>
-            )}
+            ))}
           </div>
         </div>
-        {/* Add New Course Modal */}
-        {showModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-6 w-full max-w-md">
-              <h2 className="text-xl font-bold mb-4">Add New Course</h2>
-              <form onSubmit={handleCreateCourse}>
-                <div className="mb-4">
-                  <label className="block text-sm font-medium mb-1">
-                    Title
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.title}
-                    onChange={(e) =>
-                      setFormData({ ...formData, title: e.target.value })
-                    }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                    required
-                  />
-                </div>
-                <div className="mb-4">
-                  <label className="block text-sm font-medium mb-1">
-                    Description
-                  </label>
-                  <textarea
-                    value={formData.content}
-                    onChange={(e) =>
-                      setFormData({ ...formData, content: e.target.value })
-                    }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                    rows={3}
-                    required
-                  />
-                </div>
-                <div className="mb-4">
-                  <label className="block text-sm font-medium mb-1">
-                    Privacy
-                  </label>
-                  <select
-                    value={formData.privacy}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        privacy: e.target.value as "public" | "private",
-                      })
-                    }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                  >
-                    <option value="public">Public</option>
-                    <option value="private">Private</option>
-                  </select>
-                </div>
-                <div className="mb-4">
-                  <label className="block text-sm font-medium mb-1">
-                    Capacity
-                  </label>
-                  <input
-                    type="number"
-                    value={formData.capacity}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        capacity: parseInt(e.target.value),
-                      })
-                    }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                    min={1}
-                  />
-                </div>
-                <div className="flex justify-end gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setShowModal(false)}
-                    className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 inline-flex items-center gap-2"
-                  >
-                    <LiaTimesSolid className="w-5 h-5" />
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 inline-flex items-center gap-2"
-                  >
-                    <RiCheckLine className="w-5 h-5" />
-                    Add Course
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        )}
 
-        {loading ? (
-          <div className="text-center py-12">
-            <p className="text-gray-600">Loading courses...</p>
-          </div>
-        ) : error ? (
-          <div className="text-center py-12">
-            <p className="text-red-600">{error}</p>
-            <button
-              onClick={fetchCourses}
-              className="mt-4 text-blue-500 hover:text-blue-600 text-sm font-medium"
-            >
-              Try again
-            </button>
-          </div>
-        ) : (
-          <>
-            <div className="mb-4">
-              <p className="text-sm text-gray-600">
-                Showing {filteredCourses.length} of {courses.length} courses
-                {privacyFilter !== "all" && ` (${privacyFilter})`}
-                {query && ` (search: "${query}")`}
-              </p>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredCourses.length === 0 ? (
-            // Empty state when no results
-            <div className="col-span-full text-center py-12">
-              <div className="text-gray-400 mb-4">
-                <MdArrowBack className="mx-auto h-12 w-12" />
-              </div>
-              <h3 className="text-lg font-medium text-gray-900 mb-2">
-                No courses found
-              </h3>
-              <p className="text-gray-500">
-                {query
-                  ? `No courses match "${query}"`
-                  : `No ${
-                      privacyFilter !== "all" ? privacyFilter : ""
-                    } courses available`}
-              </p>
-              {(query || privacyFilter !== "all") && (
-                <button
-                  onClick={() => {
-                    setQuery("");
-                    setPrivacyFilter("all");
-                  }}
-                  className="mt-4 text-blue-500 hover:text-blue-600 text-sm font-medium"
-                >
-                  Clear filters
-                </button>
-              )}
+        <div className="mt-4">
+          {loading ? (
+            <p className="text-sm text-gray-600">Loading courses...</p>
+          ) : error ? (
+            <div className="text-sm text-red-600">
+              <p className="mb-2">Error: {error}</p>
+              <button onClick={fetchCourses} className="text-indigo-600 hover:text-indigo-500 text-sm font-medium">Retry</button>
             </div>
           ) : (
-            // Render filtered courses
-            filteredCourses.map((course) => {
-              const styles = {
-                headerColor: "bg-purple-500",
-                borderColor: "border-purple-500",
-                badgeColor: "bg-purple-700",
-                badgeTextColor: "text-purple-100",
-              };
+            <p className="text-sm text-gray-600">
+              Showing {filteredCourses.length} of {courses.length} courses
+              {privacyFilter !== "all" && ` (filtered by ${privacyFilter})`}
+              {query && ` (search: "${query}")`}
+            </p>
+          )}
+        </div>
+      </div>
+      {/* Add New Course Modal (standardized) */}
+      <AddCourseModal show={showModal} onClose={() => setShowModal(false)} onSubmit={handleAddCourse} />
 
-              return (
-                <div
-                  key={course.id}
-                  className={`bg-white rounded-md shadow-xl hover:shadow-2xl border-b-4 ${styles.borderColor} overflow-hidden flex flex-col cursor-pointer`}
-                  onClick={() => navigate(`/courses/${course.id}`)}
-                >
-                  {/* Main card content */}
-                  <div className="flex-1">
-                    {/* Colored header section */}
-                    <div
-                      className={`${styles.headerColor} text-white px-6 py-4 rounded-t-lg`}
-                    >
-                      <div className="flex items-center justify-center">
-                        <HiOutlineBookOpen className="h-10 w-10 mr-2" />
+      {loading ? (
+        <div className="text-center py-12 text-gray-500 text-lg">
+          <p className="text-gray-600">Loading courses...</p>
+        </div>
+      ) : error ? (
+        <div className="text-center py-12">
+          <p className="text-red-600">{error}</p>
+          <button
+            onClick={fetchCourses}
+            className="mt-4 text-blue-700 hover:text-blue-800 text-sm font-medium"
+          >
+            Try again
+          </button>
+        </div>
+      ) : (
+        <>
+          <div className="mb-4">
+            <p className="text-sm text-gray-600">
+              Showing {filteredCourses.length} of {courses.length} courses
+              {privacyFilter !== "all" && ` (${privacyFilter})`}
+              {query && ` (search: "${query}")`}
+            </p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredCourses.length === 0 ? (
+              // Empty state when no results
+              <div className="col-span-full text-center py-12 bg-white rounded-xl shadow-lg border border-gray-100">
+                <div className="text-gray-400 mb-4">
+                  <MdArrowBack className="mx-auto h-12 w-12" />
+                </div>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">
+                  No courses found
+                </h3>
+                <p className="text-gray-500">
+                  {query
+                    ? `No courses match "${query}"`
+                    : `No ${privacyFilter !== "all" ? privacyFilter : ""
+                    } courses available`}
+                </p>
+                {(query || privacyFilter !== "all") && (
+                  <button
+                    onClick={() => {
+                      setQuery("");
+                      setPrivacyFilter("all");
+                    }}
+                    className="mt-4 text-blue-700 hover:text-blue-800 text-sm font-medium"
+                  >
+                    Clear filters
+                  </button>
+                )}
+              </div>
+            ) : (
+              // Render filtered courses
+              filteredCourses.map((course) => {
+                const styles = {
+                  headerColor: "bg-blue-700/70",
+                  borderColor: "border-blue-900/70",
+                  badgeColor: "bg-blue-800/70",
+                  badgeTextColor: "text-white",
+                };
+
+                return (
+                  <div
+                    key={course.id}
+                    className={`cursor-pointer group rounded-xl bg-white border shadow-sm transition hover:shadow-md ${styles.borderColor}`}
+                    onClick={() => navigate(`/courses/${course.id}`)}
+                  >
+                    {/* Main card content */}
+                    <div className="p-5">
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="min-w-0">
+                          <h2 className="text-base font-semibold text-gray-900 truncate">{course.title}</h2>
+                          <p className="mt-2 text-sm text-gray-700 line-clamp-3 whitespace-pre-wrap break-words">
+                            {course.content}
+                          </p>
+                        </div>
+                        <div className="shrink-0">
+                          <HiOutlineBookOpen className="h-8 w-8 text-indigo-600" />
+                        </div>
                       </div>
-                    </div>
-
-                    {/* Card content */}
-                    <div className="p-6">
-                      <h2 className="font-bold mb-1">{course.title}</h2>
-                      <p className="text-gray-600 mb-3 line-clamp-2">
-                        {course.content}
-                      </p>
-                      <div className="flex gap-2">
-                        <span className="bg-gray-100 text-gray-800 px-2 py-1 rounded-full text-xs font-medium flex items-center gap-1">
+                      <div className="mt-3 flex items-center gap-2">
+                        <span className={`px-2 py-1 rounded-full text-xs font-semibold ${styles.badgeColor} ${styles.badgeTextColor} inline-flex items-center gap-1`}>
                           {course.privacy === "public" ? (
                             <>
-                              <MdOutlinePublic className="h-3 w-3" />
-                              Public
+                              <MdOutlinePublic className="h-3 w-3" /> Public
                             </>
                           ) : (
                             <>
-                              <MdLockOutline className="h-3 w-3" />
-                              Private
+                              <MdLockOutline className="h-3 w-3" /> Private
                             </>
                           )}
                         </span>
                       </div>
                     </div>
+                    <footer className="px-5 py-3 border-t bg-gray-50/60 flex items-center justify-between gap-2">
+                      <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div
+                          className="bg-indigo-600 h-2 rounded-full"
+                          style={{ width: `${(course.current_enrolled / course.capacity) * 100}%` }}
+                        />
+                      </div>
+                      <div className="text-sm text-gray-500 shrink-0 flex items-center gap-2">
+                        <span>by {course.instructor_name}</span>
+                        <span className="flex items-center gap-1">
+                          <PiUsersThreeBold className="h-4 w-4" />
+                          {course.current_enrolled} / {course.capacity}
+                        </span>
+                      </div>
+                    </footer>
                   </div>
-                  <div className="px-6 py-3">
-                    <div className="w-full bg-gray-200 rounded-full h-2 mb-2">
-                      <div
-                        className="bg-blue-500 h-2 rounded-full"
-                        style={{
-                          width: `${
-                            (course.current_enrolled / course.capacity) * 100
-                          }%`,
-                        }}
-                      ></div>
-                    </div>
-                    <div className="flex justify-between items-center text-sm text-gray-500">
-                      <span>by {course.instructor_name}</span>
-                      <span className="flex items-center gap-1">
-                        <PiUsersThreeBold className="h-4 w-4" />
-                        {course.current_enrolled} / {course.capacity}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              );
-            })
-          )}
-        </div>
-          </>
-        )}
-      </div>
+                );
+              })
+            )}
+          </div>
+        </>
+      )}
     </main>
   );
 };

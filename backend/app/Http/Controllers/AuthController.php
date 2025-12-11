@@ -106,6 +106,7 @@ class AuthController extends Controller
                     'name' => $user->name,
                     'email' => $user->email,
                     'role' => $user->role,
+                    'avatar_url' => $user->avatar ? \Illuminate\Support\Facades\Storage::url($user->avatar) : null,
                 ],
                 'token' => $token,
                 'token_type' => 'Bearer',
@@ -169,7 +170,9 @@ class AuthController extends Controller
 
     public function user(Request $request)
     {
-        return $request->user()->load(['admin', 'instructor', 'learner']);
+        $u = $request->user()->load(['admin', 'instructor', 'learner']);
+        // Ensure avatar_url accessor is included
+        return $u;
     }
 
     public function logout(Request $request)

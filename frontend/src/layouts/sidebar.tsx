@@ -173,7 +173,15 @@ const Sidebar: React.FC<SidebarProps> = ({
                         onClick={toggleUserMenu}
                         className="flex items-center w-full px-3 py-2 rounded-lg hover:bg-gray-700 hover:text-white"
                     >
-                        <FaUserCircle className="w-6 h-6" />
+                        {user?.avatar_url ? (
+                            <img
+                                src={user.avatar_url}
+                                alt={`${user?.name ?? 'User'} avatar`}
+                                className="h-6 w-6 rounded-full object-cover flex-shrink-0 ring-2 ring-indigo-100"
+                            />
+                        ) : (
+                            <FaUserCircle className="w-6 h-6" />
+                        )}
                         <div className={`ml-3 text-left ${textTransition} ${textClass}`}>
                             <p className="text-sm font-medium truncate">{user?.name ?? "User"}</p>
                             <p className="text-xs text-gray-500 truncate">{user?.role ?? "Guest"}</p>
@@ -200,7 +208,15 @@ const Sidebar: React.FC<SidebarProps> = ({
                         >
                             <div className="p-3 border-b border-gray-700">
                                 <div className="flex items-center gap-3">
-                                    <FaUserCircle className="w-8 h-8 text-gray-300" />
+                                    {user?.avatar_url ? (
+                                        <img
+                                            src={user.avatar_url}
+                                            alt={`${user?.name ?? 'User'} avatar`}
+                                            className="w-8 h-8 rounded-full object-cover ring-2 ring-indigo-200"
+                                        />
+                                    ) : (
+                                        <FaUserCircle className="w-8 h-8 text-gray-300" />
+                                    )}
                                     <div>
                                         <p className="text-sm font-semibold text-gray-300 truncate">{user?.name}</p>
                                         <p className="text-xs text-gray-400 truncate">{user?.role}</p>

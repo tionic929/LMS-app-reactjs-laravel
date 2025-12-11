@@ -18,6 +18,7 @@ interface CourseLearnersProps {
   courseId: string;
   learners: Learner[];
   isInstructor: boolean;
+  isAdmin: boolean;
   onLearnerAction: () => void;
 }
 
@@ -25,6 +26,7 @@ const CourseLearners: React.FC<CourseLearnersProps> = ({
   courseId,
   learners,
   isInstructor,
+  isAdmin,
   onLearnerAction,
 }) => {
   const handleRemoveLearner = async (userId: number) => {
@@ -48,14 +50,18 @@ const CourseLearners: React.FC<CourseLearnersProps> = ({
             <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">
               Name
             </th>
+            {isInstructor || isAdmin ? (
+              <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">
+                Email
+              </th>
+            ) : null}
+            {isInstructor || isAdmin ? (
+              <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">
+                Joined
+              </th>
+            ) : null}
             <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">
-              Email
-            </th>
-            <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">
-              Joined
-            </th>
-            <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">
-              {isInstructor ? "Actions" : ""}
+              {(isInstructor || isAdmin) ? "Actions" : ""}
             </th>
           </tr>
         </thead>
@@ -68,18 +74,22 @@ const CourseLearners: React.FC<CourseLearnersProps> = ({
               <td className="py-4 px-4 text-sm text-gray-900">
                 {learner.name}
               </td>
-              <td className="py-4 px-4 text-sm text-gray-600 flex items-center gap-2">
-                <MdOutlineEmail className="h-4 w-4 text-gray-400" />
-                {learner.email}
-              </td>
-              <td className="py-4 px-4 text-sm text-gray-600">
-                {learner.enrolled_at ||
-                  new Date(
-                    learner.pivot?.created_at || learner.created_at || ""
-                  ).toLocaleDateString()}
-              </td>
+              {isInstructor || isAdmin ? (
+                <td className="py-4 px-4 text-sm text-gray-600 flex items-center gap-2">
+                  <MdOutlineEmail className="h-4 w-4 text-gray-400" />
+                  {learner.email}
+                </td>
+              ) : null}
+              {isInstructor || isAdmin ? (
+                <td className="py-4 px-4 text-sm text-gray-600">
+                  {learner.enrolled_at ||
+                    new Date(
+                      learner.pivot?.created_at || learner.created_at || ""
+                    ).toLocaleDateString()}
+                </td>
+              ) : null}
               <td className="py-4 px-4">
-                {isInstructor && (
+                {(isInstructor || isAdmin) && (
                   <button
                     onClick={() => handleRemoveLearner(learner.id)}
                     className="flex items-center gap-1 px-3 py-1 bg-red-500 text-white text-sm rounded-md hover:bg-red-600 font-medium"
