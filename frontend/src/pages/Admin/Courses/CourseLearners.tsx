@@ -107,6 +107,7 @@ const CourseLearners: React.FC<CourseLearnersProps> = ({
 
   return (
     <div className="overflow-visible">
+    <div className="overflow-visible">
       <table className="w-full">
         <thead>
           <tr className="border-b border-gray-200">

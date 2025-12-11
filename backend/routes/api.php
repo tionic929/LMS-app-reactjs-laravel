@@ -34,6 +34,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/courses/{course}/join-requests/{requestId}/accept', [CourseController::class, 'acceptRequest']);
     Route::post('/courses/{course}/join-requests/{requestId}/reject', [CourseController::class, 'rejectRequest']);
     Route::post('/courses/{course}/materials', [CourseController::class, 'addMaterial']);
+    Route::put('/courses/{course}/materials/{materialId}', [CourseController::class, 'updateMaterial']);
     Route::delete('/courses/{course}/materials/{materialId}', [CourseController::class, 'deleteMaterial']);
     Route::post('/courses/{course}/comments', [CourseController::class, 'addComment']);
     Route::put('/courses/{course}/comments/{comment}', [CourseController::class, 'updateComment']);

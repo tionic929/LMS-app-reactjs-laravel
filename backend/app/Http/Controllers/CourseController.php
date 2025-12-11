@@ -65,11 +65,7 @@ class CourseController extends Controller
             'materials',
             'comments' => function ($query) {
                 $query->whereNull('parent_id')
-                    ->with(['user', 'replies' => function ($query) {
-                        $query->with(['user', 'replyToUser', 'replies' => function ($subQuery) {
-                            $subQuery->with(['user', 'replyToUser']);
-                        }]);
-                    }])
+                    ->with(['user', 'replyToUser', 'replies'])
                     ->orderBy('created_at', 'desc');
             },
             'announcements'
@@ -359,6 +355,28 @@ class CourseController extends Controller
         $material->delete();
 
         return response()->json(['message' => 'Material deleted']);
+    }
+
+    /**
+     * Update material in course
+     */
+    public function updateMaterial(Request $request, Course $course, $materialId)
+    {
+        if (auth()->id() !== $course->instructor_id) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        $material = CourseMaterial::where('course_id', $course->id)
+            ->findOrFail($materialId);
+
+        $validated = $request->validate([
+            'title' => 'required|string|max:255',
+            'description' => 'nullable|string',
+        ]);
+
+        $material->update($validated);
+
+        return response()->json($material);
     }
 
     /**

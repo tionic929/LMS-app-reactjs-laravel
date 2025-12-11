@@ -6,6 +6,8 @@ import {
 } from "react-icons/md";
 import { FaRegFileAlt } from "react-icons/fa";
 import { FaLink } from "react-icons/fa6";
+import { FaEdit } from "react-icons/fa";
+import EditMaterialModal from "../../../components/modals/courses/EditMaterialModal";
 
 // Type for material
 interface Material {
@@ -37,6 +39,7 @@ const CourseMaterials: React.FC<CourseMaterialsProps> = ({
   onMaterialAction,
 }) => {
   const [materialFilter, setMaterialFilter] = useState<MaterialFilter>("all");
+  const [editingMaterial, setEditingMaterial] = useState<Material | null>(null);
 
   const handleDeleteMaterial = async (materialId: number) => {
     if (!confirm("Are you sure you want to delete this material?")) return;
@@ -142,13 +145,22 @@ const CourseMaterials: React.FC<CourseMaterialsProps> = ({
                 </div>
 
                 {isInstructor && (
-                  <button
-                  title="delete"
-                    onClick={() => handleDeleteMaterial(material.id)}
-                    className="text-red-500 hover:text-red-700"
-                  >
-                    <RiDeleteBin6Line className="h-5 w-5" />
-                  </button>
+                  <div className="flex gap-2">
+                    <button
+                      title="edit"
+                      onClick={() => setEditingMaterial(material)}
+                      className="text-blue-500 hover:text-blue-700"
+                    >
+                      <FaEdit className="h-5 w-5" />
+                    </button>
+                    <button
+                      title="delete"
+                      onClick={() => handleDeleteMaterial(material.id)}
+                      className="text-red-500 hover:text-red-700"
+                    >
+                      <RiDeleteBin6Line className="h-5 w-5" />
+                    </button>
+                  </div>
                 )}
               </div>
 

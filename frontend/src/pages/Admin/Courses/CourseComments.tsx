@@ -12,7 +12,8 @@ import {
   BiSolidUpvote,
   BiSolidDownvote,
 } from "react-icons/bi";
-import { FaReply, FaEdit, FaTrash } from "react-icons/fa";
+import { FaReply, FaEdit, FaTrash, FaRegCommentDots } from "react-icons/fa";
+import { FaAngleDown, FaAngleUp } from "react-icons/fa6";
 import { MdMoreHoriz } from "react-icons/md";
 import { useAuth } from "../../../contexts/AuthContext";
 
@@ -155,6 +156,16 @@ const CourseComments: React.FC<CourseCommentsProps> = ({
     }
   };
 
+  const countTotalReplies = (comment: Comment): number => {
+    if (!comment.replies || comment.replies.length === 0) return 0;
+
+    let total = comment.replies.length;
+    comment.replies.forEach((reply) => {
+      total += countTotalReplies(reply);
+    });
+    return total;
+  };
+
   const handleEditComment = async (commentId: number) => {
     if (!editContent.trim()) return;
 
@@ -211,17 +222,26 @@ const CourseComments: React.FC<CourseCommentsProps> = ({
     hiddenReplies: Set<number>
   ): Comment[] => {
     const flattened: Comment[] = [];
+    const idMap = new Map<number, Comment>();
 
-    const processComment = (comment: Comment, depth: number = 0) => {
+    const processComment = (
+      comment: Comment,
+      depth: number = 0,
+      parent?: Comment
+    ) => {
+      // Compute a display name for replies: prefer explicit reply_to_user, otherwise fall back to parent user
+      const displayName = comment.reply_to_user?.name || parent?.user?.name || null;
+      (comment as any)._replyToDisplayName = displayName;
+      // record depth so frontend can determine nested replies
+      (comment as any)._depth = depth;
+
       flattened.push(comment);
+      idMap.set(comment.id, comment);
+
       // Only include replies if this comment's replies are not hidden
-      if (
-        comment.replies &&
-        comment.replies.length > 0 &&
-        !hiddenReplies.has(comment.id)
-      ) {
-        // Process each reply recursively
-        comment.replies.forEach((reply) => processComment(reply, depth + 1));
+      if (comment.replies && comment.replies.length > 0 && !hiddenReplies.has(comment.id)) {
+        // Process each reply recursively, passing current comment as parent
+        comment.replies.forEach((reply) => processComment(reply, depth + 1, comment));
       }
     };
 
@@ -356,11 +376,17 @@ const CourseComments: React.FC<CourseCommentsProps> = ({
             </div>
           ) : (
             <p className="text-gray-700">
-              {comment.reply_to_user && comment.is_nested_reply && (
-                <span className="text-blue-600 font-medium mr-1">
-                  @{comment.reply_to_user.name}
-                </span>
-              )}
+              {(() => {
+                const depth = (comment as any)._depth ?? 0;
+                const displayName =
+                  comment.reply_to_user?.name || (comment as any)._replyToDisplayName;
+                // show @username only for nested replies (depth >= 2)
+                return depth >= 2 && displayName ? (
+                  <span className="text-blue-600 font-medium mr-1">
+                    @{displayName}
+                  </span>
+                ) : null;
+              })()}
               {comment.content}
             </p>
           )}
@@ -436,13 +462,13 @@ const CourseComments: React.FC<CourseCommentsProps> = ({
               >
                 {hiddenReplies.has(comment.id) ? (
                   <>
-                    <span className="text-xs">▼</span>
-                    Load {comment.replies_count}{" "}
-                    {comment.replies_count === 1 ? "reply" : "replies"}
+                    <span className="text-xs"><FaAngleDown /></span>
+                    Load {countTotalReplies(comment)}{" "}
+                    {countTotalReplies(comment) === 1 ? "reply" : "replies"}
                   </>
                 ) : (
                   <>
-                    <span className="text-xs">▲</span>
+                    <span className="text-xs"><FaAngleUp /></span>
                     Hide replies
                   </>
                 )}
@@ -551,7 +577,7 @@ const CourseComments: React.FC<CourseCommentsProps> = ({
       <div className="space-y-6">
         {allComments.length === 0 ? (
           <div className="text-center py-12">
-            <div className="text-gray-400 text-6xl mb-4">💬</div>
+            <div className="text-gray-400 text-6xl mb-4 justify-center flex"><FaRegCommentDots /></div>
             <p className="text-gray-500 text-lg">No comments yet</p>
             <p className="text-gray-400 text-sm">Be the first to share your thoughts!</p>
           </div>
