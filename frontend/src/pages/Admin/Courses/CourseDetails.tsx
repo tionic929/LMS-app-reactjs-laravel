@@ -185,6 +185,7 @@ const CourseDetails: React.FC = () => {
             courseId={courseId}
             learners={learners}
             isInstructor={isInstructor}
+            isAdmin={user?.role === 'admin'}
             onLearnerAction={fetchCourseData}
           />
         );
@@ -213,6 +214,7 @@ const CourseDetails: React.FC = () => {
             instructorId={course.instructor_id}
             comments={comments}
             onCommentAction={fetchCourseData}
+            currentUserId={user?.id}
           />
         );
       case "announcements":
@@ -372,6 +374,7 @@ const CourseDetails: React.FC = () => {
                 activeTab={activeTab}
                 setActiveTab={setActiveTab}
                 isInstructor={isInstructor}
+                isPrivate={course.privacy === "private"}
                 learnersCount={learners.length}
                 requestsCount={joinRequests.length}
                 materialsCount={materials.length}

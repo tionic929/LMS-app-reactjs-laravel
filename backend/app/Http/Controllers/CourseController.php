@@ -7,6 +7,7 @@ use App\Models\CourseEnrollment;
 use App\Models\CourseJoinRequest;
 use App\Models\CourseMaterial;
 use App\Models\CourseComment;
+use App\Models\CommentVote;
 use App\Models\CourseAnnouncement;
 use App\Http\Requests\StoreCourseRequest;
 use App\Http\Requests\UpdateCourseRequest;
@@ -60,7 +61,15 @@ class CourseController extends Controller
             'activeLearners',
             'joinRequests.user',
             'materials',
-            'comments.user',
+            'comments' => function ($query) {
+                $query->whereNull('parent_id')
+                    ->with(['user', 'replies' => function ($query) {
+                        $query->with(['user', 'replyToUser', 'replies' => function ($subQuery) {
+                            $subQuery->with(['user', 'replyToUser']);
+                        }]);
+                    }])
+                    ->orderBy('created_at', 'desc');
+            },
             'announcements'
         ]);
 
@@ -360,14 +369,45 @@ class CourseController extends Controller
 
         $validated = $request->validate([
             'content' => 'required|string',
+            'parent_id' => 'nullable|exists:course_comments,id',
+            'reply_to_user_id' => 'nullable|exists:users,id',
         ]);
 
         $comment = $course->comments()->create([
             'user_id' => auth()->id(),
             'content' => $validated['content'],
+            'parent_id' => $validated['parent_id'] ?? null,
+            'reply_to_user_id' => $validated['reply_to_user_id'] ?? null,
         ]);
 
-        return response()->json($comment->load('user'), 201);
+        return response()->json($comment->load('user', 'replyToUser'), 201);
+    }
+
+    public function updateComment(Request $request, Course $course, CourseComment $comment)
+    {
+        if ($comment->course_id !== $course->id) {
+            return response()->json(['message' => 'Comment not found'], 400);
+        }
+
+        $canEdit = (
+            auth()->id() === $course->instructor_id ||
+            auth()->user()->role === 'admin' ||
+            auth()->id() === $comment->user_id
+        );
+
+        if (!$canEdit) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        $validated = $request->validate([
+            'content' => 'required|string|max:1000',
+        ]);
+
+        $comment->update([
+            'content' => $validated['content'],
+        ]);
+
+        return response()->json($comment->load('user', 'replyToUser'));
     }
 
     public function deleteComment(Course $course, CourseComment $comment)
@@ -389,6 +429,75 @@ class CourseController extends Controller
         $comment->delete();
 
         return response()->json(['message' => 'Comment deleted']);
+    }
+
+    /**
+     * Vote on a comment
+     */
+    public function voteComment(Request $request, Course $course, CourseComment $comment)
+    {
+        if ($comment->course_id !== $course->id) {
+            return response()->json(['message' => 'Comment not found'], 404);
+        }
+
+        $isInstructor = auth()->check() && $course->instructor_id === auth()->id();
+        $isAdmin = auth()->check() && auth()->user()->role === 'admin';
+        $isEnrolled = $course->enrollments()
+            ->where('user_id', auth()->id())
+            ->where('status', 'active')
+            ->exists();
+
+        if (!$isInstructor && !$isAdmin && !$isEnrolled) {
+            return response()->json(['message' => 'You must be enrolled to this course to vote'], 403);
+        }
+
+        $validated = $request->validate([
+            'vote_type' => 'required|in:upvote,downvote',
+        ]);
+
+        // Convert vote_type to integer: 1 for upvote, -1 for downvote
+        $voteValue = $validated['vote_type'] === 'upvote' ? 1 : -1;
+
+        // Check if user already voted
+        $existingVote = CommentVote::where('comment_id', $comment->id)
+            ->where('user_id', auth()->id())
+            ->first();
+
+        if ($existingVote) {
+            if ($existingVote->vote === $voteValue) {
+                // Remove vote if clicking the same vote type
+                $existingVote->delete();
+                return response()->json([
+                    'message' => 'Vote removed',
+                    'upvotes_count' => $comment->fresh()->upvotes_count,
+                    'downvotes_count' => $comment->fresh()->downvotes_count,
+                    'user_vote' => null,
+                ]);
+            } else {
+                // Update vote type if clicking the opposite
+                $existingVote->update(['vote' => $voteValue]);
+                return response()->json([
+                    'message' => 'Vote updated',
+                    'upvotes_count' => $comment->fresh()->upvotes_count,
+                    'downvotes_count' => $comment->fresh()->downvotes_count,
+                    'user_vote' => $validated['vote_type'],
+                ]);
+            }
+        }
+
+        // Create new vote
+        CommentVote::create([
+            'comment_id' => $comment->id,
+            'user_id' => auth()->id(),
+            'vote' => $voteValue,
+        ]);
+
+        return response()->json([
+            'message' => 'Vote recorded',
+            'upvotes_count' => $comment->fresh()->upvotes_count,
+            'downvotes_count' => $comment->fresh()->downvotes_count,
+            'user_vote' => $validated['vote_type'],
+        ], 201);
     }
 
     /**
@@ -425,6 +534,28 @@ class CourseController extends Controller
         $announcement->delete();
 
         return response()->json(['message' => 'Announcement deleted']);
+    }
+
+    /**
+     * Update announcement
+     */
+    public function updateAnnouncement(Request $request, Course $course, $announcementId)
+    {
+        if (auth()->id() !== $course->instructor_id) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        $validated = $request->validate([
+            'title' => 'required|string|max:255',
+            'content' => 'required|string',
+        ]);
+
+        $announcement = CourseAnnouncement::where('course_id', $course->id)
+            ->findOrFail($announcementId);
+
+        $announcement->update($validated);
+
+        return response()->json($announcement);
     }
 
     /**

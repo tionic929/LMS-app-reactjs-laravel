@@ -99,9 +99,42 @@ export const deleteCourseMaterial = async (
 // Comment management
 export const addCourseComment = async (
   courseId: string | number,
+  content: string,
+  parentId?: number,
+  replyToUserId?: number
+) => {
+  return api.post(`/courses/${courseId}/comments`, {
+    content,
+    parent_id: parentId,
+    reply_to_user_id: replyToUserId,
+  });
+};
+
+export const voteComment = async (
+  courseId: string | number,
+  commentId: string | number,
+  voteType: "upvote" | "downvote"
+) => {
+  return api.post(`/courses/${courseId}/comments/${commentId}/vote`, {
+    vote_type: voteType,
+  });
+};
+
+export const updateComment = async (
+  courseId: string | number,
+  commentId: string | number,
   content: string
 ) => {
-  return api.post(`/courses/${courseId}/comments`, { content });
+  return api.put(`/courses/${courseId}/comments/${commentId}`, {
+    content,
+  });
+};
+
+export const deleteComment = async (
+  courseId: string | number,
+  commentId: string | number
+) => {
+  return api.delete(`/courses/${courseId}/comments/${commentId}`);
 };
 
 // Announcement management
@@ -113,6 +146,17 @@ export const addCourseAnnouncement = async (
   }
 ) => {
   return api.post(`/courses/${courseId}/announcements`, data);
+};
+
+export const updateCourseAnnouncement = async (
+  courseId: string | number,
+  announcementId: string | number,
+  data: {
+    title: string;
+    content: string;
+  }
+) => {
+  return api.put(`/courses/${courseId}/announcements/${announcementId}`, data);
 };
 
 export const deleteCourseAnnouncement = async (

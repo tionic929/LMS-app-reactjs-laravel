@@ -11,6 +11,7 @@ interface CourseTabsProps {
   activeTab: ActiveTab;
   setActiveTab: (tab: ActiveTab) => void;
   isInstructor: boolean;
+  isPrivate: boolean;
   learnersCount: number;
   requestsCount: number;
   materialsCount: number;
@@ -23,6 +24,7 @@ const CourseTabs: React.FC<CourseTabsProps> = ({
   activeTab,
   setActiveTab,
   isInstructor,
+  isPrivate,
   learnersCount,
   requestsCount,
   materialsCount,
@@ -32,7 +34,7 @@ const CourseTabs: React.FC<CourseTabsProps> = ({
 }) => {
   const tabs = [
     { id: "learners", label: "Learners", icon: PiUsersThreeBold, count: learnersCount },
-    ...(isInstructor ? [{ id: "requests", label: "Requests", icon: VscRequestChanges, count: requestsCount }] : []),
+    ...(isInstructor && isPrivate ? [{ id: "requests", label: "Requests", icon: VscRequestChanges, count: requestsCount }] : []),
     { id: "materials", label: "Materials", icon: FaRegFileAlt, count: materialsCount },
     { id: "comments", label: "Comments", icon: FaRegCommentDots, count: commentsCount },
     { id: "announcements", label: "Announcements", icon: RiMegaphoneLine, count: announcementsCount },

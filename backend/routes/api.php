@@ -36,7 +36,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/courses/{course}/materials', [CourseController::class, 'addMaterial']);
     Route::delete('/courses/{course}/materials/{materialId}', [CourseController::class, 'deleteMaterial']);
     Route::post('/courses/{course}/comments', [CourseController::class, 'addComment']);
+    Route::put('/courses/{course}/comments/{comment}', [CourseController::class, 'updateComment']);
+    Route::post('/courses/{course}/comments/{comment}/vote', [CourseController::class, 'voteComment']);
     Route::post('/courses/{course}/announcements', [CourseController::class, 'addAnnouncement']);
+    Route::put('/courses/{course}/announcements/{announcementId}', [CourseController::class, 'updateAnnouncement']);
     Route::delete('/courses/{course}/announcements/{announcementId}', [CourseController::class, 'deleteAnnouncement']);
     Route::delete('/courses/{course}/comments/{comment}', [CourseController::class, 'deleteComment']);
 });
@@ -63,16 +66,16 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('/users/analytics', [UsersController::class, 'getUsersAnalytics']);
     Route::get('/users', [UsersController::class, 'getPaginatedUsers']);
     Route::get('/user', [AuthController::class, 'user']);
-    
+
     // The GET method of this resource will also be covered by 'log.activity'
     Route::resource('users', UsersController::class)->except(['create', 'edit', 'index']);
 });
 
 Route::middleware('auth:sanctum')->group(function () {
-    
+
     // NOTE: If you are using Sanctum for API authentication, you should call
-    Route::post('/logout', [AuthController::class, 'logout']); 
-    
+    Route::post('/logout', [AuthController::class, 'logout']);
+
     // 💡 NEW ROUTE: Destroys the session cookie.
     Route::post('/logout-session', [AuthController::class, 'logoutSession']);
     Route::put('/users/{user}/toggle', [UsersController::class, 'toggleUserField']);
