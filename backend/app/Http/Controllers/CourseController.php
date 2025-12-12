@@ -395,7 +395,7 @@ class CourseController extends Controller
 
             $material->update([
                 'title' => $validated['title'],
-                'description' => $validated['description'],
+                'description' => $validated['description'] ?? null,
                 'url' => $url,
                 'file_type' => $fileType,
                 'original_filename' => $originalFilename,
