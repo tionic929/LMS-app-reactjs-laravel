@@ -394,10 +394,10 @@ const AnnouncementsPage: React.FC = () => {
 
   // Hover handlers to pause/resume auto-scroll immediately per list
   const makeHoverHandlers = (
-    pausedRef: React.MutableRefObject<boolean>,
-    timerRef: React.MutableRefObject<number | null>,
-    listRef: React.MutableRefObject<HTMLUListElement | null>,
-    indexRef: React.MutableRefObject<number>
+    pausedRef: React.RefObject<boolean>,
+    timerRef: React.RefObject<number | null>,
+    listRef: React.RefObject<HTMLUListElement | null>,
+    indexRef: React.RefObject<number>
   ) => ({
     onMouseEnter: () => {
       // Mark paused and cancel any pending movement immediately
