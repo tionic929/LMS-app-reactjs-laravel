@@ -11,6 +11,12 @@ export interface Announcement {
   event_date?: string;
   event_time?: string;
   location?: string;
+  created_by?: number;
+  creator?: {
+    id: number;
+    name?: string;
+    role?: string;
+  };
 }
 
 // Fetch CSRF cookie before mutating requests (Laravel Sanctum)
@@ -44,6 +50,14 @@ function normalize(raw: any): Announcement[] {
     location: a.location ?? undefined,
     date: a.date ?? (a.created_at ? new Date(a.created_at).toLocaleDateString() : undefined),
     created_at: a.created_at,
+    created_by: a.created_by ?? undefined,
+    creator: a.creator
+      ? {
+          id: a.creator.id,
+          name: a.creator.name,
+          role: a.creator.role,
+        }
+      : undefined,
   }));
 }
 

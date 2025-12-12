@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "../../../contexts/AuthContext";
-import { getCourse, enrollInCourse, leaveCourse } from "../../../api/courses";
+import { getCourse, enrollInCourse, leaveCourse, deleteCourse } from "../../../api/courses";
 import { MdArrowBack, MdEdit, MdPeople, MdLibraryBooks, MdComment, MdAnnouncement } from "react-icons/md";
 import { FaUserGraduate, FaLock, FaGlobe } from "react-icons/fa";
+import { RiDeleteBin6Line } from "react-icons/ri";
 import CourseTabs from "../Courses/CourseTabs";
 import CourseLearners from "../Courses/CourseLearners";
 import CourseRequests from "../Courses/CourseRequests";
@@ -114,6 +115,21 @@ const CourseDetails: React.FC = () => {
       setError(err.response?.data?.message || "Failed to load course");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDisbandCourse = async () => {
+    if (!confirm("Are you sure you want to disband this course? This action cannot be undone.")) return;
+
+    if (!confirm("This is your last chance to cancel. Disbanding will remove the course for all learners.")) return;
+
+    try {
+      await deleteCourse(courseId);
+      alert("Course disbanded successfully");
+      navigate("/courses");
+    } catch (err: any) {
+      console.error("Error disbanding course:", err);
+      alert(err.response?.data?.message || "Failed to disband course");
     }
   };
 
@@ -296,7 +312,15 @@ const CourseDetails: React.FC = () => {
                 </>
               ) : (
                 <div className="flex gap-2">
-                  {isEnrolled ? (
+                  {user?.role === 'admin' ? (
+                    <button
+                      onClick={handleDisbandCourse}
+                      className="inline-flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                    >
+                      <RiDeleteBin6Line className="h-4 w-4" />
+                      Disband Course
+                    </button>
+                  ) : isEnrolled ? (
                     <button
                       onClick={handleLeaveCourse}
                       className="inline-flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
@@ -363,7 +387,7 @@ const CourseDetails: React.FC = () => {
                 {course.content ? (
                   <div dangerouslySetInnerHTML={{ __html: course.content }} />
                 ) : (
-                  <p className="text-gray-500 italic">No description provided yet. Click "Edit Course" to add one.</p>
+                  <p className="text-gray-500 italic">No description provided.</p>
                 )}
               </div>
             </section>

@@ -138,15 +138,20 @@ const AnnouncementsPage: React.FC = () => {
       </div>
       {/* Card footer */}
       <footer className="px-5 py-3 border-t bg-gray-50/60 flex items-center justify-between gap-2">
-        <div className="mt-2 flex items-center gap-2 flex-wrap">
+        <div className="mt-2 flex flex-col gap-1">
+          {(announcement as any) && (
+            <span className="text-xs text-black font-bold">
+              Posted by {(announcement as any).creator?.name ?? `User #${(announcement as any).created_by ?? 'N/A'}`}
+            </span>
+          )}
           {announcement.date && (
             <span className="text-xs text-black font-bold">Posted on {announcement.date}</span>
           )}
           {user?.role === 'admin' && (announcement as any) && (
-            <span className="text-xs text-gray-500">Audience: {(announcement as any).audience === 'all' ? 'All' : (announcement as any).audience === 'learners' ? 'Learners' : 'Instructors'}</span>
+            <span className="text-xs text-black font-bold">Audience: {(announcement as any).audience === 'all' ? 'All' : (announcement as any).audience === 'learners' ? 'Learners' : 'Instructors'}</span>
           )}
         </div>
-        {user?.role === 'admin' && (
+        {user?.role === 'admin' || (user?.role === 'instructor' && Number((announcement as any).created_by) === user.id) ? (
           <div className='flex-1 align-right flex justify-end gap-4'>
             <button
               onClick={(e) => { e.stopPropagation(); openEdit(announcement); }}
@@ -163,7 +168,7 @@ const AnnouncementsPage: React.FC = () => {
               <MdDelete className="w-4 h-4" /> Delete
             </button>
           </div>
-        )}
+        ) : null}
       </footer>
     </article>
   );
@@ -389,10 +394,10 @@ const AnnouncementsPage: React.FC = () => {
 
   // Hover handlers to pause/resume auto-scroll immediately per list
   const makeHoverHandlers = (
-    pausedRef: React.MutableRefObject<boolean>,
-    timerRef: React.MutableRefObject<number | null>,
-    listRef: React.MutableRefObject<HTMLUListElement | null>,
-    indexRef: React.MutableRefObject<number>
+    pausedRef: React.RefObject<boolean>,
+    timerRef: React.RefObject<number | null>,
+    listRef: React.RefObject<HTMLUListElement | null>,
+    indexRef: React.RefObject<number>
   ) => ({
     onMouseEnter: () => {
       // Mark paused and cancel any pending movement immediately
@@ -420,7 +425,7 @@ const AnnouncementsPage: React.FC = () => {
             <p className="mt-1 text-sm text-gray-600">Latest updates, news, and upcoming events for learners and instructors.</p>
           </div>
           <div className="flex flex-col items-end gap-3 w-full max-w-3xl">
-            {user?.role === "admin" && (
+            {user?.role === "admin" || user?.role === "instructor" ? (
               <div className="flex items-center gap-3">
                 <button
                   onClick={() => setIsAddOpen(true)}
@@ -443,7 +448,7 @@ const AnnouncementsPage: React.FC = () => {
                   ))}
                 </div>
               </div>
-            )}
+            ) : null}
             <div className="w-full">
               <div className="relative">
                 <svg className="absolute top-1/2 left-4 -translate-y-1/2 w-5 h-5 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>

@@ -33,6 +33,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/courses/{course}/join-requests/{requestId}/accept', [CourseController::class, 'acceptRequest']);
     Route::post('/courses/{course}/join-requests/{requestId}/reject', [CourseController::class, 'rejectRequest']);
     Route::post('/courses/{course}/materials', [CourseController::class, 'addMaterial']);
+    Route::put('/courses/{course}/materials/{materialId}', [CourseController::class, 'updateMaterial']);
     Route::delete('/courses/{course}/materials/{materialId}', [CourseController::class, 'deleteMaterial']);
     Route::post('/courses/{course}/comments', [CourseController::class, 'addComment']);
     Route::put('/courses/{course}/comments/{comment}', [CourseController::class, 'updateComment']);
@@ -41,6 +42,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/courses/{course}/announcements/{announcementId}', [CourseController::class, 'updateAnnouncement']);
     Route::delete('/courses/{course}/announcements/{announcementId}', [CourseController::class, 'deleteAnnouncement']);
     Route::delete('/courses/{course}/comments/{comment}', [CourseController::class, 'deleteComment']);
+
+    // Course comment banning routes
+    Route::post('/courses/{course}/bans/{userId}', [CourseController::class, 'banLearner']);
+    Route::delete('/courses/{course}/bans/{userId}', [CourseController::class, 'unbanLearner']);
+    Route::get('/courses/{course}/bans', [CourseController::class, 'getBannedLearners']);
 });
 
 // @auth sanctum , 'log.activity'

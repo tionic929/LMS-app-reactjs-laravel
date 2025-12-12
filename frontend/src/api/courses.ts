@@ -90,7 +90,10 @@ export const addCourseMaterial = async (
   const formData = new FormData();
   formData.append('title', data.title);
   formData.append('type', data.type);
-  if (data.description) formData.append('description', data.description);
+  // Always send the description field if provided (even empty string)
+  if (Object.prototype.hasOwnProperty.call(data, 'description')) {
+    formData.append('description', data.description ?? '');
+  }
   if (data.type === 'file' && data.file) {
     formData.append('file', data.file);
   } else if (data.url) {
@@ -108,6 +111,35 @@ export const deleteCourseMaterial = async (
   materialId: string | number
 ) => {
   return api.delete(`/courses/${courseId}/materials/${materialId}`);
+};
+
+export const updateCourseMaterial = async (
+  courseId: string | number,
+  materialId: string | number,
+  data: {
+    title: string;
+    description?: string;
+    url?: string;
+    file?: File;
+  }
+) => {
+  const formData = new FormData();
+  formData.append('title', data.title);
+  if (data.description) formData.append('description', data.description);
+  if (data.file) {
+    formData.append('file', data.file);
+  } else if (data.url) {
+    formData.append('url', data.url);
+  }
+  // Use POST with _method=PUT because some servers (Laravel) don't parse
+  // multipart PUT requests reliably. Sending as POST with `_method=PUT`
+  // ensures the request is parsed and validated correctly server-side.
+  formData.append('_method', 'PUT');
+  return api.post(`/courses/${courseId}/materials/${materialId}`, formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  });
 };
 
 // Comment management
@@ -178,4 +210,24 @@ export const deleteCourseAnnouncement = async (
   announcementId: string | number
 ) => {
   return api.delete(`/courses/${courseId}/announcements/${announcementId}`);
+};
+
+// Course comment banning
+export const banLearnerFromComments = async (
+  courseId: string | number,
+  userId: number,
+  reason?: string
+) => {
+  return api.post(`/courses/${courseId}/bans/${userId}`, { reason });
+};
+
+export const unbanLearnerFromComments = async (
+  courseId: string | number,
+  userId: number
+) => {
+  return api.delete(`/courses/${courseId}/bans/${userId}`);
+};
+
+export const getCourseBannedLearners = async (courseId: string | number) => {
+  return api.get(`/courses/${courseId}/bans`);
 };
