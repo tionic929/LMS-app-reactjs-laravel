@@ -178,6 +178,19 @@ const CourseMaterials: React.FC<CourseMaterialsProps> = ({
           ))
         )}
       </div>
+
+      {/* Edit Material Modal */}
+      {editingMaterial && (
+        <EditMaterialModal
+          courseId={courseId}
+          material={editingMaterial}
+          onClose={() => setEditingMaterial(null)}
+          onSuccess={() => {
+            setEditingMaterial(null);
+            onMaterialAction(); // Refresh the materials list
+          }}
+        />
+      )}
     </div>
   );
 };

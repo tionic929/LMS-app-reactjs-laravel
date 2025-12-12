@@ -372,9 +372,37 @@ class CourseController extends Controller
         $validated = $request->validate([
             'title' => 'required|string|max:255',
             'description' => 'nullable|string',
+            'url' => 'nullable|url',
+            'file' => 'nullable|file|max:10240', // 10MB max for files
         ]);
 
-        $material->update($validated);
+        // Handle file upload if provided
+        if ($request->hasFile('file')) {
+            // Delete old file if it exists
+            if ($material->type === 'file' && $material->url) {
+                $oldPath = str_replace(asset('storage/'), '', $material->url);
+                if (\Storage::disk('public')->exists($oldPath)) {
+                    \Storage::disk('public')->delete($oldPath);
+                }
+            }
+
+            $file = $request->file('file');
+            $fileType = $file->getClientOriginalExtension();
+            $originalFilename = $file->getClientOriginalName();
+            $filename = time() . '_' . $originalFilename;
+            $path = $file->storeAs('course_materials', $filename, 'public');
+            $url = asset('storage/' . $path);
+
+            $material->update([
+                'title' => $validated['title'],
+                'description' => $validated['description'],
+                'url' => $url,
+                'file_type' => $fileType,
+                'original_filename' => $originalFilename,
+            ]);
+        } else {
+            $material->update($validated);
+        }
 
         return response()->json($material);
     }
