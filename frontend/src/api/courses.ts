@@ -116,9 +116,24 @@ export const updateCourseMaterial = async (
   data: {
     title: string;
     description?: string;
+    url?: string;
+    file?: File;
   }
 ) => {
-  return api.put(`/courses/${courseId}/materials/${materialId}`, data);
+  const formData = new FormData();
+  formData.append('title', data.title);
+  if (data.description) formData.append('description', data.description);
+  if (data.file) {
+    formData.append('file', data.file);
+  } else if (data.url) {
+    formData.append('url', data.url);
+  }
+
+  return api.put(`/courses/${courseId}/materials/${materialId}`, formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  });
 };
 
 // Comment management

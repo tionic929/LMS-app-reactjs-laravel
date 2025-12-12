@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { updateCourseMaterial } from "../../../api/courses";
 import { RiCheckLine } from "react-icons/ri";
 import { LiaTimesSolid } from "react-icons/lia";
@@ -30,13 +30,21 @@ const EditMaterialModal: React.FC<EditMaterialModalProps> = ({
   const [materialForm, setMaterialForm] = useState({
     title: material.title,
     description: material.description || "",
+    url: material.url || "",
+    file: null as File | null,
   });
 
   const handleEditMaterial = async (e: React.FormEvent) => {
     e.preventDefault();
 
     try {
-      await updateCourseMaterial(courseId, material.id, materialForm);
+      const updateData = {
+        title: materialForm.title,
+        description: materialForm.description,
+        ...(materialForm.file ? { file: materialForm.file } : { url: materialForm.url }),
+      };
+
+      await updateCourseMaterial(courseId, material.id, updateData);
       onSuccess();
       onClose();
       alert("Material updated successfully!");
@@ -63,6 +71,40 @@ const EditMaterialModal: React.FC<EditMaterialModalProps> = ({
               required
             />
           </div>
+
+          {material.type === "file" ? (
+            <div className="mb-4">
+              <label className="block text-sm font-medium mb-1">
+                File (Leave empty to keep current file)
+              </label>
+              <input
+                type="file"
+                onChange={(e) =>
+                  setMaterialForm({ ...materialForm, file: e.target.files?.[0] || null })
+                }
+                className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt,.zip,.rar"
+              />
+              {material.original_filename && (
+                <p className="text-sm text-gray-500 mt-1">
+                  Current file: {material.original_filename}
+                </p>
+              )}
+            </div>
+          ) : (
+            <div className="mb-4">
+              <label className="block text-sm font-medium mb-1">URL</label>
+              <input
+                type="url"
+                value={materialForm.url}
+                onChange={(e) =>
+                  setMaterialForm({ ...materialForm, url: e.target.value })
+                }
+                className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                placeholder="Enter URL"
+              />
+            </div>
+          )}
 
           <div className="mb-4">
             <label className="block text-sm font-medium mb-1">
