@@ -16,6 +16,9 @@ return Application::configure(basePath: dirname(__DIR__))
             $middleware->statefulApi();
             $middleware->validateCsrfTokens(except: [
                 'api/login',
+                'api/forget-password',
+                'api/reset-password',
+                'api/send-email-verification-code',
             ]);
         })
     ->withExceptions(function (Exceptions $exceptions): void {

@@ -29,7 +29,7 @@ const Login: React.FC = () => {
       // Backend returns 403 for pre-instructor pending
       if (err.response?.status === 403) {
         toast.warning(err.response.data.message || "Your instructor application is pending approval.");
-        navigate("/pending"); // optional: redirect to a dedicated Pending Approval page
+        navigate("/pending");
       } else if (err.response?.status === 401) {
         toast.error("Invalid credentials");
       } else {

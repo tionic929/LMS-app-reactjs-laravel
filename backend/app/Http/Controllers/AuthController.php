@@ -51,7 +51,6 @@ class AuthController extends Controller
         $credentials = $request->validate(array_merge($baseRules, $conditionalRules));
 
         try{
-            // 🔥 THE FIX: Ensure only necessary variables are passed to the closure.
             // Since all data is in $credentials, we only need to pass $credentials.
             $user = DB::transaction(function() use ($credentials){
                 
@@ -93,7 +92,6 @@ class AuthController extends Controller
             });
 
             $message = 'Registration successful.';
-            $token = $user->createToken('auth_token')->plainTextToken;
 
             if ($user->role === 'instructor') {
                 $message = 'Instructor application received successfully. Your account is pending admin approval.';
@@ -108,8 +106,6 @@ class AuthController extends Controller
                     'role' => $user->role,
                     'avatar_url' => $user->avatar ? \Illuminate\Support\Facades\Storage::url($user->avatar) : null,
                 ],
-                'token' => $token,
-                'token_type' => 'Bearer',
             ], 201);
 
         } catch(\Exception $e) {
@@ -120,7 +116,6 @@ class AuthController extends Controller
                 'error' => $e->getMessage()
             ], 500);
         }
-
     }
 
     public function login(Request $request)

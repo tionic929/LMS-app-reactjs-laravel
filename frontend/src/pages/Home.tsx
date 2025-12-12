@@ -128,7 +128,7 @@ const Home = () => {
 
       {/* 3. Footer (Simple Placeholder) */}
       <footer className="fixed bottom-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-sm shadow-md p-2">
-        <div className="text-center">LMS Platform | Designed with Modern UI/UX Principles | © 2025</div>
+        <div className="text-center">FPV BNJ OJT TEAM | @ 2025</div>
       </footer>
     </div>
   );

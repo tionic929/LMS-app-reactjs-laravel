@@ -36,33 +36,33 @@ const Dashboard = () => {
     const [loading, setLoading] = useState(true);
     const navigate = useNavigate();
 
-    useEffect(() => {
-        const fetchInitialData = async () => {
-            setLoading(true);
-            try {
-                // Fetch data in parallel for faster loading
-                const [analyticsData, { data: user }] = await Promise.all([
-                    getDashboardAnalytics(),
-                    fetchUser(),
-                ]);
-                
-                setAnalytics(analyticsData);
+//     useEffect(() => {
+//         const fetchInitialData = async () => {
+//             setLoading(true);
+//             try {
+//                 // Fetch data in parallel for faster loading
+//                 const [analyticsData, { data: user }] = await Promise.all([
+//                     getDashboardAnalytics(),
+//                     fetchUser(),
+//                 ]);
+//                 
+//                 setAnalytics(analyticsData);
 
-                // Authorization check
-                if (!isInstructorApproved(user)) {
-                    toast.warning("Your instructor application is pending approval.");
-                    navigate("/"); // or any safe page for learners
-                }
+//                 // Authorization check
+//                 if (!isInstructorApproved(user)) {
+//                     toast.warning("Your instructor application is pending approval.");
+//                     navigate("/"); // or any safe page for learners
+//                 }
 
-            } catch (err) {
-                console.error("Error fetching dashboard data:", err);
-                // Optionally show a toast error here
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchInitialData();
-    }, [navigate]);
+//             } catch (err) {
+//                 console.error("Error fetching dashboard data:", err);
+//                 // Optionally show a toast error here
+//             } finally {
+//                 setLoading(false);
+//             }
+//         };
+//         fetchInitialData();
+//     }, [navigate]);
 
 
     // --- 2. Use useMemo to prevent recreating the cardCounters array on every render ---

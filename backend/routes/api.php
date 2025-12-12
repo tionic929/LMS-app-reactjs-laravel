@@ -10,15 +10,14 @@ use App\Http\Controllers\DiscussionsController;
 use App\Http\Controllers\AnnouncementController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\InstructorApplicationController;
-
-
+use App\Http\Controllers\ForgotPasswordController;
+use App\Http\Controllers\Auth\EmailVerificationController;
 
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/notifications/{id}/read', [NotificationController::class, 'markAsRead']);
 });
 
-Route::post('/reset-password', [AuthController::class, 'resetPassword']);
 Route::get('/notifications', [NotificationController::class, 'index']);
 Route::get('/test-notification', [NotificationController::class, 'test']);
 
@@ -57,9 +56,12 @@ Route::resource('discussions', DiscussionsController::class);
 
 // 1. PUBLIC ROUTES (No authentication middleware required)
 // These routes should be accessible to everyone.
-Route::post('/login', [AuthController::class, 'login'])->name('login');
+Route::post('/login', [AuthController::class, 'login'])->name('login')
+    ->middleware('throttle:5,1');
+    
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/registerInstructor', [AuthController::class, 'registerInstructor']);
+Route::post('/send-email-verification-code', [EmailVerificationController::class, 'sendEmailVerificationCode']);
 
 Route::middleware(['auth:sanctum'])->group(function () {
     // THESE ROUTES WILL WORK because the client is now sending the token
@@ -96,3 +98,10 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::post('/instructor-applications/{id}/approve', [InstructorApplicationController::class, 'approve']);
     Route::post('/instructor-applications/{id}/reject', [InstructorApplicationController::class, 'reject']);
 });
+
+
+// // FORGOT PASSWORD ROUTES
+Route::get('forget-password', [ForgotPasswordController::class, 'showForgetPasswordForm'])->name('forget.password.get');
+Route::get('reset-password/{token}', [ForgotPasswordController::class, 'showResetPasswordForm'])->name('reset.password.get');
+Route::post('reset-password', [ForgotPasswordController::class, 'submitResetPasswordForm'])->name('reset.password.post');
+Route::post('forget-password', [ForgotPasswordController::class, 'submitForgetPasswordForm'])->name('forget.password.post');

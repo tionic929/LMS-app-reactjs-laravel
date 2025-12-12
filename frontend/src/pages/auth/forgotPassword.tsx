@@ -3,54 +3,57 @@ import { Link } from 'react-router-dom';
 import { AlertCircle, CheckCircle, Book, User } from 'lucide-react'; 
 import SadImg from '../../assets/sad.png'
 
-const API_URL = 'http://localhost:3000/api/forgot-password';
-
 const ForgotPassword: React.FC = () => {
     const [email, setEmail] = useState('');
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState('');
     const [error, setError] = useState('');
+    const [successMessage, setSuccessMessage] = useState("");
+    const [errorMessage, setErrorMessage] = useState("");
 
-    const submit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setMessage('');
-        setError('');
-        
-        if (!email) {
-            setError('Please enter a valid email address.');
-            return;
-        }
+    const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setSuccessMessage("");
+    setErrorMessage("");
 
-        setLoading(true);
+    try {
+      console.log("[DEBUG] Sending forgot-password request:", { email });
 
-        try {
-            const response = await fetch(API_URL, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ email }),
-            });
+      const res = await fetch("/api/forget-password", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/json",
+        },
+        body: JSON.stringify({ email }),
+      });
 
-            const data = await response.json();
+      console.log("[DEBUG] Response object:", res);
 
-            if (response.status === 200) {
-                // Display the generic success message from the backend
-                setMessage(data.message || 'Success! Check your email for a password reset link.');
-                
-                // Keep the email input cleared and disabled after success
-                setEmail(''); 
-            } else {
-                console.error("Server responded with error status:", response.status, data);
-                setError(data.message || 'An unexpected error occurred. Please try again later.');
-            }
-        } catch (err) {
-            console.error("Network or Fetch Error:", err);
-            setError('Could not connect to the reset service. Please ensure the server is running on port 3000.');
-        } finally {
-            setLoading(false);
-        }
-    };
+      // Try to parse JSON even if status is not 200
+      let data: any = {};
+      try {
+        data = await res.json();
+      } catch (err) {
+        console.error("[DEBUG] Failed to parse JSON response:", err);
+      }
+
+      console.log("[DEBUG] Parsed response data:", data);
+
+      if (res.ok) {
+        setSuccessMessage(data.message || "Reset link sent to your email.");
+        setEmail("");
+      } else {
+        setErrorMessage(data.message || `Something went wrong (status ${res.status})`);
+      }
+    } catch (err: any) {
+      console.error("[DEBUG] Network or fetch error:", err);
+      setErrorMessage(err.message || "Something went wrong.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
     return (
         <div className="min-h-screen flex font-sans">
@@ -93,8 +96,8 @@ const ForgotPassword: React.FC = () => {
                             <span className="text-sm font-medium">{message || error}</span>
                         </div>
                     )}
-
-                    <form onSubmit={submit} className="space-y-6">
+                    
+                    <form onSubmit={handleSubmit} className="space-y-6">
 
                         {/* Email Input with Icon */}
                         <label className="block text-sm font-medium text-gray-700">
@@ -158,3 +161,101 @@ const ForgotPassword: React.FC = () => {
 };
 
 export default ForgotPassword;
+
+// import React, { useState } from "react";
+
+// const ForgotPassword: React.FC = () => {
+//   const [email, setEmail] = useState("");
+//   const [loading, setLoading] = useState(false);
+//   const [successMessage, setSuccessMessage] = useState("");
+//   const [errorMessage, setErrorMessage] = useState("");
+
+//   const handleSubmit = async (e: React.FormEvent) => {
+//     e.preventDefault();
+//     setLoading(true);
+//     setSuccessMessage("");
+//     setErrorMessage("");
+
+//     try {
+//       console.log("[DEBUG] Sending forgot-password request:", { email });
+
+//       const res = await fetch("/api/forget-password", {
+//         method: "POST",
+//         headers: {
+//           "Content-Type": "application/json",
+//           "Accept": "application/json",
+//         },
+//         body: JSON.stringify({ email }),
+//       });
+
+//       console.log("[DEBUG] Response object:", res);
+
+//       // Try to parse JSON even if status is not 200
+//       let data: any = {};
+//       try {
+//         data = await res.json();
+//       } catch (err) {
+//         console.error("[DEBUG] Failed to parse JSON response:", err);
+//       }
+
+//       console.log("[DEBUG] Parsed response data:", data);
+
+//       if (res.ok) {
+//         setSuccessMessage(data.message || "Reset link sent to your email.");
+//         setEmail("");
+//       } else {
+//         setErrorMessage(data.message || `Something went wrong (status ${res.status})`);
+//       }
+//     } catch (err: any) {
+//       console.error("[DEBUG] Network or fetch error:", err);
+//       setErrorMessage(err.message || "Something went wrong.");
+//     } finally {
+//       setLoading(false);
+//     }
+//   };
+
+//   return (
+//     <div className="min-h-screen flex items-center justify-center bg-gray-100 p-4">
+//       <div className="max-w-md w-full bg-white rounded-lg shadow-md p-6">
+//         <h2 className="text-2xl font-bold mb-4 text-gray-800">Forgot Password</h2>
+//         <p className="text-gray-600 mb-6">
+//           Enter your email address and we will send you a link to reset your password.
+//         </p>
+
+//         {successMessage && (
+//           <div className="mb-4 text-green-600 bg-green-100 p-2 rounded">{successMessage}</div>
+//         )}
+//         {errorMessage && (
+//           <div className="mb-4 text-red-600 bg-red-100 p-2 rounded">{errorMessage}</div>
+//         )}
+
+//         <form onSubmit={handleSubmit} className="space-y-4">
+//           <div>
+//             <label htmlFor="email" className="block text-gray-700 mb-1">Email</label>
+//             <input
+//               type="email"
+//               id="email"
+//               value={email}
+//               onChange={(e) => setEmail(e.target.value)}
+//               required
+//               className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring focus:border-blue-500"
+//               placeholder="you@example.com"
+//             />
+//           </div>
+
+//           <button
+//             type="submit"
+//             disabled={loading}
+//             className={`w-full py-2 px-4 rounded text-white font-medium ${
+//               loading ? "bg-gray-400 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700"
+//             }`}
+//           >
+//             {loading ? "Sending..." : "Send Reset Link"}
+//           </button>
+//         </form>
+//       </div>
+//     </div>
+//   );
+// };
+
+// export default ForgotPassword;

@@ -22,6 +22,11 @@ class Handler extends ExceptionHandler
         if ($exception instanceof \Illuminate\Session\TokenMismatchException) {
             return response()->json(['message' => 'CSRF token expired'], 401);
         }
+        else if ($exception instanceof \Illuminate\Http\Exceptions\ThrottleRequestsException) {
+            return response()->json([
+                'message' => 'Too many login attempts. Please try again later.'
+            ], 429);
+        }
         return parent::render($request, $exception);
     }
 

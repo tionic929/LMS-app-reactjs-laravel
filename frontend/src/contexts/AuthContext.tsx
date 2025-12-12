@@ -8,6 +8,7 @@ import {
 } from "../api/auth"; 
 import { useNavigate } from "react-router-dom";
 import api from "../api/axios";
+import { toast } from "react-toastify";
 
 
 export interface User {
@@ -38,7 +39,7 @@ interface AuthContextType {
     loading: boolean;
     login: (email: string, password: string) => Promise<void>;
     logout: () => Promise<void>;
-    register: (data: RegistrationPayload) => Promise<void>;
+    register: (data: RegistrationPayload) => Promise<{message: string} | void >;
     remember: boolean;
 }
 
@@ -50,13 +51,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const [remember] = useState(false);
     const navigate = useNavigate();
 
-    // 1. useEffect remains stable (only runs on mount)
     useEffect(() => {
-        // ... existing token/user fetch logic ...
         fetchUser()
             .then((res) => {
                 setUser(res.data);
-                // 💡 If a token is in storage and user is fetched, set it on axios header here.
             })
             .catch(() => setUser(null))
             .finally(() => setLoading(false));
@@ -65,54 +63,74 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     // 2. Memoize complex functions using useCallback
     const register = useCallback(async (data: RegistrationPayload) => {
         setLoading(true);
+
         try {
-            // ... (Registration logic remains the same) ...
-            const finalRole = data.role || 'learner';
-            if (data.password !== data.passwordConfirmation){
-                throw new Error("Passwords do not match");
+            if (data.password !== data.passwordConfirmation) {
+                throw new Error("Passwords do not match.");
             }
-            
-            const apiPayload: Record<string, any> = { ...data, role: finalRole };
-            
-            const response = await api.post('/register', apiPayload); 
-            
-            const registeredUser = response.data.user as User;
-            setUser(registeredUser);
-            // 💡 If token is returned on register, save it here
-            // localStorage.setItem('token', response.data.token);
-            // api.defaults.headers.common['Authorization'] = `Bearer ${response.data.token}`;
 
+            const finalRole = data.role || "learner";
 
-        } catch(error: any) {
-            let errorMessage = 'An unexpected error occurred. Please try again.';
-            console.error('Registration failed:', error);
-            throw new Error(errorMessage);
-        } finally{
+            const res = await api.post("/register", { ...data, role: finalRole }, {
+                withCredentials: true
+            });
+
+            // If learner, log in immediately
+            if(finalRole === 'learner'){
+                await api.get("http://localhost:8000/sanctum/csrf-cookie", { withCredentials: true });
+                const loginRes = await api.post("/login", {
+                    email: data.email,
+                    password: data.password
+                }, { withCredentials: true });
+
+                setUser(loginRes.data.user);
+                navigate("/dashboard");
+            } else if(finalRole === 'instructor') {
+                // Instructor: just return success (no error thrown)
+                return { message: res.data.message || "Application submitted and pending approval" };
+            }
+
+        } catch (error: any) {
+            console.error("Registration failed:", error);
+
+            let msg = 'Registration failed, please try again.';
+            if(error.response?.data?.message){
+                msg = error.response.data.message; // <-- fixed typo: massage -> message
+            } else if(error.message) {
+                msg = error.message;
+            }
+
+            throw {
+                message: msg,
+                response: error.response || null
+            };
+        } finally {
             setLoading(false);
         }
-    }, [setLoading, setUser]);
+    }, [setLoading, setUser, navigate]);
+
+
 
 
     const login = useCallback(async (email: string, password: string) => {
-        // The API call to login, which returns the token in the response body
-        const response = await apiLogin(email, password); 
-        
-        // 💡 Save the token to local storage and set the Axios header
-        localStorage.setItem('token', response.data.token);
-        api.defaults.headers.common['Authorization'] = `Bearer ${response.data.token}`;
-
-        // Fetch user data with the new token attached
-        const res = await fetchUser();
-        setUser(res.data);
-        navigate("/dashboard");
+        try{
+            await apiLogin(email, password); 
+            const res = await fetchUser();
+            setUser(res.data);
+            navigate("/dashboard");
+        } catch (err: any) {
+            if (err.response?.status === 429) {
+                toast.error("⚠️ Too many attempts. Please wait a minute and try again.");
+            } else {
+                toast.error(err.response?.data?.message || "Login failed.");
+            }
+        }
     }, [navigate, setUser]); 
 
     // 💡 THE FIXED LOGOUT FUNCTION
     const logout = useCallback(async () => {
         try {
-            // 1. Revoke the API token (Logs out on other devices/browsers)
             await apiLogoutAndRevokeToken();
-            // 2. Destroy the session cookie (Crucial for preventing refresh login)
             await apiLogoutAndClearSession();
         } catch (error) {
             console.error("Server-side logout failed:", error);

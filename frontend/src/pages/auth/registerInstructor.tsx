@@ -1,54 +1,50 @@
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { BookOpen, User, Lock, Mail, Calendar, Phone, Building, AlertCircle, Loader2, FileText, ArrowRight, CheckCircle, ListChecks } from 'lucide-react';
-import type { LucideIcon } from 'lucide-react'; 
-import InstructorPNG from '../../assets/instructor.png'
-import { useAuth } from '../../contexts/AuthContext'; 
+// src/pages/auth/RegisterInstructor.tsx
+import React, { useState, useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import {
+    BookOpen, User, Lock, Mail, Calendar, Phone, Building,
+    AlertCircle, Loader2, FileText, ArrowRight, CheckCircle, ListChecks
+} from "lucide-react";
+import InstructorPNG from "../../assets/instructor.png";
+import { useAuth } from "../../contexts/AuthContext";
+import { FaLock } from "react-icons/fa6";
+import { toast } from "react-toastify";
 
-// --- 1. REUSABLE INPUT COMPONENTS ---
-
-// Define the reusable Input component interface
 interface InputWithIconProps {
-    label: string; 
-    id: string; 
-    type: string; 
-    value: string; 
-    // Simplified handler type in the component props
-    onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => void; 
-    icon: LucideIcon;
+    label: string;
+    id: string;
+    type: string;
+    value: string;
+    onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => void;
+    icon: any;
     placeholder?: string;
     required?: boolean;
-    className?: string; 
+    className?: string;
 }
 
-// Reusable Input Component (Type Assertion Fix Applied Here)
-const InputWithIcon: React.FC<InputWithIconProps> = ({ 
-    label, id, type, value, onChange, icon: Icon, placeholder = '', required = true, className = '' 
+const InputWithIcon: React.FC<InputWithIconProps> = ({
+    label, id, type, value, onChange, icon: Icon, placeholder = "", required = true, className = ""
 }) => {
-    
-    // Universal Change Handler with Type Assertion
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-        // Assert the target element type to ensure 'value' property exists confidently.
-        // This resolves the TypeScript error 'Property 'value' does not exist on type...'
-        const target = e.target as HTMLInputElement | HTMLTextAreaElement;
-        onChange(e); // Pass the original event object up
-    };
+
+    const handleChange = (
+        e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+    ) => onChange(e);
 
     return (
         <label htmlFor={id} className={`block text-sm font-medium text-gray-700 ${className}`}>
             {label}
             <div className="mt-1 relative rounded-md shadow-sm">
                 <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
-                    <Icon className='w-4 h-4' />
+                    <Icon className="w-4 h-4" />
                 </div>
-                {type === 'textarea' ? (
+
+                {type === "textarea" ? (
                     <textarea
                         id={id}
+                        rows={2}
                         value={value}
-                        // Use the universal handler here
-                        onChange={handleChange as (e: React.ChangeEvent<HTMLTextAreaElement>) => void}
+                        onChange={handleChange}
                         required={required}
-                        rows={2} // Reduced rows for compactness
                         placeholder={placeholder}
                         className="w-full rounded-lg border border-gray-300 pl-10 pr-3 py-2 text-sm focus:border-red-500 focus:ring-red-500 transition-all duration-200"
                     />
@@ -57,8 +53,7 @@ const InputWithIcon: React.FC<InputWithIconProps> = ({
                         id={id}
                         type={type}
                         value={value}
-                        // Use the universal handler here
-                        onChange={handleChange as (e: React.ChangeEvent<HTMLInputElement>) => void}
+                        onChange={handleChange}
                         required={required}
                         placeholder={placeholder}
                         className="w-full rounded-lg border border-gray-300 pl-10 pr-3 py-2 text-sm focus:border-red-500 focus:ring-red-500 transition-all duration-200"
@@ -73,48 +68,47 @@ interface FileInputProps {
     label: string;
     id: string;
     onChange: (file: File | null) => void;
-    icon: LucideIcon;
+    icon: any;
     required?: boolean;
 }
 
-const FileInput: React.FC<FileInputProps> = ({ label, id, onChange, icon: Icon, required = true }) => {
+const FileInput: React.FC<FileInputProps> = ({
+    label, id, onChange, icon: Icon, required = true
+}) => {
     const [fileName, setFileName] = useState<string | null>(null);
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files ? e.target.files[0] : null;
-        setFileName(file ? file.name : null);
+        const file = e.target.files?.[0] || null;
+        setFileName(file?.name || null);
         onChange(file);
     };
 
     return (
-        <label htmlFor={id} className="block text-sm font-medium text-gray-700">
+        <label className="block text-sm font-medium text-gray-700">
             {label}
             <div className="mt-1 relative rounded-md shadow-sm">
                 <input
                     id={id}
                     type="file"
                     accept=".pdf,.doc,.docx"
-                    required={required}
                     onChange={handleFileChange}
+                    required={required}
                     className="sr-only"
                 />
+
                 <div className="flex items-center space-x-2">
                     <button
                         type="button"
                         onClick={() => document.getElementById(id)?.click()}
                         className="flex items-center justify-center border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 font-medium py-2 px-4 rounded-lg text-sm shadow-sm transition-all duration-200"
                     >
-                        <Icon className='w-4 h-4 mr-2' />
-                        {fileName ? 'Change File' : 'Upload File'}
+                        <Icon className="w-4 h-4 mr-2" />
+                        {fileName ? "Change File" : "Upload File"}
                     </button>
+
                     {fileName && (
                         <span className="text-xs text-gray-500 truncate max-w-[150px] italic">
                             {fileName}
-                        </span>
-                    )}
-                    {!fileName && required && (
-                        <span className="text-xs text-red-500">
-                            Required
                         </span>
                     )}
                 </div>
@@ -123,68 +117,102 @@ const FileInput: React.FC<FileInputProps> = ({ label, id, onChange, icon: Icon, 
     );
 };
 
-
-// --- 2. MULTI-STEP INSTRUCTOR REGISTRATION COMPONENT (COMPACTED WITH TWO COLUMNS) ---
-
 const RegisterInstructor: React.FC = () => {
-    // State variables
+    const navigate = useNavigate();
+    const { register } = useAuth();
+
     const [step, setStep] = useState(1);
-    const [firstName, setFirstName] = useState('');
-    const [middleInitial, setMiddleInitial] = useState('');
-    const [lastName, setLastName] = useState('');
-    const [dateOfBirth, setDateOfBirth] = useState('');
-    const [phoneNumber, setPhoneNumber] = useState('');
-    const [address, setAddress] = useState('');
+    const [firstName, setFirstName] = useState("");
+    const [middleInitial, setMiddleInitial] = useState("");
+    const [lastName, setLastName] = useState("");
+    const [dateOfBirth, setDateOfBirth] = useState("");
+    const [phoneNumber, setPhoneNumber] = useState("");
+    const [address, setAddress] = useState("");
+
     const [resumeFile, setResumeFile] = useState<File | null>(null);
-    const [email, setEmail] = useState('');
-    const [password, setPassword] = useState('');
-    const [passwordConfirmation, setPasswordConfirmation] = useState('');
-    
-    const { register } = useAuth(); 
-    const [error, setError] = useState('');
-    const [success, setSuccess] = useState(''); 
+    const [email, setEmail] = useState("");
+    const [password, setPassword] = useState("");
+    const [passwordConfirmation, setPasswordConfirmation] = useState("");
+    const [verificationCode, setVerificationCode] = useState("");
+
+    const [error, setError] = useState("");
+    // Note: 'success' state is optional if you rely purely on toast, 
+    // but kept here for inline feedback if preferred.
+    const [success, setSuccess] = useState(""); 
     const [isLoading, setIsLoading] = useState(false);
 
-    // Form validation check for Step 1
-    const isStepOneValid = () => {
-        return firstName && lastName && dateOfBirth && phoneNumber && address;
-    };
-    
-    // Form validation check for Step 2
-    const isStepTwoValid = () => {
-        return email && password && passwordConfirmation && resumeFile;
-    };
+    const [isSendingCode, setIsSendingCode] = useState(false);
+    const [timer, setTimer] = useState(0);
 
-    const handleNextStep = () => {
-        setError('');
-        if (isStepOneValid()) {
-            setStep(2);
-        } else {
-            setError('Please fill out all required personal details before proceeding.');
+    const handleSendCode = async () => {
+        if (!email) return setError("Please enter your email first.");
+
+        setError("");
+        setIsSendingCode(true);
+        setTimer(60);
+
+        try {
+            console.log("Sending verification code to:", email);
+            const res = await fetch("http://localhost:8000/api/send-email-verification-code", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ email }),
+            });
+
+            if (!res.ok) {
+                const text = await res.text();
+                console.error("Verification Code Error:", text);
+                setError("Failed to send verification code.");
+                return;
+            }
+
+            console.log("Verification code sent successfully.");
+            toast.success("✅ Verification code sent to your email!");
+        } catch (err) {
+            console.error(err);
+            setError("Unable to send verification code. Try again.");
         }
     };
 
+    /* TIMER */
+    useEffect(() => {
+        if (timer <= 0) {
+            setIsSendingCode(false);
+            return;
+        }
+
+        const interval = setInterval(() => setTimer((t) => t - 1), 1000);
+        return () => clearInterval(interval);
+    }, [timer]);
+
+    const isStepOneValid = () =>
+        firstName && lastName && dateOfBirth && phoneNumber && address;
+
+    const isStepTwoValid = () =>
+        email && password && passwordConfirmation && resumeFile && verificationCode;
+
+    // --- SUBMIT FUNCTION WITH DEBUGGING ---
     const submit = async (e: React.FormEvent) => {
-        e.preventDefault(); 
-        setError('');
-        setSuccess('');
+        e.preventDefault();
+        setError("");
+        setSuccess("");
 
         if (!isStepTwoValid()) {
-            setError('Please fill out all required account details and upload your resume.');
-            return;
+            return setError("Please complete all fields.");
         }
 
         if (password !== passwordConfirmation) {
-            setError('Passwords do not match.');
-            return;
+            return setError("Passwords do not match.");
         }
-        
+
         setIsLoading(true);
-        
+
         try {
-            await register({
+            console.log("🔍 Attempting to register instructor...");
+
+            const result = await register({
                 firstName,
-                middleInitial: middleInitial || null, 
+                middleInitial: middleInitial || null,
                 lastName,
                 email,
                 password,
@@ -192,233 +220,275 @@ const RegisterInstructor: React.FC = () => {
                 dateOfBirth,
                 phoneNumber,
                 address,
-                role: 'instructor',
                 resumeFile,
-            }); 
+                role: "instructor",
+            }) as { message: string } | undefined;
             
-            setSuccess('Application submitted successfully! Your account requires administrator review and approval.');
-            // Clear sensitive fields
-            setPassword('');
-            setPasswordConfirmation('');
+            console.log("✅ Register API returned:", result);
+
+            // 2. Extract message safely
+            let successMessage = "✅ Application submitted and is pending approval.";
+            
+            if (result && typeof result === 'object' && 'message' in result) {
+                successMessage = result.message;
+            } else if (!result) {
+                console.warn("⚠️ Warning: Register result is null/undefined. Using default message.");
+            }
+            navigate("/pending");
 
         } catch (err: any) {
-            console.error('Registration failed', err);
-            const message = err.message || 'Application failed. Please check your details and ensure the email is not already registered.';
-            setError(message);
+            console.error("❌ Registration Error Caught:", err);
+            
+            if(err.response?.status === 401){
+                console.error("Invalid credentials.");
+                setError(err.message || "Registration failed.");
+            } else {
+                setError(err.message || "Something went wrong, please try again.");
+            }
         } finally {
             setIsLoading(false);
         }
     };
 
-    // Helper component for the step indicator
-    const StepIndicator: React.FC<{ currentStep: number, stepNumber: number, label: string }> = ({ currentStep, stepNumber, label }) => {
+    const StepIndicator = ({
+        currentStep,
+        stepNumber,
+        label,
+    }: {
+        currentStep: number;
+        stepNumber: number;
+        label: string;
+    }) => {
         const isActive = currentStep === stepNumber;
         const isCompleted = currentStep > stepNumber;
-        
-        let circleClasses = 'w-8 h-8 flex items-center justify-center rounded-full text-white font-semibold transition-colors duration-300';
-        let textClasses = 'text-sm font-medium transition-colors duration-300';
-        
-        if (isCompleted) {
-            circleClasses += ' bg-green-500';
-            textClasses += ' text-gray-800';
-        } else if (isActive) {
-            circleClasses += ' bg-red-600 shadow-md';
-            textClasses += ' text-red-600';
-        } else {
-            circleClasses += ' bg-gray-300';
-            textClasses += ' text-gray-500';
-        }
 
         return (
             <div className="flex flex-col items-center">
-                <div className={circleClasses}>
+                <div
+                    className={`w-8 h-8 flex items-center justify-center rounded-full text-white font-semibold transition
+                    ${isCompleted ? "bg-green-500" : isActive ? "bg-red-600" : "bg-gray-300"} `}
+                >
                     {isCompleted ? <CheckCircle className="w-4 h-4" /> : stepNumber}
                 </div>
-                <span className={textClasses + " mt-1 hidden sm:block"}>{label}</span>
+                <span
+                    className={`text-sm mt-1 ${
+                        isActive ? "text-red-600" : "text-gray-500"
+                    }`}
+                >
+                    {label}
+                </span>
             </div>
         );
     };
 
     return (
         <div className="min-h-screen flex font-sans antialiased">
-            {/* --- 1. Visual/Image Column (Instructor Branding - Reinstated) --- */}
+            {/* LEFT: IMAGE / BRANDING */}
             <div className="hidden lg:flex w-1/2 bg-red-600 items-center justify-center p-12 shadow-2xl">
                 <div className="text-left text-white max-w-lg">
-                    <h2 className="text-5xl font-extrabold leading-tight tracking-tight">
-                        Empower the Next Generation of Learners
-                    </h2>
+                    <h2 className="text-5xl font-extrabold">Empower the Next Generation</h2>
                     <p className="text-xl mt-4 opacity-90">
-                        Join our platform to manage courses, share materials, and build educational communities.
+                        Apply to teach and help shape future learners.
                     </p>
-                    <div className="mt-20 mx-auto max-w-sm">
-                        <img 
-                            // Reusing the placeholder logic for the image path
-                            src={InstructorPNG} 
-                            alt="Learning Management System Instructor illustration" 
-                            className="rounded-xl "
-                        />
-                    </div>
+                    <img src={InstructorPNG} className="mt-20 rounded-xl" title="instructor image" />
                 </div>
             </div>
 
-            {/* --- 2. Registration Form Column (Now hosting the compact multi-step form) --- */}
+            {/* RIGHT: FORM */}
             <div className="w-full lg:w-1/2 flex items-center bg-white">
-                <div className="mx-auto w-full max-w-lg p-8 sm:p-10 lg:p-12">
+                <div className="mx-auto w-full max-w-lg p-8">
+
                     <div className="text-center mb-6">
                         <div className="flex items-center justify-center mb-2 text-red-600">
                             <span className="p-3 border border-red-200 rounded-full bg-red-50 shadow-md">
-                                <BookOpen className='w-6 h-6'/>
+                                <BookOpen className="w-6 h-6" />
                             </span>
                             <h1 className="text-3xl font-bold px-5 text-gray-900">Instructor Application</h1>
                         </div>
-                        <p className="text-sm text-gray-500 mt-2">Submit your details in two steps for review.</p>
                     </div>
-                    
-                    {/* --- Step Indicator --- */}
-                    <div className="flex justify-around items-center pt-2 pb-4 border-b">
+
+                    {/* STEP INDICATORS */}
+                    <div className="flex justify-around items-center py-3 border-b">
                         <StepIndicator currentStep={step} stepNumber={1} label="Personal Info" />
-                        <div className="flex-1 h-0.5 mx-2" style={{ backgroundColor: step >= 2 ? '#ef4444' : '#d1d5db' }} />
+                        <div className={`flex-1 h-0.5 mx-3 ${step >= 2 ? "bg-red-600" : "bg-gray-300"}`} />
                         <StepIndicator currentStep={step} stepNumber={2} label="Account & Docs" />
                     </div>
-                    
-                    {/* Success/Error Messages */}
+
+                    {/* ERRORS */}
                     {error && (
-                        <div className="p-3 mt-4 flex items-center text-sm text-red-700 bg-red-100 rounded-lg border border-red-300" role="alert">
-                            <AlertCircle className="w-5 h-5 mr-2 flex-shrink-0" />
-                            <span className="font-medium">{error}</span>
-                        </div>
-                    )}
-                    {success && (
-                        <div className="p-3 mt-4 text-sm text-green-700 bg-green-100 rounded-lg border border-green-300" role="alert">
-                            <span className="font-medium">Success!</span> {success}
+                        <div className="p-3 mt-4 text-red-700 bg-red-100 rounded-lg border border-red-300 flex items-center">
+                            <AlertCircle className="w-5 h-5 mr-2" />
+                            {error}
                         </div>
                     )}
 
+                    {/* SUCCESS */}
+                    {success && (
+                        <div className="p-3 mt-4 text-green-700 bg-green-100 rounded-lg border border-green-300">
+                            {success}
+                        </div>
+                    )}
+
+                    {/* FORM */}
                     <form onSubmit={submit} className="space-y-6 mt-6">
-                        
-                        {/* --- STEP 1: PERSONAL DETAILS --- */}
+                        {/* ------------------ STEP 1 ------------------ */}
                         {step === 1 && (
                             <div className="space-y-6">
-                                <h2 className="text-lg font-semibold text-gray-700 border-b pb-2 flex items-center"><User className='w-5 h-5 mr-2 text-red-600'/> Personal Details</h2>
+                                <h2 className="text-lg font-semibold text-gray-700 border-b pb-2 flex items-center">
+                                    <User className="w-5 h-5 mr-2 text-red-600" />
+                                    Personal Details
+                                </h2>
 
-                                {/* NAME FIELDS */}
                                 <div className="grid grid-cols-3 gap-4">
-                                    <InputWithIcon label="First Name" id="firstName" type="text" value={firstName} 
-                                        // The component's internal handler now correctly asserts the type
-                                        onChange={(e) => setFirstName(e.target.value)} icon={User} placeholder="John" />
-                                    <InputWithIcon label="M.I" id="middleInitial" type="text" value={middleInitial} 
-                                        onChange={(e) => setMiddleInitial(e.target.value.slice(0, 1).toUpperCase())} 
-                                        icon={User} placeholder="D" required={false}/>
-                                    <InputWithIcon label="Last Name" id="lastName" type="text" value={lastName} 
-                                        onChange={(e) => setLastName(e.target.value)} icon={User} placeholder="Doe" />
+                                    <InputWithIcon label="First Name" id="firstName" type="text"
+                                        value={firstName} onChange={(e) => setFirstName(e.target.value)}
+                                        icon={User} placeholder="John" />
+
+                                    <InputWithIcon label="M.I" id="middleInitial" type="text"
+                                        value={middleInitial}
+                                        onChange={(e) =>
+                                            setMiddleInitial(e.target.value.slice(0, 1).toUpperCase())
+                                        }
+                                        icon={User} required={false} placeholder="D" />
+
+                                    <InputWithIcon label="Last Name" id="lastName" type="text"
+                                        value={lastName} onChange={(e) => setLastName(e.target.value)}
+                                        icon={User} placeholder="Doe" />
                                 </div>
-                                
-                                {/* Middle Initial (Single Row) */}
-                                
-                                {/* CONTACT & DOB */}
+
                                 <div className="grid grid-cols-2 gap-4">
-                                    <InputWithIcon label="Date of Birth" id="dateOfBirth" type="date" value={dateOfBirth} 
-                                        onChange={(e) => setDateOfBirth(e.target.value)} icon={Calendar} />
-                                    <InputWithIcon label="Phone Number" id="phoneNumber" type="tel" value={phoneNumber} 
-                                        onChange={(e) => setPhoneNumber(e.target.value)} icon={Phone} placeholder="09xx-xxx-xxxx" />
+                                    <InputWithIcon label="Date of Birth" id="dob" type="date"
+                                        value={dateOfBirth} onChange={(e) => setDateOfBirth(e.target.value)}
+                                        icon={Calendar} />
+
+                                    <InputWithIcon label="Phone Number" id="phone" type="tel"
+                                        value={phoneNumber} onChange={(e) => setPhoneNumber(e.target.value)}
+                                        icon={Phone} placeholder="09xx-xxx-xxxx" />
                                 </div>
 
-                                {/* ADDRESS */}
-                                <InputWithIcon label="Residential Address" id="address" type="textarea" value={address} 
-                                    onChange={(e) => setAddress(e.target.value)} icon={Building} 
-                                    placeholder="Full address (Street, City, Province)" />
+                                <InputWithIcon label="Residential Address" id="address" type="textarea"
+                                    value={address} onChange={(e) => setAddress(e.target.value)}
+                                    icon={Building} placeholder="Street, City, Province" />
 
-                                {/* Next Step Button */}
-                                <button 
-                                    type="button" 
-                                    onClick={handleNextStep}
+                                <button
+                                    type="button"
+                                    onClick={() => isStepOneValid() && setStep(2)}
                                     disabled={!isStepOneValid()}
-                                    className={`w-full flex justify-center py-2 px-4 border border-transparent rounded-lg shadow-md text-sm font-medium text-white transition duration-150 ease-in-out ${
-                                        isStepOneValid() 
-                                        ? 'bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500'
-                                        : 'bg-red-400 cursor-not-allowed'
-                                    }`}
+                                    className={`w-full flex justify-center py-2 px-4 rounded-lg text-sm text-white shadow-md 
+                                        ${isStepOneValid()
+                                            ? "bg-red-600 hover:bg-red-700"
+                                            : "bg-red-400 cursor-not-allowed"
+                                        }`}
                                 >
                                     Next: Account Details <ArrowRight className="ml-2 h-4 w-4" />
                                 </button>
                             </div>
                         )}
-                        
-                        {/* --- STEP 2: ACCOUNT & DOCUMENTS --- */}
+
+                        {/* ------------------ STEP 2 ------------------ */}
                         {step === 2 && (
                             <div className="space-y-6">
-                                <h2 className="text-lg font-semibold text-gray-700 border-b pb-2 flex items-center"><ListChecks className='w-5 h-5 mr-2 text-red-600'/> Account & Documents</h2>
+                                <h2 className="text-lg font-semibold text-gray-700 border-b pb-2 flex items-center">
+                                    <ListChecks className="w-5 h-5 mr-2 text-red-600" />
+                                    Account & Documents
+                                </h2>
 
-                                {/* FILE UPLOAD */}
-                                <FileInput 
-                                    label="Upload Professional Resume/CV (PDF/DOCX)" id="resumeFile" 
-                                    onChange={setResumeFile} icon={FileText} 
+                                <FileInput
+                                    label="Upload Resume (PDF/DOCX)"
+                                    id="resume"
+                                    onChange={setResumeFile}
+                                    icon={FileText}
                                 />
 
-                                {/* EMAIL */}
-                                <InputWithIcon label="Email Address" id="email" type="email" value={email} 
-                                    onChange={(e) => setEmail(e.target.value)} icon={Mail} placeholder="you@example.com" />
+                                <InputWithIcon label="Email" id="email" type="email"
+                                    value={email} onChange={(e) => setEmail(e.target.value)}
+                                    icon={Mail} placeholder="you@example.com" />
 
-                                {/* PASSWORD FIELDS */}
                                 <div className="grid grid-cols-2 gap-4">
-                                    <InputWithIcon label="Password" id="password" type="password" value={password} 
-                                        onChange={(e) => setPassword(e.target.value)} icon={Lock} placeholder="••••••••" />
-                                    <InputWithIcon label="Confirm Password" id="passwordConfirmation" type="password" value={passwordConfirmation} 
-                                        onChange={(e) => setPasswordConfirmation(e.target.value)} icon={Lock} placeholder="••••••••" />
+                                    <InputWithIcon label="Password" id="password" type="password"
+                                        value={password} onChange={(e) => setPassword(e.target.value)}
+                                        icon={Lock} placeholder="••••••" />
+
+                                    <InputWithIcon label="Confirm Password" id="passConfirm" type="password"
+                                        value={passwordConfirmation} onChange={(e) => setPasswordConfirmation(e.target.value)}
+                                        icon={Lock} placeholder="••••••" />
                                 </div>
 
-                                {/* Back and Submit Buttons */}
-                                <div className="flex gap-3 pt-2">
+                                {/* VERIFICATION CODE */}
+                                <div className="flex gap-2 items-end">
+                                    <div className="flex-grow">
+                                        <InputWithIcon
+                                            label="Verification Code"
+                                            id="verification"
+                                            type="text"
+                                            value={verificationCode}
+                                            onChange={(e) => setVerificationCode(e.target.value)}
+                                            icon={FaLock}
+                                            placeholder="Enter code"
+                                        />
+                                    </div>
+
+                                    <button
+                                        type="button"
+                                        onClick={handleSendCode}
+                                        disabled={isSendingCode}
+                                        className={`h-[42px] px-5 rounded-md text-sm text-white 
+                                            ${isSendingCode 
+                                                ? "bg-gray-400" 
+                                                : "bg-red-600 hover:bg-red-700"
+                                            }`}
+                                    >
+                                        {isSendingCode ? `Wait ${timer}s` : "Send Code"}
+                                    </button>
+                                </div>
+
+                                {/* Buttons */}
+                                <div className="flex gap-3">
                                     <button
                                         type="button"
                                         onClick={() => setStep(1)}
-                                        className="w-1/3 flex justify-center py-2 px-4 border border-gray-300 rounded-lg shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition duration-150 ease-in-out"
+                                        className="w-1/3 py-2 px-4 bg-white border border-gray-300 rounded-lg shadow-sm text-sm"
                                     >
                                         Back
                                     </button>
 
-                                    <button 
-                                        type="submit" 
+                                    <button
+                                        type="submit"
                                         disabled={isLoading || !isStepTwoValid()}
-                                        className={`w-2/3 flex justify-center py-2 px-4 border border-transparent rounded-lg shadow-md text-sm font-medium text-white transition duration-150 ease-in-out ${
-                                            isLoading || !isStepTwoValid()
-                                            ? 'bg-red-400 cursor-not-allowed' 
-                                            : 'bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500'
-                                        }`}
+                                        className={`w-2/3 py-2 px-4 rounded-lg text-sm text-white shadow-md
+                                            ${isLoading || !isStepTwoValid()
+                                                ? "bg-red-400 cursor-not-allowed"
+                                                : "bg-red-600 hover:bg-red-700"
+                                            }`}
                                     >
                                         {isLoading ? (
                                             <>
-                                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                                Submitting Application...
+                                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                                Submitting...
                                             </>
                                         ) : (
-                                            'Submit Application'
+                                            "Submit Application"
                                         )}
                                     </button>
                                 </div>
                             </div>
                         )}
-                        
-                        {/* Links */}
+
+                        {/* FOOTER */}
                         <div className="pt-4 border-t">
-                            <p className="mt-4 text-center text-sm text-gray-600">
+                            <p className="text-sm text-center text-gray-600">
                                 Already have an account?
-                                <Link to="/login" className="ml-1 font-medium text-red-600 hover:text-red-500 hover:underline">
-                                    Sign in
-                                </Link>
-                            </p>
-                            <p className="mt-2 text-center text-sm text-gray-600">
-                                Or register as a standard learner?
-                                <Link to="/register" className="ml-1 font-medium text-indigo-600 hover:text-indigo-500 hover:underline">
-                                    Learner Sign Up
+                                <Link to="/login" className="text-red-600 ml-1 hover:underline">
+                                    Sign In
                                 </Link>
                             </p>
                         </div>
                     </form>
+
                 </div>
             </div>
         </div>
-    )
-}
+    );
+};
 
 export default RegisterInstructor;
