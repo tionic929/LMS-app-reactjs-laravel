@@ -14,6 +14,7 @@ use App\Models\CourseCommentBan;
 use App\Http\Requests\StoreCourseRequest;
 use App\Http\Requests\UpdateCourseRequest;
 use Illuminate\Http\Request;
+use App\Events\CommentEvent;
 
 class CourseController extends Controller
 {
@@ -446,6 +447,8 @@ class CourseController extends Controller
             'reply_to_user_id' => $validated['reply_to_user_id'] ?? null,
         ]);
 
+        broadcast(new CommentEvent($comment, 'created', $course->id));
+
         return response()->json($comment->load('user', 'replyToUser'), 201);
     }
 
@@ -473,6 +476,8 @@ class CourseController extends Controller
             'content' => $validated['content'],
         ]);
 
+        broadcast (new CommentEvent($comment, 'updated', $course->id));
+
         return response()->json($comment->load('user', 'replyToUser'));
     }
 
@@ -491,6 +496,8 @@ class CourseController extends Controller
         if (!$canDelete) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
+
+        broadcast (new CommentEvent($comment, 'deleted', $course->id));
 
         $comment->delete();
 

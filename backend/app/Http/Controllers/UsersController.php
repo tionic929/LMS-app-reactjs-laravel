@@ -18,7 +18,7 @@ class UsersController extends Controller
     public function index()
     {
     }
-    
+
     /**
      * Handles paginated fetching, filtering, and searching of users.
     */
@@ -26,7 +26,7 @@ class UsersController extends Controller
     {
         $search = $request->query('search');
         $role = $request->query('role');
-        
+
         // Include 'avatar' so the model's appended `avatar_url` accessor can compute an absolute URL
         $query = User::select('id', 'name', 'email', 'role', 'is_enabled', 'is_confirmed', 'is_banned_from_comments', 'avatar')
         ->orderBy('id', 'asc');
@@ -57,9 +57,9 @@ class UsersController extends Controller
 
 
     public function getUsersAnalytics(Request $request)
-    {   
+    {
         $totalAnnouncements = Announcement::count();
-    
+
         // 2. Aggregate ALL User Counts in a single, highly efficient query
         $userAnalytics = DB::table('users')
             ->select(
@@ -78,7 +78,7 @@ class UsersController extends Controller
             'totalAnnouncements' => $totalAnnouncements,
         ]);
     }
-    
+
     public function create()
     {
         //
@@ -92,13 +92,13 @@ class UsersController extends Controller
             'role' => 'required|in:admin,instructor,learner',
             'password' => 'required|string|min:8',
         ]);
-        
+
         $user = new User;
         $user->name = $request->name;
         $user->email = $request->email;
         $user->password = Hash::make($request->password);
         $user->role = $request->role;
-        
+
         // New fields are handled by defaults in the migration, but you can override here if needed
         $user->is_enabled = true;
         $user->is_confirmed = false; // Only relevant for instructors
@@ -130,11 +130,11 @@ class UsersController extends Controller
      * Update the specified resource in storage.
      */
     public function update(Request $request, User $user)
-    { 
+    {
         $request->validate([
             'name' => 'sometimes|string|max:255',
             'email' => 'sometimes|email|max:255|unique:users,email,' . $user->id,
-            'role' => 'sometimes|in:admin,instructor,learner', 
+            'role' => 'sometimes|in:admin,instructor,learner',
             'password' => 'nullable|string|min:8',
             'avatar' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:5120',
             // Include validation for new status fields (optional on update)
@@ -152,7 +152,7 @@ class UsersController extends Controller
         if ($request->has('role')) {
             $user->role = $request->role;
         }
-        
+
         // Update new status fields if present in the request
         if ($request->has('is_enabled')) {
             $user->is_enabled = $request->is_enabled;
@@ -166,14 +166,14 @@ class UsersController extends Controller
 
         if ($request->filled('password')) {
             // Fix: Changed request->passowrd to request->password
-            $user->password = Hash::make($request->password); 
+            $user->password = Hash::make($request->password);
         }
 
         if ($request->hasFile('avatar')) {
             $path = $request->file('avatar')->store('avatars', 'public');
             $user->avatar = $path;
         }
-        
+
         $user->save();
         return response()->json($user->refresh());
     }
@@ -205,7 +205,7 @@ class UsersController extends Controller
                 Rule::in(['is_enabled', 'is_confirmed', 'is_banned_from_comments']),
             ],
         ]);
-        
+
         // Ensure the field exists on the model
         if (!isset($user->$field)) {
             return response()->json(['message' => 'Invalid status field specified.'], 400);
