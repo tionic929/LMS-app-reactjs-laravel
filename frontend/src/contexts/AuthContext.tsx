@@ -18,7 +18,7 @@ export interface User {
     role: 'admin' | 'instructor' | 'learner';
     name: string;
   avatar_url?: string | null;
-} 
+}
 
 interface RegistrationPayload {
     firstName: string;
