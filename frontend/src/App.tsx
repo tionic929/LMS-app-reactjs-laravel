@@ -22,6 +22,7 @@ import 'react-toastify/dist/ReactToastify.css';
 import Home from "./pages/Home";
 // import NotificationComponent from './components/NotificationComponent';
 import { MdMenu } from "react-icons/md";
+import LearnerDashboard from "./pages/Learner/LearnerDashboard";
 
 const RoleGuard = ({ children, allowedRoles }: { children: React.ReactNode; allowedRoles: ('admin' | 'instructor' | 'learner')[] }) => {
   const { user } = useAuth();
@@ -32,7 +33,8 @@ const RoleGuard = ({ children, allowedRoles }: { children: React.ReactNode; allo
 };
 
 const App: React.FC = () => {
-  const { user, loading } = useAuth();
+        const { user, loading } = useAuth();
+        const defaultRoute = user ? (user.role === 'learner' ? '/learner-dashboard' : '/dashboard') : '/dashboard';
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   // 🔥 NEW: State for Mobile/Off-Canvas Sidebar
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -87,23 +89,24 @@ const App: React.FC = () => {
 
         <main className="flex-1 overflow-y-auto">
           <Routes>
-            <Route path="/" element={user ? <Navigate to="/dashboard" replace /> : <Home />} />
-            <Route path="/login" element={user ? <Navigate to="/dashboard" replace /> : <Login />} />
-            <Route path="/register" element={user ? <Navigate to="/dashboard" replace /> : <Register />} />
-            <Route path="/registerInstructor" element={user ? <Navigate to="/dashboard" replace /> : <RegisterInstructor />} />
-            <Route path="/forgot-password" element={user ? <Navigate to="/dashboard" replace /> : <ForgotPassword />} />
-            <Route path="/reset-password/:token" element={user ? <Navigate to="/dashboard" replace /> : <ResetPassword />} />
-            <Route path="/pending" element={user ? <Navigate to="/dashboard" replace /> : <PendingApproval />} />
+            <Route path="/" element={user ? <Navigate to={defaultRoute} replace /> : <Home />} />
+            <Route path="/login" element={user ? <Navigate to={defaultRoute} replace /> : <Login />} />
+            <Route path="/register" element={user ? <Navigate to={defaultRoute} replace /> : <Register />} />
+            <Route path="/registerInstructor" element={user ? <Navigate to={defaultRoute} replace /> : <RegisterInstructor />} />
+            <Route path="/forgot-password" element={user ? <Navigate to={defaultRoute} replace /> : <ForgotPassword />} />
+            <Route path="/reset-password/:token" element={user ? <Navigate to={defaultRoute} replace /> : <ResetPassword />} />
+            <Route path="/pending" element={user ? <Navigate to={defaultRoute} replace /> : <PendingApproval />} />
 
             <Route element={<ProtectedRoute />}>
-              <Route path="/dashboard" element={<RoleGuard allowedRoles={['admin','instructor','learner']}><Dashboard /></RoleGuard>} />
+              <Route path="/dashboard" element={<RoleGuard allowedRoles={['admin','instructor']}><Dashboard /></RoleGuard>} />
+              <Route path="/learner-dashboard" element={<RoleGuard allowedRoles={['learner']}><LearnerDashboard /></RoleGuard>} />
               <Route path="/users" element={<RoleGuard allowedRoles={['admin']}><UsersIndex /></RoleGuard>} />
               <Route path="/instructor-applications" element={<RoleGuard allowedRoles={['admin']}><InstructorApplications /></RoleGuard>} />
               <Route path="/announcements" element={<RoleGuard allowedRoles={['admin','instructor','learner']}><Announcements /></RoleGuard>} />
               <Route path="/courses" element={<RoleGuard allowedRoles={['admin','instructor','learner']}><Courses /></RoleGuard>} />
               <Route path="/courses/:id" element={<RoleGuard allowedRoles={['admin','instructor','learner']}><CourseDetails /></RoleGuard>} />
               <Route path="/account/update" element={<AccountUpdate />} />
-              <Route path="*" element={<Navigate to="/dashboard" replace />} />
+              <Route path="*" element={<Navigate to={defaultRoute} replace />} />
             </Route>
 
             <Route path="*" element={<Navigate to="/login" replace />} />

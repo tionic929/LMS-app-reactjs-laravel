@@ -140,6 +140,28 @@ class CourseController extends Controller
     }
 
     /**
+     * Return courses the authenticated user is actively enrolled in.
+     */
+    public function myCourses(Request $request)
+    {
+        if (!auth()->check()) {
+            return response()->json([], 200);
+        }
+
+        $userId = auth()->id();
+
+        $courses = Course::with('instructor')
+            ->whereHas('enrollments', function ($q) use ($userId) {
+                $q->where('user_id', $userId)
+                  ->where('status', 'active');
+            })
+            ->where('status', 'active')
+            ->get();
+
+        return response()->json($courses);
+    }
+
+    /**
      * Update the specified resource in storage.
      */
     public function update(UpdateCourseRequest $request, Course $course)

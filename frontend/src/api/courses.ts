@@ -10,6 +10,11 @@ export const getCourse = async (id: string | number) => {
   return api.get(`/courses/${id}`);
 };
 
+// Get courses the authenticated user is enrolled in
+export const getMyCourses = async () => {
+  return api.get(`/courses/my`);
+};
+
 export const createCourse = async (data: {
   title: string;
   content?: string;
