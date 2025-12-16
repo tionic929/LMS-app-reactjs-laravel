@@ -26,12 +26,24 @@ class CourseController extends Controller
         $query = Course::with('instructor')
             ->where('status', 'active');
 
-
-
-        // Filter by privacy
-        if ($request->has('privacy')) {
-            $query->where('privacy', $request->privacy);
+        if ($request->user() && $request->user()->role === 'admin') {
+        } elseif ($request->user() && $request->user()->role === 'instructor') {
+            $query->where('instructor_id', $request->user()->id);
+        } else {
+            $query->where('status', 'active');
+            if ($request->has('privacy')) {
+                $query->where('privacy', $request->privacy);
+            }
         }
+
+        if ($request->has('search')) {
+            $s = $request->search;
+            $query->where(function ($q) use ($s) {
+                $q->where('title', 'LIKE', "%{$s}%")
+                    ->orWhere('content', 'LIKE', "%{$s}%");
+            });
+        }
+        // Filter by privacy
 
         $courses = $query->get();
 
@@ -104,12 +116,12 @@ class CourseController extends Controller
                         'instructor' => $course->instructor,
                         'capacity' => $course->capacity,
                         'current_enrolled' => $course->current_enrolled,
-                ],
-                'is_instructor' => false,
-                'is_admin' => false,
-                'is_enrolled' => false,
-                'has_pending_request' => $hasPendingRequest,
-            ]);
+                    ],
+                    'is_instructor' => false,
+                    'is_admin' => false,
+                    'is_enrolled' => false,
+                    'has_pending_request' => $hasPendingRequest,
+                ]);
             }
         }
 
@@ -421,9 +433,9 @@ class CourseController extends Controller
             ->where('status', 'active')
             ->exists();
 
-            if (!$isInstructor && !$isAdmin && !$isEnrolled) {
-                return response()->json(['message' => 'You must be enrolled to this course to comment'], 403);
-            }
+        if (!$isInstructor && !$isAdmin && !$isEnrolled) {
+            return response()->json(['message' => 'You must be enrolled to this course to comment'], 403);
+        }
 
         // Check if user is banned from commenting in this course
         $isBanned = CourseCommentBan::where('course_id', $course->id)
@@ -476,7 +488,7 @@ class CourseController extends Controller
             'content' => $validated['content'],
         ]);
 
-        broadcast (new CommentEvent($comment, 'updated', $course->id));
+        broadcast(new CommentEvent($comment, 'updated', $course->id));
 
         return response()->json($comment->load('user', 'replyToUser'));
     }
@@ -497,7 +509,7 @@ class CourseController extends Controller
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
-        broadcast (new CommentEvent($comment, 'deleted', $course->id));
+        broadcast(new CommentEvent($comment, 'deleted', $course->id));
 
         $comment->delete();
 
