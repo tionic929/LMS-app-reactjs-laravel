@@ -175,7 +175,7 @@ class CourseController extends Controller
         }
 
         $learners = $course->activeLearners()
-            ->select('users.id', 'users.name', 'users.email')
+            ->select('users.id', 'users.name', 'users.email', 'users.avatar')
             ->get()
             ->map(function ($learner) {
                 return [
