@@ -79,7 +79,16 @@ class AnnouncementController extends Controller
         $announcement = Announcement::create($data);
         $announcement->load('creator:id,name,role');
 
-        return response()->json($announcement, 201);
+        if(!$announcement) {
+            return response()->json(['message' => 'Failed to create announcement'], 500);
+        } else {
+            return response()->json([
+                'announcement' => $announcement,
+                'message' => 'Announcement created successfully'
+            ], 201);
+        }
+
+        
     }
 
     /**
@@ -119,10 +128,24 @@ class AnnouncementController extends Controller
             return response()->json(['message' => 'Forbidden'], 403);
         }
 
+
         $announcement->update($data);
         $announcement->load('creator:id,name,role');
 
-        return response()->json($announcement, 200);
+        if ($announcement->wasChanged()) {
+            return response()->json([
+                'announcement' => $announcement,
+                'message' => 'Announcement updated successfully.',
+            ], 200);
+        }
+
+        return response()->json([
+            'announcement' => $announcement,
+            'message' => 'No changes were made to the announcement.',
+        ], 200);
+        
+
+        
     }
 
     /**
@@ -137,7 +160,10 @@ class AnnouncementController extends Controller
         }
 
         $announcement->delete();
-
-        return response()->noContent();
+        if (!$announcement) {
+            return response()->json(['message' => 'Failed to delete announcement'], 500);
+        } else {
+            return response()->json(['message' => 'Announcement deleted successfully'], 200);
+        }
     }
 }

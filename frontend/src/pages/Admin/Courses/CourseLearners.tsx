@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { toast } from 'react-toastify';
 import { removeLearner, banLearnerFromComments, unbanLearnerFromComments, getCourseBannedLearners } from "../../../api/courses";
 import { MdOutlineEmail, MdMoreVert } from "react-icons/md";
 import { LiaUserMinusSolid } from "react-icons/lia";
@@ -62,31 +63,71 @@ const CourseLearners: React.FC<CourseLearnersProps> = ({
   }, [dropdownOpen]);
 
   const handleRemoveLearner = async (userId: number) => {
-    if (!confirm("Are you sure you want to remove this learner?")) return;
-
-    try {
-      await removeLearner(courseId, userId);
-      setDropdownOpen(null);
-      onLearnerAction();
-      alert("Learner removed successfully");
-    } catch (err: any) {
-      console.error("Error removing learner:", err);
-      alert(err.response?.data?.message || "Failed to remove learner");
-    }
+    const id = toast.info(
+      <div className="max-w-sm">
+        <div className="mb-2">Are you sure you want to remove this learner?</div>
+        <div className="flex gap-2 justify-end">
+          <button
+            onClick={() => toast.dismiss(id)}
+            className="px-3 py-1 bg-gray-200 rounded text-sm"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={async () => {
+              toast.dismiss(id);
+              try {
+                await removeLearner(courseId, userId);
+                setDropdownOpen(null);
+                onLearnerAction();
+                toast.success("Learner removed successfully");
+              } catch (err: any) {
+                console.error("Error removing learner:", err);
+                toast.error(err.response?.data?.message || "Failed to remove learner");
+              }
+            }}
+            className="px-3 py-1 bg-red-600 text-white rounded text-sm"
+          >
+            Remove
+          </button>
+        </div>
+      </div>,
+      { autoClose: false, closeOnClick: false }
+    );
   };
 
   const handleBanLearner = async (userId: number) => {
-    if (!confirm("Are you sure you want to ban this learner from commenting?")) return;
-
-    try {
-      await banLearnerFromComments(courseId, userId);
-      setBannedLearners((prev) => new Set(prev).add(userId));
-      setDropdownOpen(null);
-      alert("Learner banned from commenting");
-    } catch (err: any) {
-      console.error("Error banning learner:", err);
-      alert(err.response?.data?.message || "Failed to ban learner");
-    }
+    const id = toast.info(
+      <div className="max-w-sm">
+        <div className="mb-2">Are you sure you want to ban this learner from commenting?</div>
+        <div className="flex gap-2 justify-end">
+          <button
+            onClick={() => toast.dismiss(id)}
+            className="px-3 py-1 bg-gray-200 rounded text-sm"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={async () => {
+              toast.dismiss(id);
+              try {
+                await banLearnerFromComments(courseId, userId);
+                setBannedLearners((prev) => new Set(prev).add(userId));
+                setDropdownOpen(null);
+                toast.success("Learner banned from commenting");
+              } catch (err: any) {
+                console.error("Error banning learner:", err);
+                toast.error(err.response?.data?.message || "Failed to ban learner");
+              }
+            }}
+            className="px-3 py-1 bg-red-600 text-white rounded text-sm"
+          >
+            Ban
+          </button>
+        </div>
+      </div>,
+      { autoClose: false, closeOnClick: false }
+    );
   };
 
   const handleUnbanLearner = async (userId: number) => {
@@ -98,10 +139,10 @@ const CourseLearners: React.FC<CourseLearnersProps> = ({
         return newSet;
       });
       setDropdownOpen(null);
-      alert("Learner unbanned from commenting");
+      toast.success("Learner unbanned from commenting");
     } catch (err: any) {
       console.error("Error unbanning learner:", err);
-      alert(err.response?.data?.message || "Failed to unban learner");
+      toast.error(err.response?.data?.message || "Failed to unban learner");
     }
   };
 

@@ -66,19 +66,28 @@ export async function listAnnouncements(): Promise<Announcement[]> {
   return normalize(res.data);
 }
 
-export async function createAnnouncement(payload: { title: string; content: string; type: string; audience: 'learners' | 'instructors' | 'all'; event_date?: string; event_time?: string; location?: string }): Promise<Announcement | null> {
+export async function createAnnouncement(payload: { title: string; content: string; type: string; audience: 'learners' | 'instructors' | 'all'; event_date?: string; event_time?: string; location?: string }): Promise<{ announcement: Announcement | null; message?: string }> {
   await ensureCsrf();
   const res = await api.post("/announcements", payload);
-  return normalize(res.data)[0] ?? null;
+  const data = res.data;
+
+  const raw = data?.announcement ?? data;
+  const ann = normalize(raw)[0] ?? null;
+  return { announcement: ann, message: data?.message };
 }
 
-export async function updateAnnouncement(id: number, payload: { title: string; content: string; type: string; audience?: 'learners' | 'instructors' | 'all'; event_date?: string; event_time?: string; location?: string }): Promise<Announcement | null> {
+export async function updateAnnouncement(id: number, payload: { title: string; content: string; type: string; audience?: 'learners' | 'instructors' | 'all'; event_date?: string; event_time?: string; location?: string }): Promise<{ announcement: Announcement | null; message?: string }> {
   await ensureCsrf();
   const res = await api.put(`/announcements/${id}`, payload);
-  return normalize(res.data)[0] ?? null;
+  const data = res.data;
+
+  const raw = data?.announcement ?? data;
+  const ann = normalize(raw)[0] ?? null;
+  return { announcement: ann, message: data?.message };
 }
 
-export async function deleteAnnouncement(id: number): Promise<void> {
+export async function deleteAnnouncement(id: number): Promise<string | undefined> {
   await ensureCsrf();
-  await api.delete(`/announcements/${id}`);
+  const res = await api.delete(`/announcements/${id}`);
+  return res?.data?.message;
 }

@@ -2,6 +2,7 @@
   import { useAuth } from "../../contexts/AuthContext";
   import { Link } from 'react-router-dom';
   import MonkeyPNG from '../../assets/monkey.png';
+  import { toast } from 'react-toastify';
   import { 
       FaBook, 
       FaUser, 
@@ -102,7 +103,7 @@
           return;
         }
 
-        alert("Verification code sent to your Gmail!");
+        toast.success("Verification code sent to your Gmail!");
       } catch (err) {
         console.error(err);
         setError("Something went wrong. Try again.");

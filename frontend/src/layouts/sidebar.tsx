@@ -8,6 +8,7 @@ import { MdMenu } from "react-icons/md";
 import { Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "../contexts/AuthContext";
+import { toast } from 'react-toastify';
 
 interface SidebarProps {
     isCollapsed: boolean;
@@ -306,12 +307,12 @@ const Sidebar: React.FC<SidebarProps> = ({
 
                                 { showAlert && (
                                     <div className="mt-3 px-4 py-3 rounded-md bg-yellow-500/15 text-yellow-400 border hover:bg-yellow-500/30 border-yellow-500/30 flex items-center justify-between">
-                                        <button
-                                            onClick={() => alert("Settings not yet implemented")}
-                                            className="text-yellow-400 hover:text-yellow-300"
-                                        >
-                                            Settings
-                                        </button>
+                                        <button
+                                            onClick={() => toast.info('Settings not yet implemented')}
+                                            className="text-yellow-400 hover:text-yellow-300"
+                                        >
+                                            Settings
+                                        </button>
                                     </div>
                                 )}
                                 

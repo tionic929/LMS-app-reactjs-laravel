@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { toast } from 'react-toastify';
 import { deleteCourseMaterial } from "../../../api/courses";
 import { RiDeleteBin6Line } from "react-icons/ri";
 import {
@@ -42,16 +43,36 @@ const CourseMaterials: React.FC<CourseMaterialsProps> = ({
   const [editingMaterial, setEditingMaterial] = useState<Material | null>(null);
 
   const handleDeleteMaterial = async (materialId: number) => {
-    if (!confirm("Are you sure you want to delete this material?")) return;
-
-    try {
-      await deleteCourseMaterial(courseId, materialId);
-      onMaterialAction();
-      alert("Material deleted");
-    } catch (err: any) {
-      console.error("Error deleting material:", err);
-      alert(err.response?.data?.message || "Failed to delete material");
-    }
+    const id = toast.info(
+      <div className="max-w-sm">
+        <div className="mb-2">Are you sure you want to delete this material?</div>
+        <div className="flex gap-2 justify-end">
+          <button
+            onClick={() => toast.dismiss(id)}
+            className="px-3 py-1 bg-gray-200 rounded text-sm"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={async () => {
+              toast.dismiss(id);
+              try {
+                await deleteCourseMaterial(courseId, materialId);
+                onMaterialAction();
+                toast.success("Material deleted");
+              } catch (err: any) {
+                console.error("Error deleting material:", err);
+                toast.error(err.response?.data?.message || "Failed to delete material");
+              }
+            }}
+            className="px-3 py-1 bg-red-600 text-white rounded text-sm"
+          >
+            Delete
+          </button>
+        </div>
+      </div>,
+      { autoClose: false, closeOnClick: false }
+    );
   };
 
   const filteredMaterials = materials.filter(
