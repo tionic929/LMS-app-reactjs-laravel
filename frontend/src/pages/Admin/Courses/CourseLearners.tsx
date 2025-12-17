@@ -3,7 +3,6 @@ import { toast } from 'react-toastify';
 import { removeLearner, banLearnerFromComments, unbanLearnerFromComments, getCourseBannedLearners } from "../../../api/courses";
 import { MdOutlineEmail, MdDeleteForever } from "react-icons/md";
 import { FaBan, FaUnlock, FaUserGraduate } from "react-icons/fa";
-import { toast } from "react-toastify";
 
 interface Learner {
   id: number;
@@ -252,7 +251,7 @@ const CourseLearners: React.FC<CourseLearnersProps> = ({
                 
                 <ActionButton
                   icon={MdDeleteForever}
-                  onClick={() => handleRemoveLearner(learner.id, learner.name)}
+                  onClick={() => handleRemoveLearner(learner.id)}
                   title="Remove from course"
                   className="text-rose-600 hover:bg-rose-100"
                 />
