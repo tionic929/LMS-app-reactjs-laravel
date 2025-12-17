@@ -7,6 +7,7 @@ import AddCourseModal, { type AddCoursePayload } from "../components/modals/AddC
 import { PiUsersThreeBold } from "react-icons/pi";
 import { MdLockOutline, MdOutlinePublic, MdArrowBack } from "react-icons/md";
 import "../App.css";
+import { toast } from 'react-toastify';
 
 interface Course {
   id: number;
@@ -31,11 +32,12 @@ const Course: React.FC = () => {
   // Modal create handler
   const handleAddCourse = async (payload: AddCoursePayload) => {
     try {
-      await createCourse(payload);
+      const res = await createCourse(payload);
       await fetchCourses();
-      alert("Course created successfully!");
+      toast.success(res.data?.message || "Course created successfully!");
     } catch (err: any) {
       console.error("Error creating course:", err);
+      toast.error(err?.response?.data?.message || 'Failed to create course');
       throw err;
     }
   };

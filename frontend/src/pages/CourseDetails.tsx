@@ -34,6 +34,7 @@ import { FaLink } from "react-icons/fa6";
 import { VscRequestChanges } from "react-icons/vsc";
 import { BsSend } from "react-icons/bs";
 import "../App.css";
+import { toast } from 'react-toastify';
 import EditCourseModal from "../components/modals/EditCourseModal";
 import AddMaterialModal from "../components/modals/AddMaterialModal";
 
@@ -145,33 +146,66 @@ const CourseDetails: React.FC = () => {
     }
   };
 
+  const confirmWithToast = (message: string) => {
+    return new Promise<boolean>((resolve) => {
+      const id = toast.info(
+        <div className="max-w-sm">
+          <div className="mb-2">{message}</div>
+          <div className="flex gap-2 justify-end">
+            <button
+              onClick={() => {
+                toast.dismiss(id);
+                resolve(false);
+              }}
+              className="px-3 py-1 bg-gray-200 rounded text-sm"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={() => {
+                toast.dismiss(id);
+                resolve(true);
+              }}
+              className="px-3 py-1 bg-red-600 text-white rounded text-sm"
+            >
+              Delete
+            </button>
+          </div>
+        </div>,
+        { autoClose: false, closeOnClick: false }
+      );
+    });
+  };
+
   // Edit handled by EditCourseModal
 
   const handleDeleteCourse = async () => {
     if (!id) return;
-    if (!confirm("Are you sure you want to disband this course?")) return;
+    const confirmed = await confirmWithToast('Are you sure you want to disband this course?');
+    if (!confirmed) return;
 
     try {
-      await deleteCourse(id);
-      alert("Course disbanded successfully");
+      const res = await deleteCourse(id);
+      toast.success(res.data?.message || "Course disbanded successfully");
       navigate("/courses");
     } catch (err: any) {
       console.error("Error deleting course:", err);
-      alert(err.response?.data?.message || "Failed to disband course");
+      toast.error(err.response?.data?.message || "Failed to disband course");
     }
   };
 
   const handleRemoveLearner = async (userId: number) => {
     if (!id) return;
-    if (!confirm("Are you sure you want to remove this learner?")) return;
+    const confirmed = await confirmWithToast('Are you sure you want to remove this learner?');
+    if (!confirmed) return;
 
     try {
-      await removeLearner(id, userId);
+      const res = await removeLearner(id, userId);
       await fetchCourseData();
-      alert("Learner removed successfully");
+      toast.success(res.data?.message || "Learner removed successfully");
     } catch (err: any) {
       console.error("Error removing learner:", err);
-      alert(err.response?.data?.message || "Failed to remove learner");
+      toast.error(err.response?.data?.message || "Failed to remove learner");
     }
   };
 
@@ -179,12 +213,12 @@ const CourseDetails: React.FC = () => {
     if (!id) return;
 
     try {
-      await acceptJoinRequest(id, requestId);
+      const res = await acceptJoinRequest(id, requestId);
       await fetchCourseData();
-      alert("Request accepted");
+      toast.success(res.data?.message || "Request accepted");
     } catch (err: any) {
       console.error("Error accepting request:", err);
-      alert(err.response?.data?.message || "Failed to accept request");
+      toast.error(err.response?.data?.message || "Failed to accept request");
     }
   };
 
@@ -192,12 +226,12 @@ const CourseDetails: React.FC = () => {
     if (!id) return;
 
     try {
-      await rejectJoinRequest(id, requestId);
+      const res = await rejectJoinRequest(id, requestId);
       await fetchCourseData();
-      alert("Request rejected");
+      toast.success(res.data?.message || "Request rejected");
     } catch (err: any) {
       console.error("Error rejecting request:", err);
-      alert(err.response?.data?.message || "Failed to reject request");
+      toast.error(err.response?.data?.message || "Failed to reject request");
     }
   };
 
@@ -207,24 +241,25 @@ const CourseDetails: React.FC = () => {
     try {
       const response = await enrollInCourse(id);
       await fetchCourseData();
-      alert(response.data.message || "Successfully enrolled!");
+      toast.success(response.data?.message || "Successfully enrolled!");
     } catch (err: any) {
       console.error("Error enrolling:", err);
-      alert(err.response?.data?.message || "Failed to enroll in course");
+      toast.error(err.response?.data?.message || "Failed to enroll in course");
     }
   };
 
   const handleLeaveCourse = async () => {
     if (!id) return;
-    if (!confirm("Are you sure you want to leave this course?")) return;
+    const confirmed = await confirmWithToast('Are you sure you want to leave this course?');
+    if (!confirmed) return;
 
     try {
       const response = await leaveCourse(id);
       await fetchCourseData();
-      alert(response.data.message || "Successfully left the course");
+      toast.success(response.data?.message || "Successfully left the course");
     } catch (err: any) {
       console.error("Error leaving course:", err);
-      alert(err.response?.data?.message || "Failed to leave course");
+      toast.error(err.response?.data?.message || "Failed to leave course");
     }
   };
 
@@ -232,15 +267,16 @@ const CourseDetails: React.FC = () => {
 
   const handleDeleteMaterial = async (materialId: number) => {
     if (!id) return;
-    if (!confirm("Are you sure you want to delete this material?")) return;
+    const confirmed = await confirmWithToast('Are you sure you want to delete this material?');
+    if (!confirmed) return;
 
     try {
-      await deleteCourseMaterial(id, materialId);
+      const res = await deleteCourseMaterial(id, materialId);
       await fetchCourseData();
-      alert("Material deleted");
+      toast.success(res.data?.message || "Material deleted");
     } catch (err: any) {
       console.error("Error deleting material:", err);
-      alert(err.response?.data?.message || "Failed to delete material");
+      toast.error(err.response?.data?.message || "Failed to delete material");
     }
   };
 
@@ -248,13 +284,13 @@ const CourseDetails: React.FC = () => {
     if (!id || !newComment.trim()) return;
 
     try {
-      await addCourseComment(id, newComment);
+      const res = await addCourseComment(id, newComment);
       await fetchCourseData();
       setNewComment("");
-      alert("Comment posted!");
+      toast.success(res.data?.message || "Comment posted!");
     } catch (err: any) {
       console.error("Error adding comment:", err);
-      alert(err.response?.data?.message || "Failed to post comment");
+      toast.error(err.response?.data?.message || "Failed to post comment");
     }
   };
 
@@ -263,13 +299,13 @@ const CourseDetails: React.FC = () => {
       return;
 
     try {
-      await addCourseAnnouncement(id, newAnnouncement);
+      const res = await addCourseAnnouncement(id, newAnnouncement);
       await fetchCourseData();
       setNewAnnouncement({ title: "", content: "" });
-      alert("Announcement posted!");
+      toast.success(res.data?.message || "Announcement posted!");
     } catch (err: any) {
       console.error("Error adding announcement:", err);
-      alert(err.response?.data?.message || "Failed to post announcement");
+      toast.error(err.response?.data?.message || "Failed to post announcement");
     }
   };
 
@@ -277,12 +313,12 @@ const CourseDetails: React.FC = () => {
     if (!id) return;
 
     try {
-      await deleteCourseAnnouncement(id, announcementId);
+      const res = await deleteCourseAnnouncement(id, announcementId);
       await fetchCourseData();
-      alert("Announcement deleted");
+      toast.success(res.data?.message || "Announcement deleted");
     } catch (err: any) {
       console.error("Error deleting announcement:", err);
-      alert(err.response?.data?.message || "Failed to delete announcement");
+      toast.error(err.response?.data?.message || "Failed to delete announcement");
     }
   };
 
@@ -836,9 +872,15 @@ const CourseDetails: React.FC = () => {
         }}
         onSubmit={async (payload) => {
           if (!id) return;
-          await updateCourse(id, payload);
-          await fetchCourseData();
-          alert("Course updated successfully!");
+          try {
+            const res = await updateCourse(id, payload);
+            await fetchCourseData();
+            toast.success(res.data?.message || "Course updated successfully!");
+          } catch (err: any) {
+            console.error('Error updating course:', err);
+            toast.error(err?.response?.data?.message || 'Failed to update course');
+            throw err;
+          }
         }}
       />
 
@@ -848,9 +890,9 @@ const CourseDetails: React.FC = () => {
         onClose={() => setShowAddMaterialModal(false)}
         onSubmit={async (payload) => {
           if (!id) return;
-          await addCourseMaterial(id, payload);
+          const res = await addCourseMaterial(id, payload);
           await fetchCourseData();
-          alert("Material added successfully!");
+          toast.success(res.data?.message || "Material added successfully!");
         }}
       />
     </main>

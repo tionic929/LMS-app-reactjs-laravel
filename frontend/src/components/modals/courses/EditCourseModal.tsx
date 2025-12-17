@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { updateCourse } from "../../../api/courses";
+import { toast } from "react-toastify";
 import { RiCheckLine } from "react-icons/ri";
 import { LiaTimesSolid } from "react-icons/lia";
 
@@ -33,13 +34,13 @@ const EditCourseModal: React.FC<EditCourseModalProps> = ({
     e.preventDefault();
 
     try {
-      await updateCourse(courseId, editForm);
+      const res = await updateCourse(courseId, editForm);
       onSuccess();
       onClose();
-      alert("Course updated successfully!");
+      toast.success(res.data?.message || "Course updated successfully!");
     } catch (err: any) {
       console.error("Error updating course:", err);
-      alert(err.response?.data?.message || "Failed to update course");
+      toast.error(err.response?.data?.message || "Failed to update course");
     }
   };
 

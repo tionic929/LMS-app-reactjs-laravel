@@ -63,7 +63,14 @@ class CourseController extends Controller
             'capacity' => $request->capacity,
         ]);
 
-        return response()->json($course->load('instructor'), 201);
+        if (!$course) {
+            return response()->json(['message' => 'Failed to create course'], 500);
+        } else {
+            return response()->json([
+                'course' => $course->load('instructor'),
+                'message' => 'Course created successfully'
+            ], 201);
+        }
     }
 
     /**
@@ -168,7 +175,14 @@ class CourseController extends Controller
     {
         $course->update($request->validated());
 
-        return response()->json($course->load('instructor'));
+        if (!$course) {
+            return response()->json(['message' => 'Failed to update course'], 500);
+        } else {
+            return response()->json([
+                'course' => $course->load('instructor'),
+                'message' => 'Course updated successfully'
+            ]);
+        }
     }
 
     /**
@@ -366,7 +380,10 @@ class CourseController extends Controller
             'description' => $validated['description'] ?? null,
         ]);
 
-        return response()->json($material, 201);
+        return response()->json([
+            'material' => $material,
+            'message' => 'Material added successfully'
+        ], 201);
     }
 
     /**
@@ -439,7 +456,10 @@ class CourseController extends Controller
             $material->update($validated);
         }
 
-        return response()->json($material);
+        return response()->json([
+            'material' => $material->fresh(),
+            'message' => 'Material updated successfully'
+        ]);
     }
 
     /**
@@ -483,7 +503,10 @@ class CourseController extends Controller
 
         broadcast(new CommentEvent($comment, 'created', $course->id));
 
-        return response()->json($comment->load('user', 'replyToUser'), 201);
+        return response()->json([
+            'comment' => $comment->load('user', 'replyToUser'),
+            'message' => 'Comment posted successfully'
+        ], 201);
     }
 
     public function updateComment(Request $request, Course $course, CourseComment $comment)
@@ -512,7 +535,10 @@ class CourseController extends Controller
 
         broadcast(new CommentEvent($comment, 'updated', $course->id));
 
-        return response()->json($comment->load('user', 'replyToUser'));
+        return response()->json([
+            'comment' => $comment->load('user', 'replyToUser'),
+            'message' => 'Comment updated successfully'
+        ]);
     }
 
     public function deleteComment(Course $course, CourseComment $comment)
@@ -620,7 +646,10 @@ class CourseController extends Controller
 
         $announcement = $course->announcements()->create($validated);
 
-        return response()->json($announcement, 201);
+        return response()->json([
+            'announcement' => $announcement,
+            'message' => 'Announcement posted successfully'
+        ], 201);
     }
 
     /**
@@ -659,7 +688,10 @@ class CourseController extends Controller
 
         $announcement->update($validated);
 
-        return response()->json($announcement);
+        return response()->json([
+            'announcement' => $announcement,
+            'message' => 'Announcement updated successfully'
+        ]);
     }
 
     /**

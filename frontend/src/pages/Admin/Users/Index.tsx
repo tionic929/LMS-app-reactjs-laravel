@@ -10,6 +10,7 @@ import { deleteUser, getAllUsers, toggleUserField, getUsersAnalytics, deleteUser
 import AddUserModal from "../../../components/modals/AddUserModal";
 import EditUserModal from "../../../components/modals/EditUserModal";
 import ViewUserModal from "../../../components/modals/ViewUserModal";
+import { toast } from 'react-toastify';
 
 // --- START: Helper Functions and Components ---
 
@@ -149,7 +150,7 @@ const UsersIndex: React.FC = () => {
             handleUserCreatedOrUpdated();
         } catch (err) {
             console.error(`Failed to toggle ${field} for user ${userId}`, err);
-            alert(`Error updating user status.`);
+            toast.error(`Error updating user status.`);
             handleUserCreatedOrUpdated();
         } finally {
             setTogglingId(null);
@@ -168,37 +169,57 @@ const UsersIndex: React.FC = () => {
     }
 
     const handleDeleteClick = async (userId: number, userName: string) => {
-        if (window.confirm(`Are you sure you want to delete user: ${userName}? This action cannot be undone.`)) {
-            try {
-                setLoading(true);
-                await deleteUser(userId);
-                handleUserCreatedOrUpdated();
-            }
-            catch (err) {
-                console.error("Failed to delete the user: ", err);
-                alert("Error deleting the user.");
-            }
-            finally {
-                setLoading(false);
-            }
-        }
+        const id = toast.info(
+            <div className="max-w-sm">
+                <div className="mb-2">Are you sure you want to delete user: {userName}? This action cannot be undone.</div>
+                <div className="flex gap-2 justify-end">
+                    <button onClick={() => toast.dismiss(id)} className="px-3 py-1 bg-gray-200 rounded text-sm">Cancel</button>
+                    <button onClick={async () => {
+                        toast.dismiss(id);
+                        try {
+                            setLoading(true);
+                            await deleteUser(userId);
+                            handleUserCreatedOrUpdated();
+                            toast.success('User deleted');
+                        } catch (err) {
+                            console.error("Failed to delete the user: ", err);
+                            toast.error("Error deleting the user.");
+                        } finally {
+                            setLoading(false);
+                        }
+                    }} className="px-3 py-1 bg-red-600 text-white rounded text-sm">Delete</button>
+                </div>
+            </div>,
+            { autoClose: false, closeOnClick: false }
+        );
     }
 
     const handleRemoveAvatar = async (u: User) => {
         if (!u.avatar_url) return; // nothing to remove
-        if (!window.confirm(`Remove profile photo for ${u.name}?`)) return;
-        try {
-            setLoading(true);
-            await deleteUserAvatar(u.id);
-            // Optimistically update list
-            setUsers(prev => prev.map(x => x.id === u.id ? { ...x, avatar_url: null } : x));
-        } catch (err) {
-            console.error("Failed to remove avatar", err);
-            alert("Error removing avatar.");
-        } finally {
-            setLoading(false);
-            handleUserCreatedOrUpdated();
-        }
+        const id = toast.info(
+            <div className="max-w-sm">
+                <div className="mb-2">Remove profile photo for {u.name}?</div>
+                <div className="flex gap-2 justify-end">
+                    <button onClick={() => toast.dismiss(id)} className="px-3 py-1 bg-gray-200 rounded text-sm">Cancel</button>
+                    <button onClick={async () => {
+                        toast.dismiss(id);
+                        try {
+                            setLoading(true);
+                            await deleteUserAvatar(u.id);
+                            setUsers(prev => prev.map(x => x.id === u.id ? { ...x, avatar_url: null } : x));
+                            toast.success('Avatar removed');
+                        } catch (err) {
+                            console.error("Failed to remove avatar", err);
+                            toast.error("Error removing avatar.");
+                        } finally {
+                            setLoading(false);
+                            handleUserCreatedOrUpdated();
+                        }
+                    }} className="px-3 py-1 bg-red-600 text-white rounded text-sm">Remove</button>
+                </div>
+            </div>,
+            { autoClose: false, closeOnClick: false }
+        );
     };
 
     useEffect(() => {

@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { updateCourseMaterial } from "../../../api/courses";
+import { toast } from "react-toastify";
 import { RiCheckLine } from "react-icons/ri";
 import { LiaTimesSolid } from "react-icons/lia";
 
@@ -44,13 +45,13 @@ const EditMaterialModal: React.FC<EditMaterialModalProps> = ({
         ...(materialForm.file ? { file: materialForm.file } : { url: materialForm.url }),
       };
 
-      await updateCourseMaterial(courseId, material.id, updateData);
+      const res = await updateCourseMaterial(courseId, material.id, updateData);
       onSuccess();
       onClose();
-      alert("Material updated successfully!");
+      toast.success(res.data?.message || "Material updated successfully!");
     } catch (err: any) {
       console.error("Error updating material:", err);
-      alert(err.response?.data?.message || "Failed to update material");
+      toast.error(err.response?.data?.message || "Failed to update material");
     }
   };
 

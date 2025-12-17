@@ -144,6 +144,37 @@ const CourseComments: React.FC<CourseCommentsProps> = ({
     setHiddenReplies(commentsWithReplies);
   }, [comments]);
 
+  const confirmWithToast = (message: string) => {
+    return new Promise<boolean>((resolve) => {
+      const id = toast.info(
+        <div className="max-w-sm">
+          <div className="mb-2">{message}</div>
+          <div className="flex gap-2 justify-end">
+            <button
+              onClick={() => {
+                toast.dismiss(id);
+                resolve(false);
+              }}
+              className="px-3 py-1 bg-gray-200 rounded text-sm"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={() => {
+                toast.dismiss(id);
+                resolve(true);
+              }}
+              className="px-3 py-1 bg-red-600 text-white rounded text-sm"
+            >
+              Delete
+            </button>
+          </div>
+        </div>,
+        { autoClose: false, closeOnClick: false }
+      );
+    });
+  };
+
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -209,6 +240,7 @@ const CourseComments: React.FC<CourseCommentsProps> = ({
       insertCommentLocal(created);
       setNewComment("");
       toast.success("Comment posted!");
+      toast.success("Comment posted!");
     } catch (err: any) {
       console.error("Error adding comment:", err);
       const errorMessage =
@@ -220,6 +252,7 @@ const CourseComments: React.FC<CourseCommentsProps> = ({
           "You are banned from commenting in this course. Please contact the instructor if you believe this is an error."
         );
       } else {
+        toast.error(errorMessage);
         toast.error(errorMessage);
       }
     }
@@ -242,6 +275,7 @@ const CourseComments: React.FC<CourseCommentsProps> = ({
       setReplyContent("");
       setReplyingTo(null);
       toast.success("Reply posted!");
+      toast.success("Reply posted!");
     } catch (err: any) {
       console.error("Error adding reply:", err);
       const errorMessage =
@@ -253,6 +287,7 @@ const CourseComments: React.FC<CourseCommentsProps> = ({
           "You are banned from commenting in this course. Please contact the instructor if you believe this is an error."
         );
       } else {
+        toast.error(errorMessage);
         toast.error(errorMessage);
       }
     }
@@ -351,14 +386,17 @@ const handleVote = async (commentId: number, voteType: "upvote" | "downvote") =>
       setEditingComment(null);
       setEditContent("");
       toast.success("Comment updated!");
+      toast.success("Comment updated!");
     } catch (err: any) {
       console.error("Error updating comment:", err);
+      toast.error(err.response?.data?.message || "Failed to update comment");
       toast.error(err.response?.data?.message || "Failed to update comment");
     }
   };
 
   const handleDeleteComment = async (commentId: number) => {
-    if (!confirm("Are you sure you want to delete this comment?")) return;
+    const confirmed = await confirmWithToast('Are you sure you want to delete this comment?');
+    if (!confirmed) return;
 
     try {
       await deleteComment(courseId, commentId);
@@ -369,6 +407,7 @@ const handleVote = async (commentId: number, voteType: "upvote" | "downvote") =>
       toast.success("Comment deleted!");
     } catch (err: any) {
       console.error("Error deleting comment:", err);
+      toast.error(err.response?.data?.message || "Failed to delete comment");
       toast.error(err.response?.data?.message || "Failed to delete comment");
     }
   };

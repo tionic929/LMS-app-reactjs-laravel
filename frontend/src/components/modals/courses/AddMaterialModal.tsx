@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { addCourseMaterial } from "../../../api/courses";
+import { toast } from "react-toastify";
 import { RiCheckLine } from "react-icons/ri";
 import { LiaTimesSolid } from "react-icons/lia";
 
@@ -36,7 +37,7 @@ const AddMaterialModal: React.FC<AddMaterialModalProps> = ({
 
       if (materialType === 'file') {
         if (!materialForm.file) {
-          alert('Please select a file to upload');
+          toast.error('Please select a file to upload');
           return;
         }
         data.file = materialForm.file;
@@ -44,14 +45,14 @@ const AddMaterialModal: React.FC<AddMaterialModalProps> = ({
         data.url = materialForm.url;
       }
 
-      await addCourseMaterial(courseId, data);
+      const res = await addCourseMaterial(courseId, data);
       onSuccess();
       onClose();
       setMaterialForm({ title: "", url: "", description: "", file: null });
-      alert("Material added successfully!");
+      toast.success(res.data?.message || "Material added successfully!");
     } catch (err: any) {
       console.error("Error adding material:", err);
-      alert(err.response?.data?.message || "Failed to add material");
+      toast.error(err.response?.data?.message || "Failed to add material");
     }
   };
 

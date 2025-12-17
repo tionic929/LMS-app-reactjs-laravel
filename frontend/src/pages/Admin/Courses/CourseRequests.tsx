@@ -1,4 +1,5 @@
 import React from "react";
+import { toast } from 'react-toastify';
 import { acceptJoinRequest, rejectJoinRequest } from "../../../api/courses";
 import { RiCheckLine } from "react-icons/ri";
 import { LiaTimesSolid } from "react-icons/lia";
@@ -27,10 +28,10 @@ const CourseRequests: React.FC<CourseRequestsProps> = ({
     try {
       await acceptJoinRequest(courseId, requestId);
       onRequestAction();
-      alert("Request accepted");
+      toast.success("Request accepted");
     } catch (err: any) {
       console.error("Error accepting request:", err);
-      alert(err.response?.data?.message || "Failed to accept request");
+      toast.error(err.response?.data?.message || "Failed to accept request");
     }
   };
 
@@ -38,10 +39,10 @@ const CourseRequests: React.FC<CourseRequestsProps> = ({
     try {
       await rejectJoinRequest(courseId, requestId);
       onRequestAction();
-      alert("Request rejected");
+      toast.success("Request rejected");
     } catch (err: any) {
       console.error("Error rejecting request:", err);
-      alert(err.response?.data?.message || "Failed to reject request");
+      toast.error(err.response?.data?.message || "Failed to reject request");
     }
   };
 

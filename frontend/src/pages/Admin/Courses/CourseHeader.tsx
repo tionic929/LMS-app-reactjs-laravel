@@ -1,4 +1,5 @@
 import React from "react";
+import { toast } from 'react-toastify';
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../../contexts/AuthContext";
 import {
@@ -48,40 +49,80 @@ const CourseHeader: React.FC<CourseHeaderProps> = ({
   const id = String(course.id); // Ensure ID is string for API calls
 
   const handleDeleteCourse = async () => {
-    if (!confirm("Are you sure you want to disband this course?")) return;
-
-    try {
-      await deleteCourse(id);
-      alert("Course disbanded successfully");
-      navigate("/courses");
-    } catch (err: any) {
-      console.error("Error deleting course:", err);
-      alert(err.response?.data?.message || "Failed to disband course");
-    }
+    const idToast = toast.info(
+      <div className="max-w-sm">
+        <div className="mb-2">Are you sure you want to disband this course?</div>
+        <div className="flex gap-2 justify-end">
+          <button
+            onClick={() => toast.dismiss(idToast)}
+            className="px-3 py-1 bg-gray-200 rounded text-sm"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={async () => {
+              toast.dismiss(idToast);
+              try {
+                const res = await deleteCourse(id);
+                toast.success(res.data?.message || "Course disbanded successfully");
+                navigate("/courses");
+              } catch (err: any) {
+                console.error("Error deleting course:", err);
+                toast.error(err.response?.data?.message || "Failed to disband course");
+              }
+            }}
+            className="px-3 py-1 bg-red-600 text-white rounded text-sm"
+          >
+            Delete
+          </button>
+        </div>
+      </div>,
+      { autoClose: false, closeOnClick: false }
+    );
   };
 
   const handleEnrollCourse = async () => {
     try {
       const response = await enrollInCourse(id);
       onCourseUpdate();
-      alert(response.data.message || "Successfully enrolled!");
+      toast.success(response.data.message || "Successfully enrolled!");
     } catch (err: any) {
       console.error("Error enrolling:", err);
-      alert(err.response?.data?.message || "Failed to enroll in course");
+      toast.error(err.response?.data?.message || "Failed to enroll in course");
     }
   };
 
   const handleLeaveCourse = async () => {
-    if (!confirm("Are you sure you want to leave this course?")) return;
-
-    try {
-      const response = await leaveCourse(id);
-      onCourseUpdate();
-      alert(response.data.message || "Successfully left the course");
-    } catch (err: any) {
-      console.error("Error leaving course:", err);
-      alert(err.response?.data?.message || "Failed to leave course");
-    }
+    const idToast = toast.info(
+      <div className="max-w-sm">
+        <div className="mb-2">Are you sure you want to leave this course?</div>
+        <div className="flex gap-2 justify-end">
+          <button
+            onClick={() => toast.dismiss(idToast)}
+            className="px-3 py-1 bg-gray-200 rounded text-sm"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={async () => {
+              toast.dismiss(idToast);
+              try {
+                const response = await leaveCourse(id);
+                onCourseUpdate();
+                toast.success(response.data.message || "Successfully left the course");
+              } catch (err: any) {
+                console.error("Error leaving course:", err);
+                toast.error(err.response?.data?.message || "Failed to leave course");
+              }
+            }}
+            className="px-3 py-1 bg-red-600 text-white rounded text-sm"
+          >
+            Leave
+          </button>
+        </div>
+      </div>,
+      { autoClose: false, closeOnClick: false }
+    );
   };
 
   return (

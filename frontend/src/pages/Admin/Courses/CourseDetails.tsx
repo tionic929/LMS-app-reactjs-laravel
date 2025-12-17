@@ -6,6 +6,7 @@ import { MdArrowBack, MdEdit, MdPeople, MdLibraryBooks, MdComment, MdAnnouncemen
 import { FaUserGraduate, FaLock, FaGlobe } from "react-icons/fa";
 import { RiDeleteBin6Line } from "react-icons/ri";
 import CourseTabs from "../Courses/CourseTabs";
+import { toast } from 'react-toastify';
 import CourseLearners from "../Courses/CourseLearners";
 import CourseRequests from "../Courses/CourseRequests";
 import CourseMaterials from "../Courses/CourseMaterials";
@@ -118,18 +119,50 @@ const CourseDetails: React.FC = () => {
     }
   };
 
-  const handleDisbandCourse = async () => {
-    if (!confirm("Are you sure you want to disband this course? This action cannot be undone.")) return;
+  const confirmWithToast = (message: string) => {
+    return new Promise<boolean>((resolve) => {
+      const id = toast.info(
+        <div className="max-w-sm">
+          <div className="mb-2">{message}</div>
+          <div className="flex gap-2 justify-end">
+            <button
+              onClick={() => {
+                toast.dismiss(id);
+                resolve(false);
+              }}
+              className="px-3 py-1 bg-gray-200 rounded text-sm"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={() => {
+                toast.dismiss(id);
+                resolve(true);
+              }}
+              className="px-3 py-1 bg-red-600 text-white rounded text-sm"
+            >
+              Delete
+            </button>
+          </div>
+        </div>,
+        { autoClose: false, closeOnClick: false }
+      );
+    });
+  };
 
-    if (!confirm("This is your last chance to cancel. Disbanding will remove the course for all learners.")) return;
+  const handleDisbandCourse = async () => {
+    const first = await confirmWithToast('Are you sure you want to disband this course? This action cannot be undone.');
+    if (!first) return;
+    const second = await confirmWithToast('This is your last chance to cancel. Disbanding will remove the course for all learners.');
+    if (!second) return;
 
     try {
-      await deleteCourse(courseId);
-      alert("Course disbanded successfully");
+      const res = await deleteCourse(courseId);
+      toast.success(res.data?.message || "Course disbanded successfully");
       navigate("/courses");
     } catch (err: any) {
       console.error("Error disbanding course:", err);
-      alert(err.response?.data?.message || "Failed to disband course");
+      toast.error(err.response?.data?.message || "Failed to disband course");
     }
   };
 
@@ -139,24 +172,25 @@ const CourseDetails: React.FC = () => {
     try {
       const response = await enrollInCourse(courseId);
       await fetchCourseData();
-      alert(response.data.message || "Successfully enrolled!");
+      toast.success(response.data.message || "Successfully enrolled!");
     } catch (err: any) {
       console.error("Error enrolling:", err);
-      alert(err.response?.data?.message || "Failed to enroll in course");
+      toast.error(err.response?.data?.message || "Failed to enroll in course");
     }
   };
 
   const handleLeaveCourse = async () => {
     if (!courseId) return;
-    if (!confirm("Are you sure you want to leave this course?")) return;
+    const confirmed = await confirmWithToast('Are you sure you want to leave this course?');
+    if (!confirmed) return;
 
     try {
       const response = await leaveCourse(courseId);
       await fetchCourseData();
-      alert(response.data.message || "Successfully left the course");
+      toast.success(response.data.message || "Successfully left the course");
     } catch (err: any) {
       console.error("Error leaving course:", err);
-      alert(err.response?.data?.message || "Failed to leave course");
+      toast.error(err.response?.data?.message || "Failed to leave course");
     }
   };
 
