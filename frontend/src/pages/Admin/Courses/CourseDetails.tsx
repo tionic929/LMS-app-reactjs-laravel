@@ -196,9 +196,115 @@ const CourseDetails: React.FC = () => {
 
   if (loading) {
     return (
-      <main className="flex-1 overflow-auto p-6">
-        <div className="max-w-4xl mx-auto text-center py-12">
-          <p className="text-gray-600">Loading course...</p>
+      <main className="flex-1 overflow-auto bg-gradient-to-br from-gray-50 to-gray-100">
+        <div className="max-w-7xl mx-auto px-4 py-6 space-y-6 animate-pulse">
+          {/* Breadcrumb skeleton */}
+          <div className="flex items-center justify-between">
+            <div className="h-5 bg-gray-200 rounded w-32"></div>
+            <div className="h-4 bg-gray-200 rounded w-48"></div>
+          </div>
+
+          {/* Hero Section skeleton */}
+          <section className="bg-white border border-gray-200 rounded-2xl shadow-lg p-6 sm:p-8">
+            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+              <div className="flex-1">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="h-6 w-6 bg-gray-200 rounded"></div>
+                  <div className="h-9 bg-gray-200 rounded w-64"></div>
+                </div>
+                <div className="h-5 bg-gray-200 rounded w-96 mb-4"></div>
+                <div className="flex flex-wrap items-center gap-4">
+                  <div className="h-7 bg-gray-200 rounded-full w-20"></div>
+                  <div className="h-7 bg-gray-200 rounded-full w-24"></div>
+                </div>
+              </div>
+              <div className="flex flex-col sm:flex-row gap-3">
+                <div className="h-10 bg-gray-200 rounded-lg w-32"></div>
+                <div className="h-10 bg-gray-200 rounded-lg w-32"></div>
+              </div>
+            </div>
+
+            {/* Progress bar skeleton */}
+            <div className="mt-6">
+              <div className="flex items-center justify-between mb-2">
+                <div className="h-4 bg-gray-200 rounded w-32"></div>
+                <div className="h-4 bg-gray-200 rounded w-24"></div>
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-3"></div>
+            </div>
+          </section>
+
+          {/* Main content grid skeleton */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Left column skeleton */}
+            <div className="lg:col-span-2 space-y-6">
+              {/* Description card skeleton */}
+              <section className="bg-white border border-gray-200 rounded-xl shadow-sm p-6">
+                <div className="flex items-center gap-2 mb-4">
+                  <div className="h-5 w-5 bg-gray-200 rounded"></div>
+                  <div className="h-6 bg-gray-200 rounded w-48"></div>
+                </div>
+                <div className="space-y-3">
+                  <div className="h-4 bg-gray-200 rounded w-full"></div>
+                  <div className="h-4 bg-gray-200 rounded w-5/6"></div>
+                  <div className="h-4 bg-gray-200 rounded w-4/6"></div>
+                </div>
+              </section>
+
+              {/* Tabs section skeleton */}
+              <section className="bg-white border border-gray-200 rounded-xl shadow-sm">
+                {/* Tab buttons skeleton */}
+                <div className="flex border-b border-gray-200 p-4 gap-2">
+                  <div className="h-10 bg-gray-200 rounded w-24"></div>
+                  <div className="h-10 bg-gray-200 rounded w-24"></div>
+                  <div className="h-10 bg-gray-200 rounded w-24"></div>
+                  <div className="h-10 bg-gray-200 rounded w-24"></div>
+                </div>
+                {/* Tab content skeleton */}
+                <div className="p-6 space-y-4">
+                  <div className="h-20 bg-gray-200 rounded"></div>
+                  <div className="h-20 bg-gray-200 rounded"></div>
+                  <div className="h-20 bg-gray-200 rounded"></div>
+                </div>
+              </section>
+            </div>
+
+            {/* Right sidebar skeleton */}
+            <aside className="lg:col-span-1 space-y-6">
+              {/* Stats card skeleton */}
+              <section className="bg-white border border-gray-200 rounded-xl shadow-sm p-6">
+                <div className="flex items-center gap-2 mb-4">
+                  <div className="h-5 w-5 bg-gray-200 rounded"></div>
+                  <div className="h-6 bg-gray-200 rounded w-32"></div>
+                </div>
+                <div className="grid grid-cols-1 gap-4">
+                  {[...Array(5)].map((_, i) => (
+                    <div key={i} className="p-4 rounded-lg border border-gray-200">
+                      <div className="flex items-center gap-3">
+                        <div className="h-8 w-8 bg-gray-200 rounded-full"></div>
+                        <div className="flex-1">
+                          <div className="h-3 bg-gray-200 rounded w-20 mb-2"></div>
+                          <div className="h-5 bg-gray-200 rounded w-12"></div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </section>
+
+              {/* Instructor card skeleton */}
+              <section className="bg-white border border-gray-200 rounded-xl shadow-sm p-6">
+                <div className="h-6 bg-gray-200 rounded w-24 mb-4"></div>
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-gray-200 rounded-full"></div>
+                  <div className="flex-1">
+                    <div className="h-4 bg-gray-200 rounded w-32 mb-2"></div>
+                    <div className="h-3 bg-gray-200 rounded w-24"></div>
+                  </div>
+                </div>
+              </section>
+            </aside>
+          </div>
         </div>
       </main>
     );

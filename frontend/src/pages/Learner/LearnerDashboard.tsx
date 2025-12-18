@@ -148,10 +148,74 @@ export const LearnerDashboard: React.FC = () => {
         </div>
 
         {loading ? (
-          <div className="flex items-center justify-center py-20">
-            <div className="text-center">
-              <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-              <p className="mt-4 text-gray-500">Loading your dashboard...</p>
+          <div className="animate-pulse">
+            {/* Stats skeleton */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+              {[...Array(4)].map((_, i) => (
+                <div key={i} className="bg-white p-6 rounded-xl shadow-lg h-40 border border-gray-100">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <div className="h-4 bg-gray-200 rounded w-28 mb-3"></div>
+                      <div className="h-8 bg-gray-200 rounded w-20"></div>
+                    </div>
+                    <div className="h-10 w-10 bg-gray-200 rounded-full" />
+                  </div>
+                  <div className="h-3 bg-gray-200 rounded w-24 mt-4" />
+                </div>
+              ))}
+            </div>
+
+            {/* Main Content Grid skeleton */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Left Column - Courses skeleton */}
+              <div className="lg:col-span-2 space-y-6">
+                <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="h-6 bg-gray-200 rounded w-48" />
+                    <div className="h-4 bg-gray-200 rounded w-24" />
+                  </div>
+
+                  <div className="space-y-4">
+                    {[...Array(3)].map((_, idx) => (
+                      <div key={idx} className="group relative overflow-hidden rounded-lg border border-gray-200 bg-white p-4">
+                        <div className="absolute top-0 left-0 h-full w-1 bg-gradient-to-b from-blue-500 to-indigo-500 opacity-30"></div>
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex-1 min-w-0">
+                            <div className="h-5 bg-gray-200 rounded w-3/4 mb-2"></div>
+                            <div className="space-y-2">
+                              <div className="h-3 bg-gray-200 rounded w-full"></div>
+                              <div className="h-3 bg-gray-200 rounded w-5/6"></div>
+                            </div>
+                          </div>
+                          <div className="flex flex-col sm:flex-row gap-2 flex-shrink-0">
+                            <div className="h-8 w-28 bg-gray-200 rounded" />
+                            <div className="h-8 w-20 bg-gray-200 rounded" />
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Right Column - Announcements skeleton */}
+              <aside className="space-y-6">
+                <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100">
+                  <div className="flex items-center gap-2 mb-4">
+                    <div className="h-5 w-5 bg-gray-200 rounded" />
+                    <div className="h-6 bg-gray-200 rounded w-36" />
+                  </div>
+                  <div className="space-y-3">
+                    {[...Array(4)].map((_, i) => (
+                      <div key={i} className="p-3 rounded-lg bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-100">
+                        <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+                        <div className="h-3 bg-gray-200 rounded w-5/6 mb-2"></div>
+                        <div className="h-3 bg-gray-200 rounded w-1/3"></div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </aside>
             </div>
           </div>
         ) : error ? (
