@@ -192,6 +192,62 @@ class CourseController extends Controller
     }
 
     /**
+     * Instructor dashboard data: own courses + enrolled learners.
+     */
+    public function instructorDashboard(Request $request)
+    {
+        // Double-check role even though route is middleware-protected.
+        if (!auth()->check() || auth()->user()->role !== 'instructor') {
+            return response()->json(['message' => 'Forbidden'], 403);
+        }
+
+        $courses = Course::query()
+            ->where('status', 'active')
+            ->where('instructor_id', auth()->id())
+            ->withCount('activeLearners')
+            ->with([
+                'activeLearners' => function ($q) {
+                    $q->select('users.id', 'users.name', 'users.email')
+                        ->withPivot('status', 'created_at')
+                        ->orderBy('course_enrollments.created_at', 'desc');
+                },
+            ])
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        $totalCourses = $courses->count();
+        $totalEnrolled = (int) $courses->sum('active_learners_count');
+
+        $coursesPayload = $courses->map(function (Course $course) {
+            return [
+                'id' => $course->id,
+                'title' => $course->title,
+                'privacy' => $course->privacy,
+                'capacity' => $course->capacity,
+                'current_enrolled' => $course->current_enrolled,
+                'active_learners_count' => (int) $course->active_learners_count,
+                'learners' => $course->activeLearners->map(function ($learner) {
+                    return [
+                        'id' => $learner->id,
+                        'name' => $learner->name,
+                        'email' => $learner->email,
+                        'enrolled_at' => optional($learner->pivot->created_at)->format('n/j/Y'),
+                        'status' => $learner->pivot->status,
+                    ];
+                })->values(),
+            ];
+        })->values();
+
+        return response()->json([
+            'metrics' => [
+                'total_courses' => $totalCourses,
+                'total_enrolled' => $totalEnrolled,
+            ],
+            'courses' => $coursesPayload,
+        ]);
+    }
+
+    /**
      * Remove a learner from course
      */
     public function removeLearner(Course $course, $userId)
@@ -234,7 +290,7 @@ class CourseController extends Controller
 
         $requests = $course->joinRequests()->with('user')->get();
 
-        return response()->json($requests);
+        return response()->json($request);
     }
 
     /**

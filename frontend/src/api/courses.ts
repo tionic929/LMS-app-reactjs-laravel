@@ -231,3 +231,13 @@ export const unbanLearnerFromComments = async (
 export const getCourseBannedLearners = async (courseId: string | number) => {
   return api.get(`/courses/${courseId}/bans`);
 };
+
+// Instructor dashboard
+export const getInstructorDashboard = async () => {
+  return api.get('/instructor/dashboard', {
+    headers: {
+      Accept: 'application/json',
+      'X-Requested-With': 'XMLHttpRequest',
+    },
+  });
+};

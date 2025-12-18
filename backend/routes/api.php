@@ -90,6 +90,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/users/{user}/avatar', [UsersController::class, 'deleteAvatar']);
 });
 
+// Instructor dashboard
+Route::middleware(['auth:sanctum'])->group(function () {
+    Route::get('/instructor/dashboard', [CourseController::class, 'instructorDashboard']);
+});
+
 // Admin-authored announcements (placed BEFORE resource to avoid parameter capture of 'admin')
 Route::get('announcements/admin', [AnnouncementController::class, 'adminIndex']);
 
