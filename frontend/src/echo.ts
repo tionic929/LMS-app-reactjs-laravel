@@ -42,3 +42,21 @@ export const echo = new Echo({
         };
     },
 });
+
+// Subscribe helper for user notifications. Returns an unsubscribe function.
+export function subscribeToUserNotifications(userId: number, onNotification: (payload: any) => void) {
+    if (!userId) return () => {};
+    try {
+        const channelName = `private-user.${userId}`;
+        const ch = (echo as any).private(`user.${userId}`);
+        ch.listen('.NewNotification', (e: any) => {
+            onNotification(e);
+        });
+
+        return () => {
+            try { (echo as any).leave(channelName); } catch (e) { /* ignore */ }
+        };
+    } catch (e) {
+        return () => {};
+    }
+}

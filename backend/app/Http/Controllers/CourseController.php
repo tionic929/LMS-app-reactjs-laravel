@@ -15,6 +15,7 @@ use App\Http\Requests\StoreCourseRequest;
 use App\Http\Requests\UpdateCourseRequest;
 use Illuminate\Http\Request;
 use App\Events\CommentEvent;
+use App\Services\NotificationService;
 
 class CourseController extends Controller
 {
@@ -255,6 +256,14 @@ class CourseController extends Controller
             ->where('status', 'accepted')
             ->delete();
 
+        // Notify the learner that they were removed
+        try {
+            $message = "You have been removed from the course: {$course->title}";
+            app(NotificationService::class)->send('user', $userId, $message, 'warning', url("/courses/{$course->id}"));
+        } catch (\Exception $e) {
+            // do not fail the main flow if notification fails
+        }
+
         return response()->json(['message' => 'Learner removed successfully']);
     }
 
@@ -315,6 +324,13 @@ class CourseController extends Controller
             $course->increment('current_enrolled');
         }
 
+        try {
+            $message = "Your request to join the course '{$course->title}' has been accepted.";
+            app(NotificationService::class)->send('user', $request->user_id, $message, 'success', url("/courses/{$course->id}"));
+        } catch (\Exception $e) {
+            // do not fail the main flow if notification fails
+        }
+
         return response()->json(['message' => 'Request accepted']);
     }
 
@@ -334,6 +350,13 @@ class CourseController extends Controller
         }
 
         $request->update(['status' => 'rejected']);
+
+        try {
+            $message = "Your request to join the course '{$course->title}' has been rejected.";
+            app(NotificationService::class)->send('user', $request->user_id, $message, 'info', url("/courses/{$course->id}"));
+        } catch (\Exception $e) {
+            // do not fail the main flow if notification fails
+        }
 
         return response()->json(['message' => 'Request rejected']);
     }
@@ -751,6 +774,18 @@ class CourseController extends Controller
                 'user_id' => $user->id,
                 'status' => 'pending',
             ]);
+
+            try {
+                $count = CourseJoinRequest::where('course_id', $course->id)
+                    ->where('status', 'pending')
+                    ->count();
+                $message = "You have {$count} pending join request(s) for \"{$course->title}\"";
+                app(\App\Services\NotificationService::class)
+                    ->send('user', $course->instructor_id, $message, 'info', url("/courses/{$course->id}/join-requests"));
+            } catch (\Exception $e) {
+                // don't fail enroll flow if notification fails
+            }
+
             return response()->json(['message' => 'Join request submitted']);
         }
     }
@@ -805,6 +840,14 @@ class CourseController extends Controller
             'reason' => request('reason'),
         ]);
 
+        // Notify the learner about the ban
+        try {
+            $message = "You have been banned from commenting in the course: {$course->title}";
+            app(NotificationService::class)->send('user', $userId, $message, 'warning', url("/courses/{$course->id}"));
+        } catch (\Exception $e) {
+            // ignore notification errors
+        }
+
         return response()->json(['message' => 'User banned from commenting successfully']);
     }
 
@@ -829,6 +872,13 @@ class CourseController extends Controller
         }
 
         $ban->delete();
+
+        try {
+            $message = "You have been unbanned from commenting in the course: {$course->title}";
+            app(NotificationService::class)->send('user', $userId, $message, 'info', url("/courses/{$course->id}"));
+        } catch (\Exception $e) {
+            // ignore notification errors
+        }
 
         return response()->json(['message' => 'User unbanned from commenting successfully']);
     }

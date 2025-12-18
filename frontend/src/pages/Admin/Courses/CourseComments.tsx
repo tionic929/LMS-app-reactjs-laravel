@@ -73,23 +73,102 @@ const CourseComments: React.FC<CourseCommentsProps> = ({
   const [dropdownOpen, setDropdownOpen] = useState<number | null>(null);
   const [hiddenReplies, setHiddenReplies] = useState<Set<number>>(new Set());
   const [localComments, setLocalComments] = useState<Comment[]>(comments);
+  const tempIdRef = React.useRef<number>(-1);
+
+  // Recursive helpers used across handlers
+  const existsInList = (list: Comment[], id: number): boolean => {
+    for (const c of list) {
+      if (c.id === id) return true;
+      if (c.replies && existsInList(c.replies, id)) return true;
+    }
+    return false;
+  };
+
+  const removeMatching = (list: Comment[], predicate: (c: Comment) => boolean): Comment[] => {
+    return list
+      .filter((c) => !predicate(c))
+      .map((c) => ({ ...c, replies: c.replies ? removeMatching(c.replies, predicate) : c.replies }));
+  };
+
+  const appendReplyRec = (list: Comment[], parentId: number, incoming: Comment): { list: Comment[]; found: boolean } => {
+    let found = false;
+    const out = list.map((c) => {
+      if (c.id === parentId) {
+        found = true;
+        const replies = c.replies ? [...c.replies, incoming] : [incoming];
+        return { ...c, replies, replies_count: (c.replies_count || 0) + 1 };
+      }
+      if (c.replies && c.replies.length) {
+        const res = appendReplyRec(c.replies, parentId, incoming);
+        if (res.found) {
+          found = true;
+          return { ...c, replies: res.list };
+        }
+      }
+      return c;
+    });
+    return { list: out, found };
+  };
 
   const insertCommentLocal = (newComment: Comment) => {
-    if (newComment.parent_id) {
-      setLocalComments((prev) =>
-        prev.map((c) => {
-          if (c.id === newComment.parent_id) {
-            const replies = c.replies
-              ? [...c.replies, newComment]
-              : [newComment];
-            return { ...c, replies, replies_count: (c.replies_count || 0) + 1 };
+    // Helpers: recursive existence and remove-anywhere
+    const exists = (list: Comment[], id: number): boolean => {
+      for (const c of list) {
+        if (c.id === id) return true;
+        if (c.replies && exists(c.replies, id)) return true;
+      }
+      return false;
+    };
+
+    const removeById = (list: Comment[], id: number): Comment[] => {
+      return list
+        .filter((c) => c.id !== id)
+        .map((c) => ({ ...c, replies: c.replies ? removeById(c.replies, id) : c.replies }));
+    };
+
+    const appendReply = (list: Comment[], parentId: number, incoming: Comment): { list: Comment[]; found: boolean } => {
+      let found = false;
+      const out = list.map((c) => {
+        if (c.id === parentId) {
+          found = true;
+          const replies = c.replies ? [...c.replies, incoming] : [incoming];
+          return { ...c, replies, replies_count: (c.replies_count || 0) + 1 };
+        }
+        if (c.replies && c.replies.length) {
+          const res = appendReply(c.replies, parentId, incoming);
+          if (res.found) {
+            found = true;
+            return { ...c, replies: res.list };
           }
-          return c;
-        })
-      );
-    } else {
-      setLocalComments((prev) => [newComment, ...prev]);
-    }
+        }
+        return c;
+      });
+      return { list: out, found };
+    };
+
+    setLocalComments((prev) => {
+      // remove any existing occurrences of this id to avoid duplicates
+      let base = removeById(prev, newComment.id);
+
+      if (newComment.parent_id) {
+        // also remove stray duplicates of this reply before inserting
+        base = removeById(base, newComment.id);
+        const res = appendReply(base, newComment.parent_id, newComment);
+        if (res.found) {
+          // reveal parent replies when a new reply is added
+          setHiddenReplies((s) => {
+            const ns = new Set(s);
+            ns.delete(newComment.parent_id!);
+            return ns;
+          });
+          return res.list;
+        }
+        // parent not found in current list; append as top-level fallback
+        return [newComment, ...base];
+      }
+
+      return [newComment, ...base];
+    });
   };
 
   const updateCommentLocal = (updated: Comment) => {
@@ -194,29 +273,77 @@ const CourseComments: React.FC<CourseCommentsProps> = ({
     const channel = echo.channel(`course.${courseId}`);
 
     channel.listen("CommentEvent", (e: any) => {
+      console.debug("CommentEvent received:", e);
       const incoming: Comment = e.comment;
+
+      // Ensure user info exists to avoid Unknown User displays
+      if (!incoming.user) {
+        incoming.user = incoming.user || {
+          id: (e.user_id as number) || 0,
+          name: (incoming as any).user_name || "Unknown User",
+          role: "learner",
+        } as User;
+      }
+
       if (["created", "added"].includes(e.action)) {
         setLocalComments((prev) => {
-          if (prev.some((c) => c.id === incoming.id)) return prev;
+          // helper to check existence recursively
+          const exists = (list: Comment[], id: number): boolean => {
+            for (const c of list) {
+              if (c.id === id) return true;
+              if (c.replies && exists(c.replies, id)) return true;
+            }
+            return false;
+          };
+
+          if (exists(prev, incoming.id)) return prev;
+
+          // remove any matching stubs (negative id) by content+user anywhere in tree
+          const filtered = removeMatching(prev, (c) => c.id < 0 && c.content === incoming.content && c.user?.id === incoming.user?.id);
+
+          // append reply to nested parent if possible
+          const appendReply = (list: Comment[], parentId: number, incomingComment: Comment): { list: Comment[]; found: boolean } => {
+            let found = false;
+            const out = list.map((c) => {
+              if (c.id === parentId) {
+                found = true;
+                const replies = c.replies ? [...c.replies, incomingComment] : [incomingComment];
+                return { ...c, replies, replies_count: (c.replies_count || 0) + 1 };
+              }
+              if (c.replies && c.replies.length) {
+                const res = appendReply(c.replies, parentId, incomingComment);
+                if (res.found) {
+                  found = true;
+                  return { ...c, replies: res.list };
+                }
+              }
+              return c;
+            });
+            return { list: out, found };
+          };
+
           if (incoming.parent_id) {
-            return prev.map((c) =>
-              c.id === incoming.parent_id
-                ? {
-                    ...c,
-                    replies: c.replies ? [...c.replies, incoming] : [incoming],
-                    replies_count: (c.replies_count || 0) + 1,
-                  }
-                : c
-            );
+            const res = appendReplyRec(filtered, incoming.parent_id, incoming);
+            if (res.found) {
+              // reveal parent replies
+              setHiddenReplies((s) => {
+                const ns = new Set(s);
+                ns.delete(incoming.parent_id!);
+                return ns;
+              });
+              return res.list;
+            }
+            // parent not found, fallback to top-level
+            return [incoming, ...filtered];
           }
-          return [incoming, ...prev];
+
+          return [incoming, ...filtered];
         });
         return;
       }
 
       if (e.action === "updated") updateCommentLocal(incoming);
-      if (e.action === "deleted")
-        removeCommentLocal(incoming.id, incoming.parent_id);
+      if (e.action === "deleted") removeCommentLocal(incoming.id, incoming.parent_id);
     });
 
     return () => {
@@ -232,14 +359,38 @@ const CourseComments: React.FC<CourseCommentsProps> = ({
     if (!newComment.trim()) return;
 
     try {
-      // await addCourseComment(courseId, newComment);
-      // onCommentAction();
-      const res = await addCourseComment(courseId, newComment);
-      const created: Comment = res.data;
-      // setLocalComments((prev) => [res.data, ...prev]);
-      insertCommentLocal(created);
+      // optimistic stub
+      const tempId = tempIdRef.current--;
+      const stub: Comment = {
+        id: tempId,
+        content: newComment,
+        created_at: new Date().toISOString(),
+        upvotes_count: 0,
+        downvotes_count: 0,
+        user_vote: null,
+        user: (currentUser as User) || { id: 0, name: 'You', role: 'learner' },
+        parent_id: undefined,
+        reply_to_user: undefined,
+        replies: [],
+        replies_count: 0,
+        is_nested_reply: false,
+      } as Comment;
+      insertCommentLocal(stub);
       setNewComment("");
-      toast.success("Comment posted!");
+
+      const res = await addCourseComment(courseId, newComment);
+      const created: Comment = res.data.comment ?? res.data;
+
+      // Replace the specific stub and remove any other temporary stubs recursively
+      setLocalComments((prev) => {
+        // remove stubs by tempId OR content+user anywhere
+        const filtered = removeMatching(prev, (c) => c.id < 0 && (c.id === tempId || (c.content === created.content && c.user?.id === created.user?.id)));
+
+        // ensure created isn't already present anywhere
+        if (existsInList(filtered, created.id)) return filtered;
+
+        return [created, ...filtered];
+      });
       toast.success("Comment posted!");
     } catch (err: any) {
       console.error("Error adding comment:", err);
@@ -262,19 +413,53 @@ const CourseComments: React.FC<CourseCommentsProps> = ({
     if (!replyContent.trim()) return;
 
     try {
-      // await addCourseComment(courseId, replyContent, parentId, replyToUserId);
-      // onCommentAction();
-      const res = await addCourseComment(
-        courseId,
-        replyContent,
-        parentId,
-        replyToUserId
-      );
-      const created: Comment = res.data;
-      insertCommentLocal(created);
+      // optimistic stub for reply
+      const tempId = tempIdRef.current--;
+      const stub: Comment = {
+        id: tempId,
+        content: replyContent,
+        created_at: new Date().toISOString(),
+        upvotes_count: 0,
+        downvotes_count: 0,
+        user_vote: null,
+        user: (currentUser as User) || { id: 0, name: 'You', role: 'learner' },
+        parent_id: parentId,
+        reply_to_user: replyingTo ? { id: replyingTo.userId, name: replyingTo.userName, role: 'learner' } : undefined,
+        replies: [],
+        replies_count: 0,
+        is_nested_reply: true,
+      } as Comment;
+      insertCommentLocal(stub);
       setReplyContent("");
       setReplyingTo(null);
-      toast.success("Reply posted!");
+
+      const res = await addCourseComment(courseId, replyContent, parentId, replyToUserId);
+      const created: Comment = res.data.comment ?? res.data;
+
+      setLocalComments((prev) => {
+        // remove the stub and any other matching stubs recursively
+        const withoutStubs = removeMatching(prev, (c) => c.id < 0 && (c.id === tempId || (c.content === created.content && c.user?.id === created.user?.id)));
+
+        // If parent exists in list (nested), attach created to its replies
+        if (created.parent_id) {
+          const res = appendReplyRec(withoutStubs, created.parent_id, created);
+          if (res.found) {
+            // reveal replies
+            setHiddenReplies((s) => {
+              const ns = new Set(s);
+              ns.delete(created.parent_id!);
+              return ns;
+            });
+            return res.list;
+          }
+        }
+
+        // ensure created isn't present anywhere
+        if (existsInList(withoutStubs, created.id)) return withoutStubs;
+
+        // Fallback: insert created at top-level
+        return [created, ...withoutStubs];
+      });
       toast.success("Reply posted!");
     } catch (err: any) {
       console.error("Error adding reply:", err);
@@ -381,7 +566,7 @@ const handleVote = async (commentId: number, voteType: "upvote" | "downvote") =>
       // await updateComment(courseId, commentId, editContent);
       // onCommentAction();
       const res = await updateComment(courseId, commentId, editContent);
-      const updated: Comment = res.data;
+      const updated: Comment = res.data.comment ?? res.data;
       updateCommentLocal(updated);
       setEditingComment(null);
       setEditContent("");
@@ -479,6 +664,16 @@ const handleVote = async (commentId: number, voteType: "upvote" | "downvote") =>
     [localComments, hiddenReplies]
   );
 
+  useEffect(() => {
+    // debug: detect duplicate ids in flattened comments
+    const seen = new Map<number, number>();
+    allComments.forEach((c) => seen.set(c.id, (seen.get(c.id) || 0) + 1));
+    const duplicates = Array.from(seen.entries()).filter(([, count]) => count > 1);
+    if (duplicates.length) {
+      console.warn('Duplicate comment IDs in flattened list:', duplicates);
+    }
+  }, [allComments]);
+
   const renderComment = (comment: Comment, isReply: boolean = false) => (
     <div
       key={comment.id}
@@ -529,7 +724,14 @@ const handleVote = async (commentId: number, voteType: "upvote" | "downvote") =>
                 </span>
               )}
               <span className="text-xs text-gray-500">
-                {new Date(comment.created_at).toLocaleDateString()}
+                {(() => {
+                  try {
+                    const d = comment.created_at ? new Date(comment.created_at) : new Date();
+                    return isNaN(d.getTime()) ? "Just now" : d.toLocaleDateString();
+                  } catch (e) {
+                    return "Just now";
+                  }
+                })()}
               </span>
             </div>
 
@@ -548,7 +750,7 @@ const handleVote = async (commentId: number, voteType: "upvote" | "downvote") =>
                   <MdMoreHoriz className="w-5 h-5 text-gray-500" />
                 </button>
 
-                {dropdownOpen === comment.id && (
+                {dropdownOpen === comment.id && comment.id >= 0 && (
                   <div className="absolute right-0 mt-1 w-32 bg-white border border-gray-200 rounded-md shadow-lg z-10">
                     <button
                       type="button"
@@ -578,7 +780,7 @@ const handleVote = async (commentId: number, voteType: "upvote" | "downvote") =>
             )}
           </div>
           {/* Comment content or edit form */}
-          {editingComment?.commentId === comment.id ? (
+            {editingComment?.commentId === comment.id ? (
             <div className="mt-2">
               <textarea
                 value={editContent}
@@ -589,8 +791,9 @@ const handleVote = async (commentId: number, voteType: "upvote" | "downvote") =>
               <div className="flex gap-2 mt-2">
                 <button
                   type="button"
-                  onClick={() => handleEditComment(comment.id)}
-                  className="px-3 py-1 bg-blue-500 text-white rounded-md hover:bg-blue-600 text-sm flex items-center gap-1"
+                  onClick={() => comment.id >= 0 && handleEditComment(comment.id)}
+                  disabled={comment.id < 0}
+                  className={`px-3 py-1 bg-blue-500 text-white rounded-md hover:bg-blue-600 text-sm flex items-center gap-1 ${comment.id < 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
                 >
                   <BsSend className="h-3 w-3" />
                   Save
@@ -648,7 +851,7 @@ const handleVote = async (commentId: number, voteType: "upvote" | "downvote") =>
                 )}
               </button>
               <span className="text-sm font-medium text-gray-700 min-w-[20px] text-center">
-                {comment.upvotes_count - comment.downvotes_count}
+                {(comment.upvotes_count || 0) - (comment.downvotes_count || 0)}
               </span>
               <button
                 type="button"
@@ -675,13 +878,15 @@ const handleVote = async (commentId: number, voteType: "upvote" | "downvote") =>
 
             <button
               type="button"
-              onClick={() =>
-                setReplyingTo({
-                  commentId: isReply ? comment.id : comment.id,
-                  userId: comment.user.id,
-                  userName: comment.user.name,
-                })
-              }
+                onClick={() => {
+                  if (comment.id < 0) return; // disable replying to optimistic stub
+                  if (!comment.user) return;
+                  setReplyingTo({
+                    commentId: comment.id,
+                    userId: comment.user.id || 0,
+                    userName: comment.user.name || "User",
+                  });
+                }}
               className="text-sm text-gray-600 hover:text-blue-600 flex items-center gap-1"
             >
               <FaReply className="w-3 h-3" />
@@ -716,12 +921,12 @@ const handleVote = async (commentId: number, voteType: "upvote" | "downvote") =>
           </div>
 
           {/* Reply form */}
-          {replyingTo?.commentId === comment.id && (
+            {replyingTo?.commentId === comment.id && (
             <div className="mt-3 ml-0">
               <textarea
                 value={replyContent}
                 onChange={(e) => setReplyContent(e.target.value)}
-                placeholder={`Reply to ${replyingTo.userName}...`}
+                placeholder={`Reply to ${replyingTo?.userName ?? ""}...`}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md text-black text-sm"
                 rows={2}
               />
@@ -840,7 +1045,9 @@ const handleVote = async (commentId: number, voteType: "upvote" | "downvote") =>
                 {localComments.length === 1 ? "Comment" : "Comments"}
               </h3>
             </div>
-            {allComments.map((comment) => renderComment(comment, !!comment.parent_id))}
+            {allComments.map((comment) => (
+              <div key={`c-${comment.id}`}>{renderComment(comment, !!comment.parent_id)}</div>
+            ))}
           </>
         )}
       </div>
