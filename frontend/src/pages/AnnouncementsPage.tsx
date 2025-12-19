@@ -382,34 +382,46 @@ const AnnouncementsPage: React.FC = () => {
       </header>
 
       {/* Overview */}
-      <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="rounded-xl border bg-white p-4 shadow-sm">
-          <div className="text-xs font-medium text-gray-500">Visible</div>
-          <div className="mt-1 text-2xl font-bold text-gray-900">{filteredAnnouncements.length}</div>
-          <div className="mt-1 text-xs text-gray-600">of {announcements.length} total announcements</div>
-        </div>
-        <div className="rounded-xl border bg-white p-4 shadow-sm">
-          <div className="text-xs font-medium text-indigo-700 inline-flex items-center gap-2">
-            <MdCampaign className="w-4 h-4" /> News
+      {loading ? (
+        <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 animate-pulse">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="rounded-xl border bg-white p-4 shadow-sm">
+              <div className="h-3 bg-gray-200 rounded w-20 mb-2"></div>
+              <div className="h-8 bg-gray-200 rounded w-16 mb-2"></div>
+              <div className="h-3 bg-gray-200 rounded w-32"></div>
+            </div>
+          ))}
+        </section>
+      ) : (
+        <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="rounded-xl border bg-white p-4 shadow-sm">
+            <div className="text-xs font-medium text-gray-500">Visible</div>
+            <div className="mt-1 text-2xl font-bold text-gray-900">{filteredAnnouncements.length}</div>
+            <div className="mt-1 text-xs text-gray-600">of {announcements.length} total announcements</div>
           </div>
-          <div className="mt-1 text-2xl font-bold text-gray-900">{newsAnnouncements.length}</div>
-          <div className="mt-1 text-xs text-gray-600">Updates and important notices</div>
-        </div>
-        <div className="rounded-xl border bg-white p-4 shadow-sm">
-          <div className="text-xs font-medium text-emerald-700 inline-flex items-center gap-2">
-            <IoMdCalendar className="w-4 h-4" /> Events
+          <div className="rounded-xl border bg-white p-4 shadow-sm">
+            <div className="text-xs font-medium text-indigo-700 inline-flex items-center gap-2">
+              <MdCampaign className="w-4 h-4" /> News
+            </div>
+            <div className="mt-1 text-2xl font-bold text-gray-900">{newsAnnouncements.length}</div>
+            <div className="mt-1 text-xs text-gray-600">Updates and important notices</div>
           </div>
-          <div className="mt-1 text-2xl font-bold text-gray-900">{eventAnnouncements.length}</div>
-          <div className="mt-1 text-xs text-gray-600">Upcoming schedules and sessions</div>
-        </div>
-        <div className="rounded-xl border bg-white p-4 shadow-sm">
-          <div className="text-xs font-medium text-gray-700 inline-flex items-center gap-2">
-            <IoMdInformationCircle className="w-4 h-4" /> General
+          <div className="rounded-xl border bg-white p-4 shadow-sm">
+            <div className="text-xs font-medium text-emerald-700 inline-flex items-center gap-2">
+              <IoMdCalendar className="w-4 h-4" /> Events
+            </div>
+            <div className="mt-1 text-2xl font-bold text-gray-900">{eventAnnouncements.length}</div>
+            <div className="mt-1 text-xs text-gray-600">Upcoming schedules and sessions</div>
           </div>
-          <div className="mt-1 text-2xl font-bold text-gray-900">{generalAnnouncements.length}</div>
-          <div className="mt-1 text-xs text-gray-600">General announcements and reminders</div>
-        </div>
-      </section>
+          <div className="rounded-xl border bg-white p-4 shadow-sm">
+            <div className="text-xs font-medium text-gray-700 inline-flex items-center gap-2">
+              <IoMdInformationCircle className="w-4 h-4" /> General
+            </div>
+            <div className="mt-1 text-2xl font-bold text-gray-900">{generalAnnouncements.length}</div>
+            <div className="mt-1 text-xs text-gray-600">General announcements and reminders</div>
+          </div>
+        </section>
+      )}
 
       {/* Content */}
       <div className="mt-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
@@ -431,7 +443,40 @@ const AnnouncementsPage: React.FC = () => {
 
             <div className="p-5">
               {loading ? (
-                <p className="text-sm text-gray-600">Loading announcements...</p>
+                <div className="space-y-4 animate-pulse">
+                  {[...Array(4)].map((_, i) => (
+                    <div key={i} className="rounded-xl bg-white border shadow-sm border-l-4 border-gray-300">
+                      <div className="p-5">
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex flex-wrap items-center gap-2 mb-3">
+                              <div className="h-5 bg-gray-200 rounded-full w-20"></div>
+                              <div className="h-5 bg-gray-200 rounded-full w-28"></div>
+                            </div>
+                            <div className="h-6 bg-gray-200 rounded w-3/4 mb-3"></div>
+                            <div className="space-y-2">
+                              <div className="h-4 bg-gray-200 rounded w-full"></div>
+                              <div className="h-4 bg-gray-200 rounded w-5/6"></div>
+                              <div className="h-4 bg-gray-200 rounded w-4/6"></div>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <div className="h-9 w-20 bg-gray-200 rounded-lg"></div>
+                            <div className="h-9 w-24 bg-gray-200 rounded-lg"></div>
+                          </div>
+                        </div>
+                        <div className="mt-4 flex gap-2">
+                          <div className="h-6 bg-gray-200 rounded-full w-32"></div>
+                          <div className="h-6 bg-gray-200 rounded-full w-24"></div>
+                        </div>
+                        <div className="mt-4 flex gap-4">
+                          <div className="h-3 bg-gray-200 rounded w-28"></div>
+                          <div className="h-3 bg-gray-200 rounded w-32"></div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               ) : error ? (
                 <div className="text-sm text-red-600">
                   <p className="mb-2">Error: {error}</p>

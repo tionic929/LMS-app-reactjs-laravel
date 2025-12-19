@@ -140,18 +140,83 @@ export const LearnerDashboard: React.FC = () => {
     <div className="min-h-screen bg-gray-50 p-6 sm:p-8">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="mb-8">
+        <div className="mb-6">
           <h1 className="text-4xl font-extrabold text-gray-900 mb-2">
-            Welcome back, {user?.name?.split(' ')[0] || 'Learner'}! 👋
+            {getTimeGreeting()}, {user?.name?.split(' ')[0] || 'Learner'}! 👋
           </h1>
           <p className="text-gray-600">Track your learning journey and stay updated with your courses</p>
         </div>
 
+
         {loading ? (
-          <div className="flex items-center justify-center py-20">
-            <div className="text-center">
-              <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-              <p className="mt-4 text-gray-500">Loading your dashboard...</p>
+          <div className="animate-pulse">
+            {/* Stats skeleton */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+              {[...Array(4)].map((_, i) => (
+                <div key={i} className="bg-white p-6 rounded-xl shadow-lg h-40 border border-gray-100">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <div className="h-4 bg-gray-200 rounded w-28 mb-3"></div>
+                      <div className="h-8 bg-gray-200 rounded w-20"></div>
+                    </div>
+                    <div className="h-10 w-10 bg-gray-200 rounded-full" />
+                  </div>
+                  <div className="h-3 bg-gray-200 rounded w-24 mt-4" />
+                </div>
+              ))}
+            </div>
+
+            {/* Main Content Grid skeleton */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Left Column - Courses skeleton */}
+              <div className="lg:col-span-2 space-y-6">
+                <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="h-6 bg-gray-200 rounded w-48" />
+                    <div className="h-4 bg-gray-200 rounded w-24" />
+                  </div>
+
+                  <div className="space-y-4">
+                    {[...Array(3)].map((_, idx) => (
+                      <div key={idx} className="group relative overflow-hidden rounded-lg border border-gray-200 bg-white p-4">
+                        <div className="absolute top-0 left-0 h-full w-1 bg-gradient-to-b from-blue-500 to-indigo-500 opacity-30"></div>
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex-1 min-w-0">
+                            <div className="h-5 bg-gray-200 rounded w-3/4 mb-2"></div>
+                            <div className="space-y-2">
+                              <div className="h-3 bg-gray-200 rounded w-full"></div>
+                              <div className="h-3 bg-gray-200 rounded w-5/6"></div>
+                            </div>
+                          </div>
+                          <div className="flex flex-col sm:flex-row gap-2 flex-shrink-0">
+                            <div className="h-8 w-28 bg-gray-200 rounded" />
+                            <div className="h-8 w-20 bg-gray-200 rounded" />
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Right Column - Announcements skeleton */}
+              <aside className="space-y-6">
+                <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100">
+                  <div className="flex items-center gap-2 mb-4">
+                    <div className="h-5 w-5 bg-gray-200 rounded" />
+                    <div className="h-6 bg-gray-200 rounded w-36" />
+                  </div>
+                  <div className="space-y-3">
+                    {[...Array(4)].map((_, i) => (
+                      <div key={i} className="p-3 rounded-lg bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-100">
+                        <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+                        <div className="h-3 bg-gray-200 rounded w-5/6 mb-2"></div>
+                        <div className="h-3 bg-gray-200 rounded w-1/3"></div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </aside>
             </div>
           </div>
         ) : error ? (
@@ -206,46 +271,66 @@ export const LearnerDashboard: React.FC = () => {
                     </div>
                   ) : (
                     <div className="space-y-4">
-                      {courses.map((c) => (
-                        <div
-                          key={c.id}
-                          className="group relative overflow-hidden rounded-lg border border-gray-200 bg-white hover:shadow-md transition-all duration-200"
-                        >
-                          <div className="absolute top-0 left-0 h-full w-1 bg-gradient-to-b from-blue-500 to-indigo-500"></div>
-                          <div className="p-4">
-                            <div className="flex items-start justify-between gap-4">
-                              <button
-                                className="text-left flex-1 min-w-0"
-                                onClick={() => navigate(`/courses/${c.id}`)}
-                              >
-                                <h3 className="font-semibold text-gray-900 group-hover:text-blue-600 transition mb-1 line-clamp-1">
-                                  {c.title}
-                                </h3>
-                                <p className="text-sm text-gray-600 line-clamp-2 mb-2">{c.content}</p>
-                                {c.instructor && (
-                                  <p className="text-xs text-gray-500">
-                                    Instructor: {c.instructor.name}
-                                  </p>
-                                )}
-                              </button>
-                              <div className="flex flex-col sm:flex-row gap-2 flex-shrink-0">
+                      {courses.map((c) => {
+                        const progress = c.progress ?? (c.completed_lessons && c.total_lessons ? Math.round((c.completed_lessons / c.total_lessons) * 100) : undefined);
+                        const lastAccess = c.last_accessed || c.pivot?.last_accessed;
+                        return (
+                          <div
+                            key={c.id}
+                            className="group relative overflow-hidden rounded-lg border border-gray-200 bg-white hover:shadow-md transition-all duration-200"
+                          >
+                            <div className="absolute top-0 left-0 h-full w-1 bg-gradient-to-b from-blue-500 to-indigo-500"></div>
+                            <div className="p-4">
+                              <div className="flex items-start justify-between gap-4">
                                 <button
+                                  className="text-left flex-1 min-w-0"
                                   onClick={() => navigate(`/courses/${c.id}`)}
-                                  className="px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 transition whitespace-nowrap"
                                 >
-                                  Continue
+                                  <h3 className="font-semibold text-gray-900 group-hover:text-blue-600 transition mb-1 line-clamp-1">
+                                    {c.title}
+                                  </h3>
+                                  <p className="text-sm text-gray-600 line-clamp-2 mb-2">{c.content}</p>
+                                  {c.instructor && (
+                                    <p className="text-xs text-gray-500">
+                                      Instructor: {c.instructor.name}
+                                    </p>
+                                  )}
+
+                                  {typeof progress === 'number' && (
+                                    <div className="mt-3">
+                                      <div className="flex items-center justify-between text-xs text-gray-500 mb-1">
+                                        <span>Progress</span>
+                                        <span className="font-medium">{progress}%</span>
+                                      </div>
+                                      <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+                                        <div className="h-2 bg-blue-600 rounded-full" style={{ width: `${progress}%` }} />
+                                      </div>
+                                    </div>
+                                  )}
+
+                                  {lastAccess && (
+                                    <div className="mt-2 text-xs text-gray-400">Last active: {formatRelativeTime(lastAccess)}</div>
+                                  )}
                                 </button>
-                                <button
-                                  onClick={() => handleLeave(c.id)}
-                                  className="px-4 py-2 rounded-lg bg-red-50 text-red-700 text-sm font-medium hover:bg-red-100 transition whitespace-nowrap"
-                                >
-                                  Leave
-                                </button>
+                                <div className="flex flex-col sm:flex-row gap-2 flex-shrink-0">
+                                  <button
+                                    onClick={() => navigate(`/courses/${c.id}`)}
+                                    className="px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 transition whitespace-nowrap"
+                                  >
+                                    Continue
+                                  </button>
+                                  <button
+                                    onClick={() => handleLeave(c.id)}
+                                    className="px-4 py-2 rounded-lg bg-red-50 text-red-700 text-sm font-medium hover:bg-red-100 transition whitespace-nowrap"
+                                  >
+                                    Leave
+                                  </button>
+                                </div>
                               </div>
                             </div>
                           </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   )}
                 </div>
@@ -302,5 +387,35 @@ export const LearnerDashboard: React.FC = () => {
     </div>
   );
 };
+
+  // Small helper: time-based greeting
+  const getTimeGreeting = () => {
+    const h = new Date().getHours();
+    if (h < 12) return 'Good morning';
+    if (h < 18) return 'Good afternoon';
+    return 'Good evening';
+  };
+
+  // Helper: relative time display
+  const formatRelativeTime = (dateStr?: string) => {
+    if (!dateStr) return '';
+    try {
+      const d = new Date(dateStr);
+      const diff = Date.now() - d.getTime();
+      const sec = Math.floor(diff / 1000);
+      const min = Math.floor(sec / 60);
+      const hr = Math.floor(min / 60);
+      const day = Math.floor(hr / 24);
+      if (sec < 60) return 'Just now';
+      if (min < 60) return `${min}m ago`;
+      if (hr < 24) return `${hr}h ago`;
+      if (day < 7) return `${day}d ago`;
+      return d.toLocaleDateString();
+    } catch {
+      return '';
+    }
+  };
+
+
 
 export default LearnerDashboard;
