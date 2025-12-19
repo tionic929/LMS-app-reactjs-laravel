@@ -21,6 +21,11 @@ Route::middleware('auth:sanctum')->group(function () {
 Route::get('/notifications', [NotificationController::class, 'index']);
 Route::get('/test-notification', [NotificationController::class, 'test']);
 
+// Authenticated route for fetching current user's enrolled courses must be
+// registered before the resource routes to avoid being captured by
+// the /courses/{course} parameter.
+Route::get('/courses/my', [CourseController::class, 'myCourses'])->middleware('auth:sanctum');
+
 Route::resource('courses', CourseController::class);
 
 // , 'log.activity'
@@ -64,7 +69,7 @@ Route::resource('discussions', DiscussionsController::class);
 // These routes should be accessible to everyone.
 Route::post('/login', [AuthController::class, 'login'])->name('login')
     ->middleware('throttle:5,1');
-    
+
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/registerInstructor', [AuthController::class, 'registerInstructor']);
 Route::post('/send-email-verification-code', [EmailVerificationController::class, 'sendEmailVerificationCode']);

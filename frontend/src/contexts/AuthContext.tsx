@@ -9,6 +9,8 @@ import {
 import { useNavigate } from "react-router-dom";
 import api from "../api/axios";
 import { toast } from "react-toastify";
+import { subscribeToUserNotifications } from '../echo';
+import { useRef } from 'react';
 
 
 export interface User {
@@ -18,7 +20,7 @@ export interface User {
     role: 'admin' | 'instructor' | 'learner';
     name: string;
   avatar_url?: string | null;
-} 
+}
 
 interface RegistrationPayload {
     firstName: string;
@@ -47,6 +49,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const [user, setUser] = useState<User | null>(null);
+    const unsubRef = useRef<() => void | null>(null);
     const [loading, setLoading] = useState(true);
     const [remember] = useState(false);
     const navigate = useNavigate();
@@ -55,9 +58,19 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         fetchUser()
             .then((res) => {
                 setUser(res.data);
+                // subscribe to user notifications
+                if (res.data?.id) {
+                    // clear previous
+                    if (unsubRef.current) unsubRef.current();
+                    unsubRef.current = subscribeToUserNotifications(res.data.id, (e: any) => {
+                        const msg = e.message || e.notification?.message || 'New notification';
+                        toast.info(msg);
+                    });
+                }
             })
             .catch(() => setUser(null))
             .finally(() => setLoading(false));
+        return () => { if (unsubRef.current) unsubRef.current(); };
     }, []);
 
     // 2. Memoize complex functions using useCallback
@@ -117,6 +130,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             await apiLogin(email, password); 
             const res = await fetchUser();
             setUser(res.data);
+            // (re)subscribe to user notifications
+            if (unsubRef.current) unsubRef.current();
+            if (res.data?.id) {
+                unsubRef.current = subscribeToUserNotifications(res.data.id, (e: any) => {
+                    const msg = e.message || e.notification?.message || 'New notification';
+                    toast.info(msg);
+                });
+            }
             navigate("/dashboard");
         } catch (err: any) {
             if (err.response?.status === 429) {

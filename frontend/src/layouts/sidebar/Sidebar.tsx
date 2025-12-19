@@ -46,7 +46,8 @@ const Sidebar: React.FC<SidebarProps> = ({
     const userButtonRef = useRef<HTMLButtonElement | null>(null);
 
     const allNavItems: NavItem[] = [
-        { to: "/dashboard", icon: FaHome, label: "Dashboard", roles: ["admin", "instructor", "learner"] },
+        { to: "/dashboard", icon: FaHome, label: "Dashboard", roles: ["admin", "instructor"] },
+        { to: "/learner-dashboard", icon: FaUserCircle, label: "Dashboard", roles: ["learner"] },
         { to: "/users", icon: FaUsers, label: "User Management", roles: ["admin"] },
         { to: "/instructor-applications", icon: FaPersonChalkboard, label: "Instructor Applications", roles: ["admin"] },
         { to: "/announcements", icon: BsMegaphoneFill, label: "Announcements", roles: ["admin", "instructor", "learner"] },

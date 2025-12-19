@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { toast } from 'react-toastify';
 import { removeLearner, banLearnerFromComments, unbanLearnerFromComments, getCourseBannedLearners } from "../../../api/courses";
-import { MdOutlineEmail, MdMoreVert } from "react-icons/md";
-import { LiaUserMinusSolid } from "react-icons/lia";
-import { FaBan, FaUnlock } from "react-icons/fa";
+import { MdOutlineEmail, MdDeleteForever } from "react-icons/md";
+import { FaBan, FaUnlock, FaUserGraduate } from "react-icons/fa";
 
 interface Learner {
   id: number;
@@ -15,6 +14,7 @@ interface Learner {
   };
   created_at?: string;
   is_banned?: boolean;
+  avatar_url?: string | null;
 }
 
 interface CourseLearnersProps {
@@ -146,104 +146,120 @@ const CourseLearners: React.FC<CourseLearnersProps> = ({
     }
   };
 
+  // Helper for action buttons
+  const ActionButton: React.FC<{
+    icon: React.ElementType;
+    onClick: () => void;
+    title: string;
+    className?: string;
+  }> = ({ icon: Icon, onClick, title, className = "" }) => (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`p-2 rounded-md transition flex items-center justify-center ${className}`}
+      title={title}
+    >
+      <Icon className="w-5 h-5" style={{ color: 'currentColor' }} />
+    </button>
+  );
+
   return (
-    <div className="overflow-visible">
-      <table className="w-full">
-        <thead>
-          <tr className="border-b border-gray-200">
-            <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">
-              Name
-            </th>
-            {isInstructor || isAdmin ? (
-              <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">
-                Email
-              </th>
-            ) : null}
-            {isInstructor || isAdmin ? (
-              <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">
-                Joined
-              </th>
-            ) : null}
-            <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">
-              {(isInstructor || isAdmin) ? "Actions" : ""}
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          {learners.map((learner) => (
-            <tr
-              key={learner.id}
-              className="border-b border-gray-100 hover:bg-gray-50"
-            >
-              <td className="py-4 px-4 text-sm text-gray-900">
-                {learner.name}
-              </td>
-              {isInstructor || isAdmin ? (
-                <td className="py-4 px-4 text-sm text-gray-600 flex items-center gap-2">
-                  <MdOutlineEmail className="h-4 w-4 text-gray-400" />
-                  {learner.email}
-                </td>
-              ) : null}
-              {isInstructor || isAdmin ? (
-                <td className="py-4 px-4 text-sm text-gray-600">
-                  {learner.enrolled_at ||
-                    new Date(
-                      learner.pivot?.created_at || learner.created_at || ""
-                    ).toLocaleDateString()}
-                </td>
-              ) : null}
-              <td className="py-4 px-4 relative">
-                {(isInstructor || isAdmin) && (
-                  <div className="flex items-center gap-2">
-                    {bannedLearners.has(learner.id) && (
-                      <span className="px-2 py-1 bg-red-100 text-red-700 text-xs rounded-full font-medium">
-                        Banned
+    <div className="space-y-3">
+      {learners.length === 0 ? (
+        <div className="rounded-xl p-12 text-center text-gray-500 bg-white border border-gray-100">
+          <div className="mx-auto h-16 w-16 rounded-full bg-blue-50 flex items-center justify-center">
+            <FaUserGraduate className="h-8 w-8 text-blue-400" />
+          </div>
+          <h3 className="mt-3 text-sm font-medium text-gray-900">No learners enrolled</h3>
+          <p className="mt-1 text-sm text-gray-500">This course doesn't have any enrolled learners yet.</p>
+        </div>
+      ) : (
+        learners.map((learner) => (
+          <div
+            key={learner.id}
+            className="flex items-center justify-between p-4 bg-white rounded-lg shadow-sm hover:shadow-md transition-all border border-gray-100 hover:border-blue-200"
+          >
+            <div className="flex items-center gap-4 flex-1 min-w-0">
+              {/* Learner Avatar/Initial */}
+              {learner.avatar_url ? (
+                <img 
+                  src={learner.avatar_url} 
+                  alt={`${learner.name}'s avatar`}
+                  className="h-10 w-10 rounded-full object-cover flex-shrink-0 ring-2 ring-blue-100" 
+                />
+              ) : (
+                <div className="flex h-10 w-10 items-center justify-center rounded-full font-bold text-sm flex-shrink-0 ring-2 ring-blue-100 bg-blue-100 text-blue-700">
+                  {(() => {
+                    const parts = learner.name.split(" ");
+                    const first = parts[0]?.[0] || "";
+                    const last = parts.length > 1 ? parts[parts.length - 1]?.[0] || "" : "";
+                    return (first + last).toUpperCase();
+                  })()}
+                </div>
+              )}
+
+              {/* Learner Details */}
+              <div className="min-w-0 flex-1">
+                <h3 className="text-sm font-semibold text-gray-900 truncate">
+                  {learner.name}
+                  
+                  {/* Status Badge */}
+                  {bannedLearners.has(learner.id) && (
+                    <span className="inline-flex items-center ml-3 rounded-full px-2 py-0.5 text-xs font-semibold bg-red-100 text-red-700">
+                      <FaBan className="w-3 h-3 mr-1" />
+                      Banned
+                    </span>
+                  )}
+                </h3>
+                <div className="mt-1 flex items-center gap-3 text-xs text-gray-600">
+                  {(isInstructor || isAdmin) && (
+                    <>
+                      <span className="flex items-center gap-1 truncate">
+                        <MdOutlineEmail className="h-3 w-3 text-gray-400 flex-shrink-0" />
+                        {learner.email}
                       </span>
-                    )}
-                    <div className="relative dropdown-menu">
-                      <button
-                        onClick={() => setDropdownOpen(dropdownOpen === learner.id ? null : learner.id)}
-                        className="p-1 rounded-full hover:bg-gray-100 transition-colors"
-                      >
-                        <MdMoreVert className="h-5 w-5 text-gray-500" />
-                      </button>
-                      
-                      {dropdownOpen === learner.id && (
-                        <div className="absolute right-0 top-8 w-48 bg-white border border-gray-200 rounded-md shadow-lg z-50">
-                          {bannedLearners.has(learner.id) ? (
-                            <button
-                              onClick={() => handleUnbanLearner(learner.id)}
-                              className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2 rounded-t-md"
-                            >
-                              <FaUnlock className="h-3 w-3" />
-                              Unban from commenting
-                            </button>
-                          ) : (
-                            <button
-                              onClick={() => handleBanLearner(learner.id)}
-                              className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2 rounded-t-md"
-                            >
-                              <FaBan className="h-3 w-3" />
-                              Ban from commenting
-                            </button>
-                          )}
-                          <button
-                            onClick={() => handleRemoveLearner(learner.id)}
-                            className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2 border-t border-gray-200 rounded-b-md"
-                          >
-                            <LiaUserMinusSolid className="h-4 w-4" />
-                            Remove from course
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  </div>
+                      <span className="text-gray-400">•</span>
+                      <span>
+                        Joined {learner.enrolled_at || new Date(learner.pivot?.created_at || learner.created_at || "").toLocaleDateString()}
+                      </span>
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            {(isInstructor || isAdmin) && (
+              <div className="flex gap-1 ml-4 flex-shrink-0 border p-1 rounded-md bg-gray-50">
+                {bannedLearners.has(learner.id) ? (
+                  <ActionButton
+                    icon={FaUnlock}
+                    onClick={() => handleUnbanLearner(learner.id)}
+                    title="Unban from commenting"
+                    className="text-emerald-600 hover:bg-emerald-100"
+                  />
+                ) : (
+                  <ActionButton
+                    icon={FaBan}
+                    onClick={() => handleBanLearner(learner.id)}
+                    title="Ban from commenting"
+                    className="text-amber-600 hover:bg-amber-100"
+                  />
                 )}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+                
+                <div className="w-px h-6 bg-gray-200 mx-1 self-center"></div>
+                
+                <ActionButton
+                  icon={MdDeleteForever}
+                  onClick={() => handleRemoveLearner(learner.id)}
+                  title="Remove from course"
+                  className="text-rose-600 hover:bg-rose-100"
+                />
+              </div>
+            )}
+          </div>
+        ))
+      )}
     </div>
   );
 };

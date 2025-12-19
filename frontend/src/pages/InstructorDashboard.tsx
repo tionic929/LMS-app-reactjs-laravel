@@ -1,8 +1,8 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ElementType } from "react";
 import { Link } from "react-router-dom";
-import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip } from "recharts";
+import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, LabelList } from "recharts";
 import type { AxiosError } from "axios";
-import { motion, type Variants } from "framer-motion";
+import { Activity, BookOpen, Clock, MessageSquare, Users } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { getInstructorDashboard } from "../api/courses";
 
@@ -31,6 +31,8 @@ type InstructorDashboardCourse = {
 type InstructorDashboardResponse = {
   metrics: {
     total_courses: number;
+    active_courses: number;
+    pending_requests: number;
     total_enrolled: number;
   };
   courses: InstructorDashboardCourse[];
@@ -41,35 +43,55 @@ type ChartPoint = {
   enrolled: number;
 };
 
-const MetricCard = ({
-  title,
-  value,
-  subtitle,
-}: {
-  title: string;
-  value: number;
-  subtitle?: string;
-}) => (
-  <motion.div
-    whileHover={{ y: -3, scale: 1.01 }}
-    transition={{ type: "spring", stiffness: 350, damping: 26 }}
-    className="group relative overflow-hidden rounded-2xl border border-gray-100 bg-white p-5 shadow-sm ring-1 ring-black/5"
-  >
-    <div className="relative flex items-start justify-between gap-4">
-      <div className="min-w-0">
-        <p className="text-sm font-semibold text-gray-800">{title}</p>
-        {subtitle ? <p className="mt-1 text-xs text-gray-500">{subtitle}</p> : null}
-      </div>
+type ChartTooltipProps = {
+  active?: boolean;
+  payload?: Array<{ value?: number | string }>;
+  label?: unknown;
+};
 
-      <div className="rounded-xl bg-indigo-50 px-3 py-2 ring-1 ring-indigo-100">
-        <p className="text-2xl font-extrabold tracking-tight text-gray-900 tabular-nums">{value.toLocaleString()}</p>
+const ChartTooltip = ({ active, payload, label }: ChartTooltipProps) => {
+  if (!active || !payload || payload.length === 0) return null;
+  const value = payload[0]?.value ?? 0;
+  const labelText = typeof label === "string" ? label : String(label ?? "");
+
+  return (
+    <div className="rounded-lg bg-gray-900 px-3 py-2 text-white shadow-lg">
+      <p className="max-w-[320px] text-xs font-semibold text-white/80">{labelText}</p>
+      <p className="mt-1 text-sm font-extrabold tabular-nums">{Number(value).toLocaleString()}</p>
+    </div>
+  );
+};
+
+type StatCardProps = {
+  icon: ElementType;
+  label: string;
+  value: string;
+  trend: string;
+  color: string;
+};
+
+const StatCard = ({ icon: Icon, label, value, trend, color }: StatCardProps) => (
+  <div
+    className={
+      "relative overflow-hidden rounded-2xl p-6 shadow-lg flex flex-col justify-between h-40 " +
+      "transition-all duration-300 ease-out " +
+      "hover:-translate-y-1 hover:shadow-2xl active:translate-y-0 active:shadow-lg " +
+      "motion-reduce:transition-none " +
+      color
+    }
+  >
+    <div className="flex justify-between items-start gap-4">
+      <div className="min-w-0">
+        <p className="text-sm font-semibold text-white/85">{label}</p>
+        <p className="mt-1 text-3xl font-extrabold text-white tabular-nums">{value}</p>
+      </div>
+      <div className="shrink-0 rounded-2xl bg-white/15 p-3 shadow-sm ring-1 ring-white/20 backdrop-blur">
+        <Icon className="h-6 w-6 text-white" />
       </div>
     </div>
-
-    <div className="pointer-events-none absolute inset-x-0 top-0 h-1 bg-indigo-600/70" />
-    <div className="pointer-events-none absolute -right-10 -top-10 h-28 w-28 rounded-full bg-fuchsia-500/10 blur-2xl transition-opacity duration-300 group-hover:opacity-100 opacity-60" />
-    <div className="pointer-events-none absolute -bottom-12 -left-10 h-28 w-28 rounded-full bg-indigo-500/10 blur-2xl transition-opacity duration-300 group-hover:opacity-100 opacity-60" />
-  </motion.div>
+    <p className="mt-2 truncate text-xs font-medium text-white/75">{trend}</p>
+    <div className="pointer-events-none absolute -right-10 -top-10 h-28 w-28 rounded-full bg-white/10 blur-2xl" />
+  </div>
 );
 
 const formatDate = (value?: string | null) => {
@@ -81,41 +103,20 @@ const formatDate = (value?: string | null) => {
 
 const truncate = (value: string, max: number) => (value.length > max ? `${value.slice(0, Math.max(0, max - 1))}…` : value);
 
-const fadeUp: Variants = {
-  hidden: { opacity: 0, y: 10 },
-  show: { opacity: 1, y: 0 },
-};
-
-const stagger: Variants = {
-  hidden: {},
-  show: { transition: { staggerChildren: 0.07, delayChildren: 0.03 } },
-};
-
-type DashboardTooltipProps = {
-  active?: boolean;
-  payload?: Array<{ value?: number | string }>;
-  label?: unknown;
-};
-
-const DashboardTooltip = ({ active, payload, label }: DashboardTooltipProps) => {
-  if (!active || !payload || payload.length === 0) return null;
-  const value = payload[0]?.value ?? 0;
-  const labelText = typeof label === "string" ? label : String(label ?? "");
-
-  return (
-    <div className="rounded-xl border border-white/10 bg-gray-900/95 px-3 py-2 text-white shadow-lg backdrop-blur">
-      <p className="max-w-[320px] text-xs font-semibold text-white/80">{labelText}</p>
-      <p className="mt-1 text-sm font-extrabold tabular-nums">{Number(value).toLocaleString()}</p>
-    </div>
-  );
-};
-
 const InstructorDashboard = () => {
   const { user } = useAuth();
+
+  // Static per requirement (no backend integration yet)
+  const unreadCommentsCount = 7;
 
   const [data, setData] = useState<InstructorDashboardResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     let isMounted = true;
@@ -158,10 +159,12 @@ const InstructorDashboard = () => {
 
   const chartData: ChartPoint[] = useMemo(() => {
     const courses = data?.courses ?? [];
-    return courses.map((c) => ({
-      name: c.title,
-      enrolled: Number(c.active_learners_count ?? 0),
-    }));
+    return courses
+      .map((c) => ({
+        name: c.title,
+        enrolled: Number(c.active_learners_count ?? 0),
+      }))
+      .sort((a, b) => b.enrolled - a.enrolled);
   }, [data]);
 
   const chartHeight = useMemo(() => {
@@ -170,164 +173,238 @@ const InstructorDashboard = () => {
 
   if (user?.role !== "instructor") {
     return (
-      <main className="flex-1 overflow-auto bg-slate-50 p-6">
+      <div className="min-h-screen bg-gray-50 p-6 sm:p-5">
         <div className="max-w-5xl mx-auto">
-          <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm ring-1 ring-black/5">
-            <h1 className="text-2xl font-extrabold tracking-tight text-gray-900">Dashboard</h1>
+          <div className="bg-white p-6 rounded-2xl shadow-lg transition-shadow duration-300 hover:shadow-xl">
+            <h1 className="text-3xl font-extrabold text-gray-900">Dashboard</h1>
             <p className="mt-2 text-gray-600">This dashboard is available for instructors only.</p>
           </div>
         </div>
-      </main>
+      </div>
     );
   }
 
   return (
-    <main className="flex-1 overflow-auto bg-slate-50 p-6">
-      <div className="max-w-7xl mx-auto">
-        <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-64 bg-indigo-100/30" />
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ type: "spring", stiffness: 220, damping: 24 }}
-          className="relative overflow-hidden rounded-3xl border border-indigo-900/10 bg-indigo-700 p-6 shadow-sm"
-        >
-          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-            <div className="min-w-0">
-              <h1 className="text-3xl font-extrabold tracking-tight text-white">Instructor Dashboard</h1>
-              <p className="mt-2 text-white/80">Your courses, enrollments, and student lists.</p>
-            </div>
-
-            <div className="flex items-center gap-3">
-              <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-                <Link
-                  to="/courses"
-                  className="inline-flex items-center justify-center rounded-xl bg-white/10 px-4 py-2.5 text-sm font-semibold text-white ring-1 ring-white/20 backdrop-blur transition-colors hover:bg-white/15"
-                >
-                  View Courses
-                </Link>
-              </motion.div>
-            </div>
-          </div>
-
-          <div className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-white/10 blur-3xl" />
-          <div className="pointer-events-none absolute -bottom-28 -left-24 h-72 w-72 rounded-full bg-white/10 blur-3xl" />
-          <div className="pointer-events-none absolute inset-0 bg-white/0" />
-          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-1 bg-white/30" />
-        </motion.div>
+    <div className="min-h-screen bg-gray-50 p-6 sm:p-5">
+      <div
+        className={
+          "mx-auto max-w-7xl transition-all duration-500 ease-out motion-reduce:transition-none " +
+          (mounted ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2")
+        }
+      >
+        <div className="mb-6 flex items-center justify-between gap-4 border-b pb-2">
+          <h1 className="text-4xl font-extrabold text-gray-900">Dashboard</h1>
+          <Link
+            to="/courses"
+            className={
+              "inline-flex items-center justify-center rounded-xl bg-gray-900 px-4 py-2 text-sm font-semibold text-white shadow " +
+              "transition-all duration-200 ease-out hover:bg-gray-800 hover:-translate-y-0.5 active:translate-y-0 active:shadow " +
+              "motion-reduce:transition-none"
+            }
+          >
+            View Courses
+          </Link>
+        </div>
 
         {loading && (
-          <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm ring-1 ring-black/5">
-              <div className="h-4 w-40 rounded bg-gray-100" />
-              <div className="mt-3 h-9 w-28 rounded bg-gray-100" />
-            </div>
-            <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm ring-1 ring-black/5">
-              <div className="h-4 w-44 rounded bg-gray-100" />
-              <div className="mt-3 h-9 w-32 rounded bg-gray-100" />
-            </div>
-            <div className="sm:col-span-2 rounded-2xl border border-gray-100 bg-white p-6 shadow-sm ring-1 ring-black/5">
-              <div className="h-5 w-56 rounded bg-gray-100" />
-              <div className="mt-5 h-64 w-full rounded-xl bg-gray-50" />
-            </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6 mb-10">
+            {Array.from({ length: 5 }).map((_, idx) => (
+              <div key={idx} className="bg-white p-6 rounded-2xl shadow-lg h-40 animate-pulse">
+                <div className="h-4 w-40 rounded bg-gray-100" />
+                <div className="mt-3 h-9 w-28 rounded bg-gray-100" />
+              </div>
+            ))}
           </div>
         )}
 
         {!loading && error && (
-          <motion.div
-            variants={fadeUp}
-            initial="hidden"
-            animate="show"
-            transition={{ duration: 0.25, ease: "easeOut" }}
-            className="mt-6 rounded-2xl border border-red-200 bg-white p-6 text-red-700 shadow-sm ring-1 ring-black/5"
-          >
+          <div className="bg-white p-6 rounded-2xl shadow-lg border border-red-200 text-red-700 transition-shadow duration-300 hover:shadow-xl">
             <p className="text-sm font-semibold">Unable to load dashboard</p>
             <p className="mt-2 text-sm text-red-700">{error}</p>
-          </motion.div>
+          </div>
         )}
 
         {!loading && !error && data && (
           <>
-            <motion.div variants={stagger} initial="hidden" animate="show" className="mt-6 space-y-6">
-              <motion.div variants={fadeUp} className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <MetricCard title="Your Courses" subtitle="Active courses you own" value={data.metrics.total_courses} />
-                <MetricCard
-                  title="Total Enrolled Students"
-                  subtitle="Across your active courses"
-                  value={data.metrics.total_enrolled}
+            <div>
+              {/* --- 1. Top Level Statistics Cards (Instructor) --- */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6 mb-10">
+                <StatCard
+                  icon={BookOpen}
+                  label="Your Courses"
+                  value={data.metrics.total_courses.toLocaleString()}
+                  trend="All courses you own"
+                  color="bg-emerald-600"
                 />
-              </motion.div>
+                <StatCard
+                  icon={Activity}
+                  label="Active Courses"
+                  value={data.metrics.active_courses.toLocaleString()}
+                  trend="Currently running"
+                  color="bg-indigo-600"
+                />
+                <StatCard
+                  icon={Users}
+                  label="Total Enrolled Students"
+                  value={data.metrics.total_enrolled.toLocaleString()}
+                  trend="Across your active courses"
+                  color="bg-emerald-600"
+                />
+                <StatCard
+                  icon={Clock}
+                  label="Pending Requests"
+                  value={data.metrics.pending_requests.toLocaleString()}
+                  trend="Awaiting your review"
+                  color="bg-amber-600"
+                />
+                <StatCard
+                  icon={MessageSquare}
+                  label="Unread Comments"
+                  value={unreadCommentsCount.toLocaleString()}
+                  trend="Static for now"
+                  color="bg-gray-900"
+                />
+              </div>
 
-              <motion.div
-                variants={fadeUp}
-                className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm ring-1 ring-black/5"
-              >
-                <div className="flex flex-col gap-2 border-b border-gray-100 px-6 py-5 sm:flex-row sm:items-end sm:justify-between">
-                  <div>
-                    <h2 className="text-lg font-extrabold tracking-tight text-gray-900">Students per Course</h2>
-                    <p className="mt-1 text-sm text-gray-600">Enrollment count for each of your active courses.</p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="inline-flex items-center rounded-full bg-indigo-50 px-2 py-1 text-xs font-semibold text-indigo-700 ring-1 ring-indigo-100">
-                      Active learners
-                    </span>
-                  </div>
+              {/* --- 2. Charts --- */}
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-10">
+                <div className="lg:col-span-2 bg-white p-6 rounded-2xl shadow-lg transition-all duration-300 hover:shadow-xl hover:-translate-y-0.5 motion-reduce:transition-none">
+                  <h2 className="text-xl font-semibold text-gray-700 mb-4">Students per Course</h2>
+
+                  {chartData.length === 0 ? (
+                    <div className="py-6">
+                      <p className="text-sm text-gray-600">No active courses found.</p>
+                    </div>
+                  ) : (
+                    <ResponsiveContainer width="100%" height={chartHeight} debounce={200}>
+                      <BarChart data={chartData} layout="vertical" margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
+                        <XAxis type="number" allowDecimals={false} stroke="#374151" />
+                        <YAxis
+                          type="category"
+                          dataKey="name"
+                          width={240}
+                          tickLine={false}
+                          axisLine={false}
+                          tick={{ fill: "#374151", fontSize: 12 }}
+                          tickFormatter={(v) => truncate(String(v ?? ""), 28)}
+                        />
+                        <Tooltip
+                          content={<ChartTooltip />}
+                        />
+                        <Bar
+                          dataKey="enrolled"
+                          name="Enrolled"
+                          fill="#2563eb"
+                          radius={[0, 10, 10, 0]}
+                          barSize={18}
+                          animationDuration={900}
+                          animationEasing="ease-out"
+                        >
+                          <LabelList dataKey="enrolled" position="right" fill="#111827" fontSize={12} />
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  )}
                 </div>
 
-                {chartData.length === 0 ? (
-                  <div className="px-6 py-8">
-                    <p className="text-sm text-gray-600">No active courses found.</p>
+                <div className="bg-white p-6 rounded-2xl shadow-lg h-full flex flex-col transition-all duration-300 hover:shadow-xl hover:-translate-y-0.5 motion-reduce:transition-none">
+                  <div className="flex items-baseline justify-between gap-3 mb-4">
+                    <h2 className="text-xl font-semibold text-gray-700">Courses</h2>
+                    <span className="text-xs text-gray-500 tabular-nums">{data.courses.length.toLocaleString()} total</span>
                   </div>
-                ) : (
-                  <div className="px-2 py-4 sm:px-6">
-                    <div className="rounded-xl bg-indigo-50/60 p-2 ring-1 ring-gray-100">
-                      <div className="text-indigo-600">
-                        <ResponsiveContainer width="100%" height={chartHeight} debounce={200}>
-                          <BarChart data={chartData} layout="vertical" margin={{ top: 8, right: 16, left: 40, bottom: 8 }}>
-                            <CartesianGrid strokeDasharray="3 3" />
-                            <XAxis type="number" allowDecimals={false} tickLine={false} axisLine={false} />
-                            <YAxis
-                              type="category"
-                              dataKey="name"
-                              width={240}
-                              tickLine={false}
-                              axisLine={false}
-                              tick={{ fill: "currentColor", fontSize: 12 }}
-                              className="text-gray-700"
-                              tickFormatter={(v) => truncate(String(v ?? ""), 28)}
+
+                  {data.courses.length === 0 ? (
+                    <div className="py-6">
+                      <p className="text-sm text-gray-600">No courses found.</p>
+                    </div>
+                  ) : (
+                    <div className="flex-1 overflow-y-auto pr-1">
+                      <div className="divide-y divide-gray-100">
+                        {data.courses.map((course) => (
+                          <Link
+                            key={course.id}
+                            to={`/courses/${course.id}`}
+                            className={
+                              "group relative block overflow-hidden rounded-xl py-3 pl-4 pr-2 -mx-2 " +
+                              "transition-all duration-200 ease-out " +
+                              "hover:bg-gray-50 hover:-translate-y-0.5 hover:shadow-sm hover:ring-1 hover:ring-gray-200 " +
+                              "active:translate-y-0 active:shadow-none motion-reduce:transition-none"
+                            }
+                            title={course.title}
+                          >
+                            <span
+                              aria-hidden="true"
+                              className={
+                                "absolute left-0 top-2 bottom-2 w-1 rounded-full transition-all duration-200 ease-out " +
+                                "group-hover:w-1.5 motion-reduce:transition-none " +
+                                (course.privacy === "public" ? "bg-emerald-600" : "bg-amber-600")
+                              }
                             />
-                            <Tooltip content={<DashboardTooltip />} />
-                            <Bar
-                              dataKey="enrolled"
-                              name="Enrolled"
-                              fill="currentColor"
-                              radius={[0, 10, 10, 0]}
-                              animationDuration={520}
-                              animationEasing="ease-out"
-                            />
-                          </BarChart>
-                        </ResponsiveContainer>
+                            <div className="flex items-center justify-between gap-4">
+                              <div className="min-w-0">
+                                <p className="text-sm font-semibold text-gray-900 truncate group-hover:text-gray-950">{course.title}</p>
+                                <div className="mt-1 flex items-center gap-2">
+                                  <span
+                                    className={
+                                      "inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold text-white " +
+                                      (course.privacy === "public" ? "bg-emerald-600" : "bg-amber-600")
+                                    }
+                                  >
+                                    {course.privacy}
+                                  </span>
+                                </div>
+                              </div>
+                              <div className="shrink-0 text-right">
+                                <p className="text-xs font-semibold text-gray-500">Enrolled</p>
+                                <p className="text-base font-extrabold text-gray-900 tabular-nums">
+                                  {Number(course.active_learners_count ?? 0).toLocaleString()}
+                                </p>
+                              </div>
+                            </div>
+                          </Link>
+                        ))}
                       </div>
                     </div>
-                  </div>
-                )}
-              </motion.div>
+                  )}
 
-              <motion.div variants={fadeUp} className="space-y-4">
+                  <div className="pt-4 mt-4 border-t border-gray-100">
+                    <Link
+                      to="/courses"
+                      className={
+                        "inline-flex w-full items-center justify-center rounded-xl bg-gray-900 px-4 py-2 text-sm font-semibold text-white shadow " +
+                        "transition-all duration-200 ease-out hover:bg-gray-800 hover:-translate-y-0.5 active:translate-y-0 active:shadow " +
+                        "motion-reduce:transition-none"
+                      }
+                    >
+                      View all courses
+                    </Link>
+                  </div>
+                </div>
+              </div>
+
+              {/* --- 3. Course Cards + Learners --- */}
+              <div className="space-y-6">
                 {data.courses.map((course) => (
-                  <motion.div
+                  <div
                     key={course.id}
-                    whileHover={{ y: -2 }}
-                    transition={{ type: "spring", stiffness: 320, damping: 26 }}
-                    className="group relative overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm ring-1 ring-black/5"
+                    className={
+                      "bg-white rounded-2xl shadow-lg overflow-hidden transition-all duration-300 ease-out " +
+                      "hover:shadow-2xl hover:-translate-y-0.5 motion-reduce:transition-none"
+                    }
                   >
-                    <div className="pointer-events-none absolute inset-x-0 top-0 h-1 bg-indigo-600/70" />
-                    <div className="border-b border-gray-100 p-5">
+                    <div
+                      className={
+                        "p-6 border-b border-gray-100 " +
+                        (course.privacy === "public" ? "bg-emerald-600" : "bg-amber-600")
+                      }
+                    >
                       <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
                         <div className="min-w-0">
                           <div className="flex flex-wrap items-center gap-2">
                             <Link
                               to={`/courses/${course.id}`}
-                              className="truncate text-lg font-extrabold tracking-tight text-gray-900 decoration-indigo-400/60 underline-offset-4 hover:underline"
+                              className="truncate text-lg font-extrabold tracking-tight text-white hover:underline"
                               title={course.title}
                             >
                               {course.title}
@@ -335,55 +412,57 @@ const InstructorDashboard = () => {
                             <span
                               className={
                                 course.privacy === "public"
-                                  ? "inline-flex items-center rounded-full bg-emerald-50 px-2 py-1 text-xs font-semibold text-emerald-700 ring-1 ring-emerald-200"
-                                  : "inline-flex items-center rounded-full bg-amber-50 px-2 py-1 text-xs font-semibold text-amber-800 ring-1 ring-amber-200"
+                                  ? "inline-flex items-center rounded-full bg-white/15 px-2 py-1 text-xs font-semibold text-white ring-1 ring-white/25"
+                                  : "inline-flex items-center rounded-full bg-white/15 px-2 py-1 text-xs font-semibold text-white ring-1 ring-white/25"
                               }
                             >
                               {course.privacy}
                             </span>
                           </div>
 
-                          <p className="mt-2 text-sm text-gray-600">
-                            Capacity <span className="font-semibold text-gray-900 tabular-nums">{course.capacity}</span>
+                          <p className="mt-2 text-sm text-white/85">
+                            Capacity <span className="font-semibold text-white tabular-nums">{course.capacity}</span>
                           </p>
                         </div>
 
                         <div className="flex flex-wrap gap-3">
-                          <div className="rounded-xl bg-indigo-50 px-4 py-3 ring-1 ring-indigo-100">
-                            <p className="text-xs font-semibold text-gray-500">Enrolled</p>
-                            <p className="mt-0.5 text-xl font-extrabold text-gray-900 tabular-nums">{course.active_learners_count}</p>
+                          <div className="rounded-xl bg-white/15 px-4 py-3 ring-1 ring-white/20">
+                            <p className="text-xs font-semibold text-white/80">Enrolled</p>
+                            <p className="mt-0.5 text-xl font-extrabold text-white tabular-nums">{course.active_learners_count}</p>
                           </div>
-                          <div className="rounded-xl bg-fuchsia-50 px-4 py-3 ring-1 ring-fuchsia-100">
-                            <p className="text-xs font-semibold text-gray-500">Current Count</p>
-                            <p className="mt-0.5 text-xl font-extrabold text-gray-900 tabular-nums">{course.current_enrolled}</p>
+                          <div className="rounded-xl bg-white/15 px-4 py-3 ring-1 ring-white/20">
+                            <p className="text-xs font-semibold text-white/80">Current Count</p>
+                            <p className="mt-0.5 text-xl font-extrabold text-white tabular-nums">{course.current_enrolled}</p>
                           </div>
-                          <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-                            <Link
-                              to={`/courses/${course.id}`}
-                              className="inline-flex items-center justify-center rounded-xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-indigo-700"
-                            >
-                              Open
-                            </Link>
-                          </motion.div>
+                          <Link
+                            to={`/courses/${course.id}`}
+                            className={
+                              "inline-flex items-center justify-center rounded-xl bg-gray-900 px-4 py-3 text-sm font-semibold text-white shadow " +
+                              "transition-all duration-200 ease-out hover:bg-gray-800 hover:-translate-y-0.5 active:translate-y-0 active:shadow " +
+                              "motion-reduce:transition-none"
+                            }
+                          >
+                            Open
+                          </Link>
                         </div>
                       </div>
                     </div>
 
-                    <div className="p-5">
+                    <div className="p-6">
                       <div className="flex items-end justify-between gap-4">
                         <div>
-                          <h3 className="text-sm font-extrabold tracking-tight text-gray-900">Enrolled Students</h3>
+                          <h3 className="text-sm font-semibold text-gray-700">Enrolled Students</h3>
                           <p className="mt-1 text-xs text-gray-500">Students enrolled in this course.</p>
                         </div>
                         <p className="text-xs font-semibold text-gray-600 tabular-nums">{course.learners.length.toLocaleString()} total</p>
                       </div>
 
                       {course.learners.length === 0 ? (
-                        <div className="mt-4 rounded-xl border border-gray-100 bg-gray-50 p-4">
+                        <div className="mt-4 rounded-lg bg-gray-50 p-4">
                           <p className="text-sm text-gray-600">No enrolled students.</p>
                         </div>
                       ) : (
-                        <div className="mt-4 overflow-x-auto rounded-xl border border-gray-100">
+                        <div className="mt-4 overflow-x-auto rounded-lg border border-gray-100">
                           <table className="min-w-full divide-y divide-gray-100">
                             <thead className="bg-gray-50">
                               <tr>
@@ -407,14 +486,14 @@ const InstructorDashboard = () => {
                         </div>
                       )}
                     </div>
-                  </motion.div>
+                  </div>
                 ))}
-              </motion.div>
-            </motion.div>
+              </div>
+            </div>
           </>
         )}
       </div>
-    </main>
+    </div>
   );
 };
 

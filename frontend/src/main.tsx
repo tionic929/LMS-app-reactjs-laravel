@@ -1,7 +1,6 @@
 // src/main.tsx (Updated for MUI)
 
 import { BrowserRouter } from 'react-router-dom';
-import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { ThemeProvider, createTheme, CssBaseline } from '@mui/material'; 
 // --- End MUI Imports ---
@@ -13,16 +12,12 @@ import './index.css'
 const theme = createTheme();
 
 createRoot(document.getElementById('root')!).render(
-  <StrictMode>
     <BrowserRouter>
-      {/* 2. MUI Theme Provider */}
       <ThemeProvider theme={theme}>
-        <CssBaseline /> {/* Optional: Renders normal CSS baseline */}
-        {/* 3. AuthProvider for User State/Security */}
+        <CssBaseline />
         <AuthProvider>
             <App />
         </AuthProvider>
       </ThemeProvider>
     </BrowserRouter>
-  </StrictMode>
 );

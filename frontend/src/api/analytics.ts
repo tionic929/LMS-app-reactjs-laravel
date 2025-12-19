@@ -8,6 +8,12 @@ export interface DashboardAnalytics {
     
     totalAnnouncements: number;
     recentAnnouncements: number; 
+
+    wsConnectedClients: number;       
+    authFailureRate: number;         
+    apiErrorRate: number;            
+    messagesBroadcasted: number;      
+    // userGrowthData: any;
 }
 
 // Function to fetch all metrics required for the main dashboard cards
@@ -26,6 +32,10 @@ export async function getDashboardAnalytics(): Promise<DashboardAnalytics> {
             totalLearners: data.totalLearners || 0,
             totalAnnouncements: data.totalAnnouncements || 0,
             recentAnnouncements: data.recentAnnouncements || 0,
+            wsConnectedClients: data.wsConnectedClients || 0,
+            authFailureRate: data.authFailureRate || 0,           
+            apiErrorRate: data.apiErrorRate || 0,              
+            messagesBroadcasted: data.messagesBroadcasted || 0,       
         };
     } catch (error) {
         console.error("Error fetching dashboard analytics:", error);
@@ -36,6 +46,10 @@ export async function getDashboardAnalytics(): Promise<DashboardAnalytics> {
             totalLearners: 0,
             totalAnnouncements: 0,
             recentAnnouncements: 0,
+            wsConnectedClients: 0,
+            authFailureRate: 0,           
+            apiErrorRate: 0,              
+            messagesBroadcasted: 0,   
         };
     }
 }
