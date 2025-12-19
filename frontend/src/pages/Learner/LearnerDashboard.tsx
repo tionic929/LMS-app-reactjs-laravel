@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { getCourses, leaveCourse } from '../../api/courses';
+import { leaveCourse } from '../../api/courses';
 import { listAnnouncements } from '../../api/announcements';
 import type { Announcement } from '../../api/announcements';
 import { useAuth } from '../../contexts/AuthContext';
@@ -142,7 +142,7 @@ export const LearnerDashboard: React.FC = () => {
         {/* Header */}
         <div className="mb-6">
           <h1 className="text-4xl font-extrabold text-gray-900 mb-2">
-            {getTimeGreeting()}, {user?.name?.split(' ')[0] || 'Learner'}! 👋
+            {getTimeGreeting()}, {user?.name?.split(' ')[0] || 'Learner'}!
           </h1>
           <p className="text-gray-600">Track your learning journey and stay updated with your courses</p>
         </div>
@@ -350,33 +350,36 @@ export const LearnerDashboard: React.FC = () => {
                       <p className="text-sm">No announcements yet</p>
                     </div>
                   ) : (
-                    <div className="space-y-3">
-                      {announcements.map((a) => (
-                        <div
-                          key={a.id}
-                          className="p-3 rounded-lg bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-100 hover:shadow-md transition cursor-pointer"
-                          onClick={() => navigate('/announcements')}
-                        >
-                          <div className="text-sm font-semibold text-gray-900 mb-1 line-clamp-1">
-                            {a.title}
+                    <>
+                      <div className="h-48 overflow-y-auto pr-1 space-y-3">
+                        {announcements.map((a) => (
+                          <div
+                            key={a.id}
+                            className="h-24 p-3 rounded-lg bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-100 hover:shadow-md transition cursor-pointer"
+                            onClick={() => navigate('/announcements')}
+                          >
+                            <div className="text-sm font-semibold text-gray-900 mb-1 line-clamp-1">
+                              {a.title}
+                            </div>
+                            <div className="text-xs text-gray-600 line-clamp-2 mb-2">
+                              {a.content}
+                            </div>
+                            <div className="text-xs text-gray-500">
+                              {a.created_at ? new Date(a.created_at).toLocaleDateString() : '—'}
+                            </div>
                           </div>
-                          <div className="text-xs text-gray-600 line-clamp-2 mb-2">
-                            {a.content}
-                          </div>
-                          <div className="text-xs text-gray-500">
-                            {new Date(a.created_at).toLocaleDateString()}
-                          </div>
-                        </div>
-                      ))}
+                        ))}
+                      </div>
+
                       {announcements.length >= 5 && (
                         <button
                           onClick={() => navigate('/announcements')}
-                          className="w-full text-center text-sm text-blue-600 hover:text-blue-700 font-medium py-2"
+                          className="w-full text-center text-sm text-blue-600 hover:text-blue-700 font-medium pt-3"
                         >
                           View All Announcements →
                         </button>
                       )}
-                    </div>
+                    </>
                   )}
                 </div>
               </aside>
