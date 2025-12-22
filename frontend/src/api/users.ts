@@ -10,13 +10,16 @@ export interface User {
     is_confirmed: boolean; // New: Instructor confirmation status
     is_banned_from_comments: boolean;
     avatar_url?: string | null;
+    avatar?: string,
 }
 
 export interface UserAnalytics {
     totalUsers: number;
+    totalLearners: number;
+    totalInstructors: number,
     activeUsers: number;
-    unconfirmedInstructors: number;
     bannedUsers: number;
+    pendingApplications: number,
 }
 
 export interface CreateUserPayload {

@@ -9,6 +9,8 @@ export interface DashboardAnalytics {
     totalAnnouncements: number;
     recentAnnouncements: number; 
 
+    pendingApplications: number;
+
     wsConnectedClients: number;       
     authFailureRate: number;         
     apiErrorRate: number;            
@@ -28,10 +30,14 @@ export async function getDashboardAnalytics(): Promise<DashboardAnalytics> {
         // Validate and normalize the incoming data structure
         return {
             totalUsers: data.totalUsers || 0,
-            totalInstructors: data.totalInstructors || 0,
             totalLearners: data.totalLearners || 0,
+            totalInstructors: data.totalInstructors || 0,
+            
+            pendingApplications: data.pendingApplications || 0,
+
             totalAnnouncements: data.totalAnnouncements || 0,
             recentAnnouncements: data.recentAnnouncements || 0,
+
             wsConnectedClients: data.wsConnectedClients || 0,
             authFailureRate: data.authFailureRate || 0,           
             apiErrorRate: data.apiErrorRate || 0,              
@@ -44,8 +50,12 @@ export async function getDashboardAnalytics(): Promise<DashboardAnalytics> {
             totalUsers: 0,
             totalInstructors: 0,
             totalLearners: 0,
+
+            pendingApplications: 0,
+
             totalAnnouncements: 0,
             recentAnnouncements: 0,
+
             wsConnectedClients: 0,
             authFailureRate: 0,           
             apiErrorRate: 0,              

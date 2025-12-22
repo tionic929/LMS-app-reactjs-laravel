@@ -11,10 +11,10 @@ const Login: React.FC = () => {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [remember, setRemember] = useState(false)
-  const [isLoading, setIsLoading] = useState(false) // Added loading state
+  const [isLoading, setIsLoading] = useState(false)
 
-  const { login } = useAuth(); // <-- Integrated Logic
-  const navigate = useNavigate(); // Make sure to call inside component
+  const { login } = useAuth();
+  const navigate = useNavigate();
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -23,10 +23,7 @@ const Login: React.FC = () => {
 
     try {
       await login(email, password); 
-      // Login successful → redirect to dashboard
-      navigate("/dashboard");
     } catch (err: any) {
-      // Backend returns 403 for pre-instructor pending
       if (err.response?.status === 403) {
         toast.warning(err.response.data.message || "Your instructor application is pending approval.");
         navigate("/pending");
@@ -42,10 +39,6 @@ const Login: React.FC = () => {
 
   return (
     <>
-        {/*
-            This style block ensures the 'animate-spin' utility works for the loader icon,
-            in case the environment doesn't load default Tailwind keyframes.
-        */}
         <style>
             {`
                 @keyframes spin {

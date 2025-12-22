@@ -1,7 +1,4 @@
-// ../api/auth.ts
-
 import api from "./axios";
-// Remove any imports for React Hooks (useCallback, useNavigate)
 
 export const login = async (email: string, password: string) => {
   // 1. Get the CSRF cookie (required for Sanctum when using an SPA)

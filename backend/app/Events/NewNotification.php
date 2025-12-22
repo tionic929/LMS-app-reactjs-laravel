@@ -6,6 +6,7 @@ use Illuminate\Broadcasting\Channel;
 use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
 use Illuminate\Queue\SerializesModels;
+use App\Models\Notification;
 use Illuminate\Broadcasting\PrivateChannel; // Use PrivateChannel for role.{roleName}
 
 class NewNotification implements ShouldBroadcast
@@ -14,7 +15,7 @@ class NewNotification implements ShouldBroadcast
 
     public $notification;
 
-    public function __construct($notification)
+    public function __construct(Notification $notification)
     {
         $this->notification = $notification;
     }

@@ -28,43 +28,58 @@ class ProcessUserActivity implements ShouldQueue
         try {
             $user = $event->user;
 
-            // 1️⃣ Compose a unified message
-            $message = "Audit: User {$user->name} ({$user->role}) just: {$event->activity}";
+            $message = "{$event->activity}";
+            Log::info("[ProcessUserActivity] START for user ID {$user->id} - Message: {$message}");
 
-            Log::info("ProcessUserActivity: START for user ID {$user->id} - Message: {$message}");
-
-            // 2️⃣ Store in Activity Log
-            ActivityLog::create([
+            $activityLog = ActivityLog::create([
                 'user_id' => $user->id,
-                'activity' => $message,  // link message directly
+                'activity' => $message,
                 'route' => $event->route,
             ]);
-            Log::info("ProcessUserActivity: ActivityLog created successfully.");
 
-            // 3️⃣ Create notification for admins
-            if ($user->role == 'admin') {
-                $this->notificationService->send(
-                    'role',          // Target type
-                    'admin',         // Target role
-                    $message,        // Use same message
-                    'info',          // Type
-                    $event->route    // Link
-                );
-                Log::info("ProcessUserActivity: Notification created and broadcasted successfully.");
-            } else {
-                Log::info("ProcessUserActivity: Notification skipped for admin user.");
+            Log::info("[ProcessUserActivity] ActivityLog created", [
+                'activity_log_id' => $activityLog->id,
+                'user_id' => $user->id,
+                'activity' => $activityLog->activity,
+            ]);
+
+            // 2️⃣ Check activity log object
+            if (!$activityLog || !$activityLog->id) {
+                Log::error("[ProcessUserActivity] ActivityLog creation failed, ID missing!", [
+                    'activity_log' => $activityLog
+                ]);
+                return;
             }
 
-            Log::info("ProcessUserActivity: FINISHED handling event.");
+            if ($user->role === 'admin') {
+                Log::info("[ProcessUserActivity] Sending notification for admin role...");
+                $notification = $this->notificationService->send(
+                    'role',          // Target type
+                    'admin',         // Target role
+                    $message,        // Message
+                    'info',          // Type
+                    $event->route,   // Link
+                    $activityLog->id     // Pass activity log object
+                );
+
+                Log::info("[ProcessUserActivity] Notification created successfully", [
+                    'notification_id' => $notification->id ?? null,
+                    'activity_log_id' => $activityLog->id,
+                ]);
+            } else {
+                Log::info("[ProcessUserActivity] Notification skipped for non-admin user");
+            }
+
+            Log::info("[ProcessUserActivity] FINISHED handling event");
 
         } catch (\Exception $e) {
-            Log::error("ProcessUserActivity: ERROR", [
+            Log::error("[ProcessUserActivity] ERROR handling event", [
                 'user_id' => $event->user->id,
                 'message' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
             ]);
 
-            throw $e; // ensure job fails and errors are visible
+            throw $e; // Ensure job fails and errors are visible
         }
     }
 }

@@ -64,17 +64,23 @@ class UsersController extends Controller
         $userAnalytics = DB::table('users')
             ->select(
                 DB::raw('COUNT(*) as totalUsers'),
-                DB::raw('SUM(CASE WHEN role = "instructor" THEN 1 ELSE 0 END) as totalInstructors'),
                 DB::raw('SUM(CASE WHEN role = "learner" THEN 1 ELSE 0 END) as totalLearners'),
                 DB::raw('SUM(CASE WHEN is_enabled = TRUE AND is_banned_from_comments = FALSE THEN 1 ELSE 0 END) as activeUsers'),
                 DB::raw('SUM(CASE WHEN role = "instructor" AND is_confirmed = FALSE THEN 1 ELSE 0 END) as unconfirmedInstructors'),
                 DB::raw('SUM(CASE WHEN is_banned_from_comments = TRUE THEN 1 ELSE 0 END) as bannedUsers')
             )
             ->first(); // Get the single row of results
+        $instructorAnalytics = DB::table('instructor_applications')
+            ->select(
+                DB::raw('SUM(CASE WHEN status = "pending" THEN 1 ELSE 0 END) as pendingApplications'),
+                DB::raw('SUM(CASE WHEN status = "approved" THEN 1 ELSE 0 END) as totalInstructors')
+            )
+            ->first();
 
         // Combine results, spread them and return
         return response()->json([
             ... (array) $userAnalytics,
+            ... (array) $instructorAnalytics,
             'totalAnnouncements' => $totalAnnouncements,
         ]);
     }

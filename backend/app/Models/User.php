@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class User extends Authenticatable
 {
@@ -30,14 +32,25 @@ class User extends Authenticatable
 
     protected $appends = ['avatar_url'];
 
+    /**
+     * Get the avatar URL.
+     * Logic: If it's a full URL (from seeder), return it.
+     * If it's a local path (uploaded), return the storage URL.
+     */
     public function getAvatarUrlAttribute()
     {
         if (!$this->avatar) {
             return null;
         }
-        // Return absolute URL so frontend can load across origins
-        $relative = \Illuminate\Support\Facades\Storage::url($this->avatar); // e.g. /storage/avatars/xyz.jpg
-        return url($relative);
+
+        // 1. Check if the avatar is an external URL (starts with http or https)
+        if (Str::startsWith($this->avatar, ['http://', 'https://'])) {
+            return $this->avatar;
+        }
+
+        // 2. Otherwise, treat it as a local file in storage
+        // This generates: http://localhost:8000/storage/avatars/image.jpg
+        return asset(Storage::url($this->avatar));
     }
 
     // Relationships
@@ -66,8 +79,9 @@ class User extends Authenticatable
         return $this->role === $role;
     }
 
-    public function notifications(): hasMany
+    public function notifications()
     {
+        // Added missing import or used fully qualified name if needed
         return $this->hasMany(Notification::class)->latest();
     }
 }

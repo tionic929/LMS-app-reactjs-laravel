@@ -5,58 +5,52 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\NotificationRead;
 use Illuminate\Support\Facades\Auth;
-use App\Services\NotificationService;
 
 class NotificationController extends Controller
 {
-
-    public function test(Request $request)
-    {
-        // Default to User 1 if no ID is provided in the URL
-        $targetUserId = $request->input('id', 1); 
-        
-        $notify = new NotificationService;
-        
-        // Send to the specific user ID
-        $notify->send(
-            "user", 
-            $targetUserId, 
-            "This is a test notification from Postman at " . now()->toTimeString(), 
-            "success"
-        );
-
-        return response()->json([
-            "sent" => true, 
-            "target_user" => $targetUserId,
-            "message" => "Check your frontend bell icon!"
-        ]);
-    }
-
     public function index()
     {
         $userId = Auth::id();
 
-        // Fetch notifications assigned to this user via the pivot/read table
-        // We join with the main 'notifications' table to get the message/type  
         $notifications = NotificationRead::where('user_id', $userId)
-            ->with('notification') // Assuming you have this relationship defined
-            ->where('is_read', false) // Optional: only show unread
+            ->with('notification.activityLog.user') // important chain
+            ->where('is_read', false)
             ->orderBy('created_at', 'desc')
             ->limit(20)
             ->get()
             ->map(function ($read) {
-                // Flatten the structure for the frontend
+                $notification = $read->notification;
+                $user = $notification->activityLog->user ?? null; // <-- here
+
                 return [
-                    'id' => $read->notification->id,
+                    'id' => $notification->id,
                     'read_id' => $read->id,
-                    'message' => $read->notification->message,
-                    'type' => $read->notification->type,
-                    'created_at' => $read->notification->created_at,
-                    'is_read' => $read->is_read
+                    'message' => $notification->message,
+                    'type' => $notification->type,
+                    'created_at' => $notification->created_at,
+                    'is_read' => $read->is_read,
+                    'user' => $user ? [
+                        'id' => $user->id,
+                        'name' => $user->name,
+                        'avatar_url' => $user->avatar_url ?? $this->generateAvatar($user->name),
+                    ] : [
+                        'id' => null,
+                        'name' => 'System',
+                        'avatar_url' => $this->generateAvatar('System'),
+                    ],
                 ];
             });
 
         return response()->json($notifications);
+    }
+
+    /**
+     * Helper to generate default avatar URL using initials.
+     */
+    private function generateAvatar(string $name): string
+    {
+        $encodedName = urlencode($name);
+        return "https://ui-avatars.com/api/?name={$encodedName}&background=cbd5e1&color=475569";
     }
 
     public function markAsRead($id)
@@ -70,5 +64,24 @@ class NotificationController extends Controller
         }
 
         return response()->json(['success' => true]);
+    }
+
+    public function clearAll()
+    {
+        $userId = Auth::id();
+        
+        if (!$userId) {
+            return response()->json(['success' => false, 'message' => 'Unauthenticated.'], 401);
+        }
+
+        $updatedCount = NotificationRead::where('user_id', $userId)
+                                        ->where('is_read', false)
+                                        ->update(['is_read' => true]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'All unread notifications marked as read.',
+            'count' => $updatedCount
+        ]);
     }
 }

@@ -15,13 +15,21 @@ import AccountUpdate from "./pages/Account/Update";
 import RegisterInstructor from "./pages/auth/registerInstructor";
 import ForgotPassword from "./pages/auth/forgotPassword";
 import ResetPassword from "./pages/auth/resetPassword";
-import InstructorApplications from "./pages/Admin/Instructors/Index";
+import InstructorApplications from "./pages/Admin/Instructors/instructorApplications";
+import InstructorIndex from "./pages/Admin/Instructors/instructorIndex";
 import PendingApproval from "./pages/auth/pendingApproval";
 import { ToastContainer } from "react-toastify";
 import 'react-toastify/dist/ReactToastify.css';
 import Home from "./pages/Home";
 // import NotificationComponent from './components/NotificationComponent';
 import { MdMenu } from "react-icons/md";
+import AdminDashboard from "./pages/Admin/Dashboard/adminDashboard";
+// import InstructorDashboard from "./pages/Instructor/Dashboard/dashboard";
+// import LearnerDashboard from "./pages/Learner/Dashboard/dashboard";
+
+import AuditLogs from './pages/Admin/History/AuditLogs';
+import NetworkLogs from './pages/Admin/History/NetworkLogs';
+import SystemLogs from './pages/Admin/History/SystemLogs';
 
 const RoleGuard = ({ children, allowedRoles }: { children: React.ReactNode; allowedRoles: ('admin' | 'instructor' | 'learner')[] }) => {
   const { user } = useAuth();
@@ -51,12 +59,7 @@ const App: React.FC = () => {
 
   return (
     <div className="h-screen flex relative bg-gray-100">
-        {/* BACKUP */}
-{/*       { user && ( */}
-{/*       <NotificationComponent userId={user.id} userRole={user.role} /> */}
-{/*       )} */}
-
-      <ToastContainer position="top-right" />
+      <ToastContainer position="top-center" />
 
       {user && (
         <Sidebar
@@ -95,10 +98,20 @@ const App: React.FC = () => {
             <Route path="/reset-password/:token" element={user ? <Navigate to="/dashboard" replace /> : <ResetPassword />} />
             <Route path="/pending" element={user ? <Navigate to="/dashboard" replace /> : <PendingApproval />} />
 
-            <Route element={<ProtectedRoute />}>
-              <Route path="/dashboard" element={<RoleGuard allowedRoles={['admin','instructor','learner']}><Dashboard /></RoleGuard>} />
+            <Route element={<ProtectedRoute />}>        
+               {/* History Paths  */}
+              <Route path="/logs/audit" element={<RoleGuard allowedRoles={['admin']}><AuditLogs /></RoleGuard>} />
+              <Route path="/logs/system" element={<RoleGuard allowedRoles={['admin']}><SystemLogs /></RoleGuard>} />
+              <Route path="/logs/network" element={<RoleGuard allowedRoles={['admin']}><NetworkLogs /></RoleGuard>} />
+
+               {/* Dashboards  */}
+              <Route path="/instructor/dashboard" element={<RoleGuard allowedRoles={['instructor']}><Dashboard /></RoleGuard>} />
+              <Route path="/admin/dashboard" element={<RoleGuard allowedRoles={['admin']}><AdminDashboard /></RoleGuard>} />
+              <Route path="/learner/dashboard" element={<RoleGuard allowedRoles={['learner']}><Dashboard /></RoleGuard>} />
+
               <Route path="/users" element={<RoleGuard allowedRoles={['admin']}><UsersIndex /></RoleGuard>} />
               <Route path="/instructor-applications" element={<RoleGuard allowedRoles={['admin']}><InstructorApplications /></RoleGuard>} />
+              <Route path="/instructors" element={<RoleGuard allowedRoles={['admin']}><InstructorIndex /></RoleGuard>} />
               <Route path="/announcements" element={<RoleGuard allowedRoles={['admin','instructor','learner']}><Announcements /></RoleGuard>} />
               <Route path="/courses" element={<RoleGuard allowedRoles={['admin','instructor','learner']}><Courses /></RoleGuard>} />
               <Route path="/courses/:id" element={<RoleGuard allowedRoles={['admin','instructor','learner']}><CourseDetails /></RoleGuard>} />

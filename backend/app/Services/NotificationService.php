@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Notification;
 use App\Models\NotificationRead;
 use App\Events\NewNotification;
+use App\Models\ActivityLog;
 use Illuminate\Support\Facades\DB;  
 use Illuminate\Support\Facades\Log; 
 
@@ -20,7 +21,7 @@ class NotificationService
      * @param string|null $link
      * @return Notification
      */
-    public function send(string $targetType, $targetId, string $message, string $type = 'info', string $link = null)
+    public function send(string $targetType, $targetId, string $message, string $type = 'info', string $link = null, int $activityLogId = null)
     {
         try {
             // Determine notifiable_id for DB
@@ -31,6 +32,7 @@ class NotificationService
 
             // 1. Save notification in DB
             $notification = Notification::create([
+                'activity_log_id' => $activityLogId, // <--- link it here
                 'notifiable_type' => $targetType,
                 'notifiable_id'   => $notifiableIdForDB,
                 'message'         => $message,
@@ -47,14 +49,15 @@ class NotificationService
                     'is_read' => false,
                 ]);
             }
-
+            // Eager load relationships
+            
             if ($targetType === 'role') {
                 $users = DB::table('users')->where('role', $targetId)->pluck('id');
-
+                
                 if ($users->isEmpty()) {
                     Log::warning("NotificationService: No users found for role: {$targetId}");
                 }
-
+                
                 foreach ($users as $uid) {
                     NotificationRead::create([
                         'user_id' => $uid,
@@ -63,7 +66,7 @@ class NotificationService
                     ]);
                 }
             }
-
+            
             if ($targetType === 'public') {
                 $users = DB::table('users')->pluck('id');
                 foreach ($users as $uid) {
@@ -74,12 +77,13 @@ class NotificationService
                     ]);
                 }
             }
-
+            
+            $notification->load('activityLog.user');
             // 3. Dispatch broadcast/event
-            event(new NewNotification($message, $targetType, $targetId));
-
+            event(new NewNotification($notification->load('activityLog.user')));
+            
             return $notification;
-
+            
         } catch (\Exception $e) {
             Log::error("NotificationService Error:", [
                 'error' => $e->getMessage(),

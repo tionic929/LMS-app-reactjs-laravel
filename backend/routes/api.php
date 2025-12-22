@@ -12,13 +12,15 @@ use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\InstructorApplicationController;
 use App\Http\Controllers\ForgotPasswordController;
 use App\Http\Controllers\Auth\EmailVerificationController;
+use App\Http\Controllers\LearnersController;
 
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/notifications/{id}/read', [NotificationController::class, 'markAsRead']);
 });
-
+Route::post('/notifications/clear-all', [NotificationController::class, 'clearAll']);
 Route::get('/notifications', [NotificationController::class, 'index']);
+
 Route::get('/test-notification', [NotificationController::class, 'test']);
 
 Route::resource('courses', CourseController::class);
@@ -71,6 +73,9 @@ Route::post('/send-email-verification-code', [EmailVerificationController::class
 
 Route::middleware(['auth:sanctum'])->group(function () {
     // THESE ROUTES WILL WORK because the client is now sending the token
+    Route::get('/instructors/analytics/applications-rates', [InstructorApplicationController::class, 'getApplicationRates']);
+    Route::get('/instructor/analytics', [InstructorApplicationController::class, 'getInstructorAnalytics']);
+    Route::get('/learners/registration-trend', [LearnersController::class, 'getRegistrationTrend']);
     Route::get('/users/analytics', [UsersController::class, 'getUsersAnalytics']);
     Route::get('/users', [UsersController::class, 'getPaginatedUsers']);
     Route::get('/user', [AuthController::class, 'user']);
@@ -98,9 +103,10 @@ Route::resource('announcements', AnnouncementController::class);
 
 Route::get('/instructor-applications', [InstructorApplicationController::class, 'index']);
 Route::middleware(['auth:sanctum'])->group(function () {
-
+    
+    Route::get('/instructor/pending-applications', [InstructorApplicationController::class, 'getPendingApplication']);
     Route::get('/instructor-applications/{id}', [InstructorApplicationController::class, 'show']);
-
+    
     Route::post('/instructor-applications/{id}/approve', [InstructorApplicationController::class, 'approve']);
     Route::post('/instructor-applications/{id}/reject', [InstructorApplicationController::class, 'reject']);
 });

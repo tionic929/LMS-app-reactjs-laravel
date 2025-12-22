@@ -2,7 +2,14 @@
 export default {
   content: ["./index.html","./src/**/*.{js,ts,jsx,tsx}"],
   theme: {
-    extend: {},
+    extend: {
+      boxShadow: {
+        'inner-md': 'inset 0 4px 12px rgba(0, 0, 0, 0.1)',
+      },
+      colors: {
+        brown: '#A52A2A',
+      },
+    },
   },
   plugins: [],
 }

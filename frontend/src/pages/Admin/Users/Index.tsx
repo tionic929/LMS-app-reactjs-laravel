@@ -3,7 +3,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { MdDeleteForever, MdEdit, MdRemoveRedEye } from "react-icons/md";
 import { TbPhotoOff } from "react-icons/tb";
-// NOTE: FaRegBan is not available, using FaBan for both states.
 import { FaBan, FaCheckCircle, FaToggleOn, FaToggleOff, FaRegCheckCircle, FaUser, FaUsers, FaGraduationCap } from "react-icons/fa"; 
 import { HiBadgeCheck } from "react-icons/hi";
 import { deleteUser, getAllUsers, toggleUserField, getUsersAnalytics, deleteUserAvatar, type User, type UserAnalytics } from "../../../api/users"; 
@@ -11,12 +10,9 @@ import AddUserModal from "../../../components/modals/AddUserModal";
 import EditUserModal from "../../../components/modals/EditUserModal";
 import ViewUserModal from "../../../components/modals/ViewUserModal";
 
-// --- START: Helper Functions and Components ---
-
 const roleLabel = (r: User["role"]) =>
     r === "instructor" ? "Instructor" : r === "learner" ? "Learner" : "Admin";
 
-// Function to determine the user's primary status label and color
 const getUserStatusLabel = (user: User) => {
     let label: string;
     let colorClass: string;
@@ -34,7 +30,6 @@ const getUserStatusLabel = (user: User) => {
     return { label, colorClass };
 };
 
-// Helper component for Metric Cards (for the Analytics section)
 interface MetricCardProps {
     icon: React.ElementType;
     title: string;
@@ -94,7 +89,9 @@ const UsersIndex: React.FC = () => {
     const [analytics, setAnalytics] = useState<UserAnalytics>({
         totalUsers: 0,
         activeUsers: 0,
-        unconfirmedInstructors: 0,
+        totalInstructors: 0,
+        totalLearners: 0,
+        pendingApplications: 0,
         bannedUsers: 0,
     });
 
@@ -225,15 +222,15 @@ const UsersIndex: React.FC = () => {
             <div className="mx-auto py-8 px-4 sm:px-6 lg:px-8">
 
                 {/* Header and Main Action */}
-                                <header className="mb-8 flex items-center justify-between">
+                <header className="mb-8 flex items-center justify-between">
                     <div>
-                                                <div className="flex items-center gap-2">
-                                                    <h1 className="text-3xl font-semibold text-gray-900">User Management</h1>
-                                                    <span className="inline-flex items-center rounded-full bg-indigo-50 text-indigo-600 px-2 py-0.5 text-xs font-semibold border border-indigo-100">
-                                                        <HiBadgeCheck className="w-4 h-4 mr-1"/> Admin Panel
-                                                    </span>
-                                                </div>
-                                                <p className="text-sm text-gray-500 mt-1">Overview and control panel for all system users.</p>
+                        <div className="flex items-center gap-2">
+                            <h1 className="text-3xl font-semibold text-gray-900">User Management</h1>
+                            <span className="inline-flex items-center rounded-full bg-indigo-50 text-indigo-600 px-2 py-0.5 text-xs font-semibold border border-indigo-100">
+                                <HiBadgeCheck className="w-4 h-4 mr-1"/> Admin Panel
+                            </span>
+                        </div>
+                        <p className="text-sm text-gray-500 mt-1">Overview and control panel for all system users.</p>
                     </div>
                     <button
                         onClick={() => setIsAddModalOpen(true)}
@@ -265,7 +262,7 @@ const UsersIndex: React.FC = () => {
                             <MetricCard 
                                 icon={FaGraduationCap} 
                                 title="Pending Instructors" 
-                                value={analytics.unconfirmedInstructors.toLocaleString()} 
+                                value={analytics.pendingApplications.toLocaleString()} 
                                 color="bg-amber-500"
                             />
 

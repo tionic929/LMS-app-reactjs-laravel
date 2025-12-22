@@ -14,4 +14,9 @@ class ActivityLog extends Model
     {
         return $this->belongsTo(User::class);
     }
+     
+    public function notification()
+    {
+        return $this->hasOne(Notification::class, 'activity_log_id');
+    }
 }

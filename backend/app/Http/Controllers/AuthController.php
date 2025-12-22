@@ -14,59 +14,78 @@ use App\Events\UserActivityEvent;
 use Illuminate\Support\Facades\Log;
 use App\Models\InstructorApplication;
 use App\Models\InstructorProfile;
+use Illuminate\Support\Facades\Storage;
 
 class AuthController extends Controller
 {
-    public function register(Request $request){
+    public function register(Request $request)
+    {
+        Log::info('Registration attempt started.', [
+            'email' => $request->email,
+            'role' => $request->role,
+            'has_avatar' => $request->hasFile('avatarFile'),
+            'has_resume' => $request->hasFile('resumeFile'),
+            'all_inputs' => $request->except(['password', 'passwordConfirmation'])
+        ]);
+
         $baseRules = [
             'email' => ['required', 'email', 'unique:users'],
-            'password' => 'required|min:1', 
+            'password' => 'required|min:1',
             'passwordConfirmation' => 'required|same:password',
             'role' => ['required', Rule::in(['learner', 'instructor'])],
-
             'firstName' => 'required|string|max:50',
             'middleInitial' => 'nullable|string|max:1',
             'lastName' => 'required|string|max:50',
-            'dateOfBirth' => 'required|date|before:today', 
+            'dateOfBirth' => 'required|date|before:today',
             'phoneNumber' => 'required|string|max:20',
             'address' => 'required|string|max:255',
+            // 'avatarFile' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
+            'avatarFile' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:5120',
+
+            // 'resumeFile' => 'nullable|mimes:pdf,doc,docx|max:5120', // Added resume validation
         ];
 
-        // 2. DEFINE CONDITIONAL RULES
         $conditionalRules = [];
+        
+        try {
+            $credentials = $request->validate(array_merge($baseRules, $conditionalRules));
+            Log::info('Validation passed for user: ' . $credentials['email']);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            Log::error('Validation failed.', ['errors' => $e->errors()]);
+            throw $e;
+        }
 
-        // if($request->role == 'learner'){
-        //     $conditionalRules =[
-        //         // 'gradeLevel' => 'required|integer|min:1',
-        //         // 'section' => 'required|string|max:50',
-        //     ];
-        // } elseif($request->role == 'instructor'){
-        //     $conditionalRules = [
-        //         // 'department' => 'required|string|max:100',
-        //         // 'specialization' => 'required|string|max:100',
-        //     ];
-        // }
-
-        // 3. MERGE ALL RULES AND VALIDATE ONCE
-        $credentials = $request->validate(array_merge($baseRules, $conditionalRules));
-
-        try{
-            // Since all data is in $credentials, we only need to pass $credentials.
-            $user = DB::transaction(function() use ($credentials){
+        try {
+            $user = DB::transaction(function () use ($request, $credentials) {
                 
-                // Use validated data for full name construction
+                // --- FILE HANDLING ---
+                $avatarPath = null;
+                if ($request->hasFile('avatarFile')) {
+                    $avatarPath = $request->file('avatarFile')->store('avatars', 'public');
+                    Log::info('Avatar uploaded successfully.', ['path' => $avatarPath]);
+                }
+
+                $resumePath = null;
+                if ($request->hasFile('resumeFile')) {
+                    $resumePath = $request->file('resumeFile')->store('resumes', 'public');
+                    Log::info('Resume uploaded successfully.', ['path' => $resumePath]);
+                }
+                // --- DATA FORMATTING ---
                 $middleInitialFormatted = $credentials['middleInitial'] ? $credentials['middleInitial'] . '.' : '';
                 $fullName = trim("{$credentials['firstName']} {$middleInitialFormatted} {$credentials['lastName']}");
 
-                // 1. CREATE USER (User table)
+                // 1. CREATE USER
                 $user = User::create([
                     'name' => $fullName,
                     'email' => $credentials['email'],
                     'password' => Hash::make($credentials['password']),
                     'role' => $credentials['role'],
+                    'avatar' => $avatarPath, 
                 ]);
-                
-                // 2. CONSTRUCT PROFILE DATA (Using SNAKE_CASE keys for the database)
+
+                Log::info('User record created.', ['user_id' => $user->id, 'role' => $user->role]);
+
+                // 2. CONSTRUCT PROFILE DATA
                 $profileData = [
                     'user_id' => $user->id,
                     'first_name' => $credentials['firstName'],
@@ -77,26 +96,28 @@ class AuthController extends Controller
                     'address' => $credentials['address'],
                 ];
 
-
-                // 3. CREATE PROFILE RECORD (Learner or Instructor)
-
-                if($credentials['role'] == 'learner'){
-                    Learner::create(array_merge($profileData));
-                } elseif($credentials['role'] == 'instructor'){
+                // 3. CREATE PROFILE RECORD
+                if ($credentials['role'] == 'learner') {
+                    Learner::create($profileData);
+                    Log::info('Learner profile created.');
+                } elseif ($credentials['role'] == 'instructor') {
                     InstructorApplication::create(array_merge($profileData, [
                         'status' => 'pending',
+                        'resume_path' => $resumePath, // Save the resume path here
                     ]));
+                    Log::info('Instructor application record created.');
                 }
 
                 return $user;
             });
 
-            $message = 'Registration successful.';
+            Log::info('Registration transaction completed successfully.');
 
+            $message = 'Registration successful.';
             if ($user->role === 'instructor') {
                 $message = 'Instructor application received successfully. Your account is pending admin approval.';
             }
-            
+
             return response()->json([
                 'message' => $message,
                 'user' => [
@@ -104,15 +125,19 @@ class AuthController extends Controller
                     'name' => $user->name,
                     'email' => $user->email,
                     'role' => $user->role,
-                    'avatar_url' => $user->avatar ? \Illuminate\Support\Facades\Storage::url($user->avatar) : null,
+                    'avatar' => $user->avatar ? Storage::url($user->avatar) : null,
                 ],
             ], 201);
 
-        } catch(\Exception $e) {
-            Log::error('Registration Error: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
-            
+        } catch (\Exception $e) {
+            Log::error('Registration Error Exception!', [
+                'message' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine()
+            ]);
+
             return response()->json([
-                'message' => 'Registration failed due to a server error. Please try again.',
+                'message' => 'Registration failed due to a server error.',
                 'error' => $e->getMessage()
             ], 500);
         }

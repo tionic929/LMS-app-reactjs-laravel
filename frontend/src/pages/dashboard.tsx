@@ -2,9 +2,6 @@ import React, { createContext, useState, useContext, type ReactNode } from 'reac
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from 'recharts';
 import { Users, BookOpen, Clock, TrendingUp, CheckCircle, Database, Server } from 'lucide-react';
 
-// =========================================================================
-// CRITICAL FIX: Inline Mock Context to resolve compilation error
-// =========================================================================
 type NotificationType = 'success' | 'error' | 'warning' | 'info';
 
 interface Notification {
@@ -179,7 +176,7 @@ const AdminDashboard: React.FC = () => {
               <YAxis yAxisId="left" stroke="#374151" />
               <YAxis yAxisId="right" orientation="right" stroke="#dc2626" label={{ value: 'Avg Score', angle: -90, position: 'insideRight' }}/>
               <Tooltip 
-                contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)' }} 
+                contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)' }}
                 labelStyle={{ fontWeight: 'bold' }}
               />
               <Legend />
